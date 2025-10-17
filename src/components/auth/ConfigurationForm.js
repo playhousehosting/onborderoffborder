@@ -82,18 +82,29 @@ const ConfigurationForm = () => {
         
         localStorage.setItem('demoUser', JSON.stringify(appUser));
         
-        // Dispatch event to AuthContext
+        // Dispatch event to AuthContext and wait for state update
         window.dispatchEvent(new Event('demoModeLogin'));
         
         console.log('✅ Authentication stored, redirecting to dashboard...');
         toast.success('Successfully authenticated! Redirecting to dashboard...');
         
-        // Wait for AuthContext to update, then navigate
-        setTimeout(() => {
+        // Wait for AuthContext to update state via authStateUpdated event
+        const handleAuthStateUpdated = () => {
+          console.log('✅ Auth state updated in context, navigating to dashboard');
           setIsSaving(false);
-          console.log('Navigating to dashboard...');
-          navigate('/dashboard');
-        }, 200);
+          navigate('/dashboard', { replace: true });
+          window.removeEventListener('authStateUpdated', handleAuthStateUpdated);
+        };
+        
+        window.addEventListener('authStateUpdated', handleAuthStateUpdated, { once: true });
+        
+        // Fallback timeout in case event doesn't fire
+        setTimeout(() => {
+          window.removeEventListener('authStateUpdated', handleAuthStateUpdated);
+          console.log('Timeout: Navigating to dashboard anyway');
+          setIsSaving(false);
+          navigate('/dashboard', { replace: true });
+        }, 500);
       } else {
         // OAuth2 mode - requires page reload to reinitialize MSAL
         sessionStorage.setItem('autoLogin', 'true');

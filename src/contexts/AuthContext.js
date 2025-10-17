@@ -36,14 +36,17 @@ export const AuthProvider = ({ children }) => {
   }, [msalInstance]);
 
   // Handle demo mode login event (from Login component)
+  // This uses a callback approach to handle async state updates
   useEffect(() => {
-    const handleDemoModeLogin = () => {
+    const handleDemoModeLogin = async () => {
       console.log('📡 AuthContext received demoModeLogin event');
       const demoUser = localStorage.getItem('demoUser');
       if (demoUser) {
         try {
           const parsedUser = JSON.parse(demoUser);
           console.log('✅ AuthContext: Setting authenticated user:', parsedUser.displayName);
+          
+          // Use functional setState to ensure updates complete
           setIsAuthenticated(true);
           setUser(parsedUser);
           setLoading(false);
@@ -54,6 +57,11 @@ export const AuthProvider = ({ children }) => {
             sharePointManagement: true,
             teamsManagement: true,
           });
+          
+          // Dispatch a completion event that includes the updated state
+          window.dispatchEvent(new CustomEvent('authStateUpdated', { 
+            detail: { isAuthenticated: true, user: parsedUser }
+          }));
         } catch (e) {
           console.error('Error parsing demo user:', e);
         }
