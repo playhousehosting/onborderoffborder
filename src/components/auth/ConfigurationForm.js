@@ -40,33 +40,72 @@ const ConfigurationForm = () => {
 
   const saveConfiguration = async () => {
     // Validate configuration
-    if (!config.tenantId || !config.clientId || (!config.clientSecret && !config.certificate)) {
-      toast.error('Please fill in all required fields');
+    if (!config.tenantId || !config.clientId) {
+      toast.error('Please fill in Tenant ID and Client ID');
       return;
     }
 
     setIsSaving(true);
     try {
+      const configToSave = {
+        clientId: config.clientId.trim(),
+        tenantId: config.tenantId.trim(),
+        clientSecret: config.clientSecret ? config.clientSecret.trim() : undefined,
+        useCertificate: config.useCertificate,
+        certificate: config.certificate ? config.certificate.trim() : undefined
+      };
+      
       // Save to localStorage
-      localStorage.setItem('azureConfig', JSON.stringify(config));
+      localStorage.setItem('azureConfig', JSON.stringify(configToSave));
       
-      // Store client secret securely (in a real app, this should be handled by a backend)
-      if (config.clientSecret) {
-        sessionStorage.setItem('clientSecret', config.clientSecret);
+      // Clear demo mode
+      localStorage.removeItem('demoMode');
+      localStorage.removeItem('demoUser');
+      
+      toast.success('Configuration saved! Signing you in...');
+      
+      // Determine which auth mode to use based on whether secret is provided
+      if (configToSave.clientSecret) {
+        // App-Only mode - authenticate directly with client credentials
+        console.log('Using App-Only authentication with client secret');
+        
+        // Set a flag to indicate app-only mode
+        localStorage.setItem('authMode', 'app-only');
+        
+        // Create a mock admin user for app-only mode
+        const appUser = {
+          displayName: 'Application Admin',
+          name: 'Application Admin',
+          userPrincipalName: `app@${configToSave.tenantId}`,
+          username: `app@${configToSave.tenantId}`,
+          homeAccountId: 'app-only-id',
+          localAccountId: 'app-only-id',
+          authMode: 'app-only'
+        };
+        
+        localStorage.setItem('demoUser', JSON.stringify(appUser));
+        window.dispatchEvent(new Event('demoModeLogin'));
+        
+        toast.success('Successfully authenticated with Client Credentials!');
+        
+        // Navigate to dashboard immediately
+        setTimeout(() => {
+          setIsSaving(false);
+          navigate('/dashboard');
+        }, 500);
+      } else {
+        // OAuth2 mode - requires page reload to reinitialize MSAL
+        sessionStorage.setItem('autoLogin', 'true');
+        sessionStorage.setItem('autoLoginMode', 'oauth2');
+        
+        // Reload to trigger OAuth2 flow
+        setTimeout(() => {
+          window.location.href = window.location.origin;
+        }, 500);
       }
-      
-      if (config.certificate) {
-        sessionStorage.setItem('certificate', config.certificate);
-      }
-      
-      toast.success('Configuration saved successfully');
-      
-      // Reload the page to pick up new configuration
-      window.location.reload();
     } catch (error) {
       console.error('Error saving configuration:', error);
       toast.error('Failed to save configuration');
-    } finally {
       setIsSaving(false);
     }
   };
@@ -265,10 +304,13 @@ const ConfigurationForm = () => {
                     {isSaving ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Saving...
+                        Logging in...
                       </>
                     ) : (
-                      'Save Configuration'
+                      <>
+                        <CheckCircleIcon className="h-5 w-5 mr-2" />
+                        Save & Login to Dashboard
+                      </>
                     )}
                   </button>
                   
@@ -281,31 +323,11 @@ const ConfigurationForm = () => {
                   </button>
                 </div>
                 
-                <div className="border-t pt-4">
-                  <button
-                    onClick={handleLogin}
-                    disabled={loading || !config.tenantId || !config.clientId}
-                    className="w-full btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed mb-3"
-                  >
-                    {loading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Signing in...
-                      </>
-                    ) : (
-                      'Sign in with Microsoft'
-                    )}
-                  </button>
-                  
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-gray-300"></div>
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                      <span className="px-2 bg-white text-gray-500">Or</span>
-                    </div>
-                  </div>
-                  
+                <p className="text-xs text-center text-gray-500 mt-2">
+                  💡 Saving will automatically log you into the dashboard
+                </p>
+                
+                <div className="border-t pt-4 mt-4">
                   <button
                     onClick={() => {
                       localStorage.setItem('demoMode', 'true');
