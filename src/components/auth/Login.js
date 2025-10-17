@@ -124,18 +124,23 @@ const Login = () => {
         
         localStorage.setItem('demoUser', JSON.stringify(appUser));
         
-        // Dispatch event to AuthContext
-        window.dispatchEvent(new Event('demoModeLogin'));
+        console.log('✅ App-Only authentication complete, notifying AuthContext...');
         
-        console.log('✅ App-Only authentication complete, navigating to dashboard...');
+        // Dispatch event to AuthContext BEFORE navigating
+        // This ensures AuthContext updates isAuthenticated flag before ProtectedRoute checks
+        const event = new Event('demoModeLogin');
+        console.log('📡 Dispatching demoModeLogin event');
+        window.dispatchEvent(event);
+        
         toast.success('Successfully authenticated! Redirecting to dashboard...');
         
-        // Wait for AuthContext to update, then navigate
+        // Give AuthContext a moment to update before navigating
+        // Use a smaller timeout since we already have the event
+        setIsSaving(false);
         setTimeout(() => {
-          setIsSaving(false);
           console.log('Calling navigate("/dashboard")');
-          navigate('/dashboard');
-        }, 200);
+          navigate('/dashboard', { replace: true });
+        }, 100);
       } else {
         // OAuth2 mode - requires page reload to reinitialize MSAL
         sessionStorage.setItem('autoLogin', 'true');

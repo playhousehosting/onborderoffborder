@@ -43,7 +43,9 @@ export const resetMsalInstance = () => {
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
+  
+  console.log(`🔒 ProtectedRoute check - isAuthenticated: ${isAuthenticated}, loading: ${loading}, user: ${user?.displayName || 'none'}`);
   
   if (loading) {
     return (
@@ -57,9 +59,11 @@ const ProtectedRoute = ({ children }) => {
   }
   
   if (!isAuthenticated) {
+    console.warn('🚫 ProtectedRoute: Not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
   
+  console.log('✅ ProtectedRoute: Access granted');
   return children;
 };
 

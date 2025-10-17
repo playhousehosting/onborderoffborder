@@ -35,6 +35,35 @@ export const AuthProvider = ({ children }) => {
     }
   }, [msalInstance]);
 
+  // Handle demo mode login event (from Login component)
+  useEffect(() => {
+    const handleDemoModeLogin = () => {
+      console.log('📡 AuthContext received demoModeLogin event');
+      const demoUser = localStorage.getItem('demoUser');
+      if (demoUser) {
+        try {
+          const parsedUser = JSON.parse(demoUser);
+          console.log('✅ AuthContext: Setting authenticated user:', parsedUser.displayName);
+          setIsAuthenticated(true);
+          setUser(parsedUser);
+          setLoading(false);
+          setPermissions({
+            userManagement: true,
+            deviceManagement: true,
+            mailManagement: true,
+            sharePointManagement: true,
+            teamsManagement: true,
+          });
+        } catch (e) {
+          console.error('Error parsing demo user:', e);
+        }
+      }
+    };
+
+    window.addEventListener('demoModeLogin', handleDemoModeLogin);
+    return () => window.removeEventListener('demoModeLogin', handleDemoModeLogin);
+  }, []);
+
   // Check authentication status on mount
   useEffect(() => {
     const checkAuthStatus = async () => {
@@ -45,20 +74,25 @@ export const AuthProvider = ({ children }) => {
         if (isDemoMode()) {
           const demoUser = localStorage.getItem('demoUser');
           if (demoUser) {
-            const parsedUser = JSON.parse(demoUser);
-            setIsAuthenticated(true);
-            setUser(parsedUser);
-            
-            // Set all permissions to true for demo mode
-            setPermissions({
-              userManagement: true,
-              deviceManagement: true,
-              mailManagement: true,
-              sharePointManagement: true,
-              teamsManagement: true,
-            });
-            setLoading(false);
-            return;
+            try {
+              const parsedUser = JSON.parse(demoUser);
+              console.log('✅ AuthContext: Restored demo user from localStorage:', parsedUser.displayName);
+              setIsAuthenticated(true);
+              setUser(parsedUser);
+              
+              // Set all permissions to true for demo mode
+              setPermissions({
+                userManagement: true,
+                deviceManagement: true,
+                mailManagement: true,
+                sharePointManagement: true,
+                teamsManagement: true,
+              });
+              setLoading(false);
+              return;
+            } catch (e) {
+              console.error('Error parsing demo user:', e);
+            }
           }
         }
         
