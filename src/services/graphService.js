@@ -205,6 +205,66 @@ export class GraphService {
     });
   }
 
+  async setUserPassword(userId, newPassword, forceChangePasswordNextSignIn = true) {
+    // In demo mode, just return success
+    if (isDemoMode()) {
+      return Promise.resolve({ success: true });
+    }
+
+    return this.makeRequest(`/users/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        passwordProfile: {
+          password: newPassword,
+          forceChangePasswordNextSignIn: forceChangePasswordNextSignIn,
+        },
+      }),
+    });
+  }
+
+  async sendWelcomeEmail(userId, welcomeMessage, managerEmail) {
+    // In demo mode, just return success
+    if (isDemoMode()) {
+      return Promise.resolve({ success: true });
+    }
+
+    // Get user details for the email
+    const user = await this.getUserById(userId);
+    
+    const emailBody = {
+      message: {
+        subject: 'Welcome to the Team!',
+        body: {
+          contentType: 'HTML',
+          content: `
+            <html>
+              <body>
+                <h2>Welcome ${user.displayName}!</h2>
+                <p>${welcomeMessage}</p>
+                <p>Your account has been set up and is ready to use.</p>
+                <p>If you have any questions, please don't hesitate to reach out${managerEmail ? ` to your manager at ${managerEmail}` : ''}.</p>
+                <br/>
+                <p>Best regards,<br/>The Team</p>
+              </body>
+            </html>
+          `,
+        },
+        toRecipients: [
+          {
+            emailAddress: {
+              address: user.mail || user.userPrincipalName,
+            },
+          },
+        ],
+      },
+    };
+
+    return this.makeRequest(`/users/${userId}/sendMail`, {
+      method: 'POST',
+      body: JSON.stringify(emailBody),
+    });
+  }
+
   async deleteUser(userId) {
     return this.makeRequest(`/users/${userId}`, {
       method: 'DELETE',
