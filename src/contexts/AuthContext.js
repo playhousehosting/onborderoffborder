@@ -98,17 +98,15 @@ export const AuthProvider = ({ children }) => {
 
     checkAuthStatus();
     
-    // Listen for storage changes to detect demo mode login
-    const handleStorageChange = (e) => {
-      if (e.key === 'demoUser' && e.newValue) {
-        window.location.reload();
-      }
+    // Listen for custom demo mode login event
+    const handleDemoLogin = () => {
+      checkAuthStatus();
     };
     
-    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('demoModeLogin', handleDemoLogin);
     
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('demoModeLogin', handleDemoLogin);
     };
   }, [msalInstance]);
 

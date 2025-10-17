@@ -48,6 +48,9 @@ const Login = () => {
   };
 
   const handleDemoLogin = () => {
+    // Enable demo mode
+    localStorage.setItem('demoMode', 'true');
+    
     // Simulate successful login for demo mode
     const mockUser = {
       displayName: 'Demo User',
@@ -61,15 +64,16 @@ const Login = () => {
     // Store mock user in localStorage
     localStorage.setItem('demoUser', JSON.stringify(mockUser));
     
-    // Use navigate instead of direct href change
-    navigate('/dashboard');
+    // Dispatch custom event to notify AuthContext
+    window.dispatchEvent(new Event('demoModeLogin'));
+    
+    // Show success message
     toast.success('Demo mode: Logged in successfully');
     
-    // Force a re-render by triggering a storage event
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: 'demoUser',
-      newValue: JSON.stringify(mockUser)
-    }));
+    // Small delay to let the auth context update
+    setTimeout(() => {
+      navigate('/dashboard');
+    }, 100);
   };
 
   return (
