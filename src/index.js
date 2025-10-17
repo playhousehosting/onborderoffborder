@@ -12,6 +12,21 @@ window.addEventListener('unhandledrejection', (event) => {
   console.error('Unhandled promise rejection:', event.reason);
 });
 
+// Handle manifest.json gracefully (PWA feature, not critical)
+if (document.querySelector('link[rel="manifest"]')) {
+  fetch(`${process.env.PUBLIC_URL || ''}/manifest.json`, {
+    credentials: 'omit',
+    headers: { 'Accept': 'application/manifest+json' }
+  }).catch(err => {
+    console.warn('⚠️ Manifest.json unavailable - PWA features disabled:', err.message);
+    // Remove manifest link to prevent 401 errors in console
+    const manifestLink = document.querySelector('link[rel="manifest"]');
+    if (manifestLink) {
+      manifestLink.remove();
+    }
+  });
+}
+
 // Verify root element exists before trying to render
 const rootElement = document.getElementById('root');
 
