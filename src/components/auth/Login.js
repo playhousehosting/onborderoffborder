@@ -17,6 +17,13 @@ import {
 const Login = () => {
   const { login, loading, error } = useAuth();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [showConfigForm, setShowConfigForm] = useState(false);
+  const [config, setConfig] = useState({
+    clientId: '',
+    tenantId: '',
+    clientSecret: '',
+  });
+  const [isSaving, setIsSaving] = useState(false);
   const navigate = useNavigate();
   
   // Check if we have configuration
@@ -32,6 +39,49 @@ const Login = () => {
   // Check if we're in demo mode
   const demoMode = isDemoMode();
   const isConfigured = hasConfig() || demoMode;
+
+  // Load existing config on mount
+  React.useEffect(() => {
+    try {
+      const existingConfig = JSON.parse(localStorage.getItem('azureConfig') || '{}');
+      setConfig({
+        clientId: existingConfig.clientId || '',
+        tenantId: existingConfig.tenantId || '',
+        clientSecret: existingConfig.clientSecret || '',
+      });
+    } catch (e) {
+      console.error('Error loading config:', e);
+    }
+  }, []);
+
+  const handleConfigChange = (e) => {
+    const { name, value } = e.target;
+    setConfig(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveConfig = async () => {
+    if (!config.clientId || !config.tenantId) {
+      toast.error('Client ID and Tenant ID are required');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      localStorage.setItem('azureConfig', JSON.stringify(config));
+      localStorage.removeItem('demoMode');
+      localStorage.removeItem('demoUser');
+      toast.success('Configuration saved! Please refresh the page to sign in.');
+      setShowConfigForm(false);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      console.error('Error saving config:', error);
+      toast.error('Failed to save configuration');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleLogin = async () => {
     try {
@@ -222,18 +272,103 @@ const Login = () => {
                   )}
                 </button>
                 
-                {/* Configure Azure AD Button */}
+                {/* Configure Azure AD Section */}
                 {!isConfigured && (
-                  <button
-                    onClick={() => navigate('/configure')}
-                    className="w-full flex justify-center items-center py-3 px-4 border-2 border-primary-600 rounded-lg shadow-sm text-sm font-medium text-primary-700 bg-white hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 transform hover:scale-[1.02]"
-                  >
-                    <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    Configure Azure AD
-                  </button>
+                  <div className="border-2 border-primary-200 rounded-lg p-4 bg-primary-50">
+                    <button
+                      onClick={() => setShowConfigForm(!showConfigForm)}
+                      className="w-full flex justify-between items-center text-left"
+                    >
+                      <div className="flex items-center gap-2">
+                        <svg className="h-5 w-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span className="text-sm font-medium text-primary-900">
+                          {showConfigForm ? 'Hide Configuration' : 'Configure Azure AD'}
+                        </span>
+                      </div>
+                      <svg 
+                        className={`h-5 w-5 text-primary-600 transition-transform ${showConfigForm ? 'rotate-180' : ''}`}
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {showConfigForm && (
+                      <div className="mt-4 space-y-4 animate-in">
+                        <div>
+                          <label htmlFor="clientId" className="block text-xs font-medium text-gray-700 mb-1">
+                            Client ID (Application ID) *
+                          </label>
+                          <input
+                            type="text"
+                            id="clientId"
+                            name="clientId"
+                            value={config.clientId}
+                            onChange={handleConfigChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="tenantId" className="block text-xs font-medium text-gray-700 mb-1">
+                            Tenant ID (Directory ID) *
+                          </label>
+                          <input
+                            type="text"
+                            id="tenantId"
+                            name="tenantId"
+                            value={config.tenantId}
+                            onChange={handleConfigChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="clientSecret" className="block text-xs font-medium text-gray-700 mb-1">
+                            Client Secret (Optional)
+                          </label>
+                          <input
+                            type="password"
+                            id="clientSecret"
+                            name="clientSecret"
+                            value={config.clientSecret}
+                            onChange={handleConfigChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            placeholder="Enter client secret"
+                          />
+                        </div>
+
+                        <button
+                          onClick={handleSaveConfig}
+                          disabled={isSaving || !config.clientId || !config.tenantId}
+                          className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {isSaving ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircleIcon className="h-4 w-4 mr-2" />
+                              Save Configuration
+                            </>
+                          )}
+                        </button>
+
+                        <p className="text-xs text-gray-600">
+                          💡 Find these in Azure Portal → App Registrations → Your App
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 )}
                 
                 {/* Show config status */}
