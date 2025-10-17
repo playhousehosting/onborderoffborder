@@ -1,0 +1,197 @@
+require('dotenv').config();
+const express = require('express');
+const session = require('express-session');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const cookieParser = require('cookie-parser');
+const rateLimit = require('express-rate-limit');
+const crypto = require('crypto');
+
+// Routes
+const authRoutes = require('./routes/auth');
+const graphRoutes = require('./routes/graph');
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Generate encryption key if not set (dev only)
+if (!process.env.ENCRYPTION_KEY && process.env.NODE_ENV !== 'production') {
+  console.warn('⚠️  ENCRYPTION_KEY not set. Generating temporary key (DEV ONLY)');
+  process.env.ENCRYPTION_KEY = crypto.randomBytes(32).toString('hex');
+  console.log(`Temporary ENCRYPTION_KEY: ${process.env.ENCRYPTION_KEY}`);
+}
+
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+    },
+  },
+}));
+
+// CORS configuration
+const corsOptions = {
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.'
+});
+app.use('/api/', limiter);
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser());
+
+// Logging
+app.use(morgan('combined'));
+
+// Session configuration
+const sessionConfig = {
+  secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
+  resave: false,
+  saveUninitialized: false,
+  name: 'sessionId',
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    httpOnly: true, // Prevent JavaScript access
+    maxAge: parseInt(process.env.SESSION_MAX_AGE) || 3600000, // 1 hour
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
+  }
+};
+
+// Use Redis for session storage in production
+if (process.env.REDIS_URL) {
+  const RedisStore = require('connect-redis').default;
+  const { createClient } = require('redis');
+  
+  const redisClient = createClient({
+    url: process.env.REDIS_URL
+  });
+  
+  redisClient.connect().catch(console.error);
+  
+  sessionConfig.store = new RedisStore({
+    client: redisClient,
+    prefix: 'sess:'
+  });
+  
+  console.log('✅ Using Redis for session storage');
+}
+
+app.use(session(sessionConfig));
+
+// Trust proxy if behind a reverse proxy (e.g., nginx, Azure App Service)
+if (process.env.TRUST_PROXY === 'true') {
+  app.set('trust proxy', 1);
+}
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/graph', graphRoutes);
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({
+    name: 'Employee Offboarding Portal API',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      graph: '/api/graph'
+    }
+  });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  
+  // Don't expose error details in production
+  const errorResponse = {
+    error: process.env.NODE_ENV === 'production' 
+      ? 'An error occurred' 
+      : err.message,
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
+  };
+  
+  res.status(err.status || 500).json(errorResponse);
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Endpoint not found' });
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`
+╔════════════════════════════════════════════════════════════╗
+║   Employee Offboarding Portal - Secure Backend API        ║
+╠════════════════════════════════════════════════════════════╣
+║   🚀 Server running on port ${PORT.toString().padEnd(27)}║
+║   🌍 Environment: ${(process.env.NODE_ENV || 'development').padEnd(36)}║
+║   🔒 Secure session management enabled                     ║
+║   🔐 Credential encryption active                          ║
+╚════════════════════════════════════════════════════════════╝
+  
+Available endpoints:
+  - GET  /health
+  - GET  /
+  - POST /api/auth/configure
+  - POST /api/auth/validate
+  - POST /api/auth/login-app-only
+  - GET  /api/auth/login-oauth2
+  - GET  /api/auth/callback
+  - GET  /api/auth/session
+  - POST /api/auth/logout
+  - GET  /api/graph/me
+  - GET  /api/graph/users
+  - GET  /api/graph/groups
+  - GET  /api/graph/devices
+  - ALL  /api/graph/proxy/*
+
+Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}
+  `);
+  
+  if (!process.env.SESSION_SECRET) {
+    console.warn('⚠️  WARNING: SESSION_SECRET not set. Using generated secret (not suitable for production)');
+  }
+  
+  if (!process.env.ENCRYPTION_KEY) {
+    console.warn('⚠️  WARNING: ENCRYPTION_KEY not set. Using generated key (not suitable for production)');
+  }
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  app.close(() => {
+    console.log('HTTP server closed');
+  });
+});
+
+module.exports = app;
