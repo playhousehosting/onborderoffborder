@@ -128,13 +128,13 @@ const Login = () => {
         localStorage.setItem('demoUser', JSON.stringify(appUser));
         window.dispatchEvent(new Event('demoModeLogin'));
         
-        toast.success('Successfully authenticated with Client Credentials!');
+        console.log('✅ App-Only authentication complete, navigating to dashboard...');
+        toast.success('Successfully authenticated! Redirecting to dashboard...');
         
-        // Navigate to dashboard after a short delay
-        setTimeout(() => {
-          setIsSaving(false);
-          navigate('/dashboard');
-        }, 500);
+        // Navigate to dashboard immediately - no delay needed
+        setIsSaving(false);
+        console.log('Calling navigate("/dashboard")');
+        navigate('/dashboard');
       } else {
         // OAuth2 mode - requires page reload to reinitialize MSAL
         sessionStorage.setItem('autoLogin', 'true');
