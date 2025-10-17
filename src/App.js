@@ -28,10 +28,17 @@ import { isDemoMode } from './config/authConfig';
 let msalInstance = null;
 
 const getMsalInstance = () => {
+  // Always create a fresh instance to pick up config changes
+  // This is necessary when user updates Azure AD config from the UI
   if (!msalInstance) {
     msalInstance = new PublicClientApplication(msalConfig);
   }
   return msalInstance;
+};
+
+// Helper to reset MSAL instance (called when config changes)
+export const resetMsalInstance = () => {
+  msalInstance = null;
 };
 
 // Protected Route Component

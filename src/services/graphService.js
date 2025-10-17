@@ -89,10 +89,84 @@ const MOCK_DEVICES = [
 export class GraphService {
   constructor() {
     this.baseUrl = 'https://graph.microsoft.com/v1.0';
+    this.maxRetries = 3;
   }
 
-  // Generic method to make Graph API calls
-  async makeRequest(endpoint, options = {}) {
+  /**
+   * Categorize and handle Graph API errors with actionable information
+   * @param {Error} error - The error object
+   * @param {string} operation - Description of the operation that failed
+   * @returns {Object} Structured error information
+   */
+  handleGraphError(error, operation = 'operation') {
+    const errorMessage = error.message || '';
+    
+    if (errorMessage.includes('429')) {
+      return { 
+        type: 'throttling', 
+        message: 'Too many requests. The request will be retried automatically.',
+        retryable: true,
+        statusCode: 429
+      };
+    }
+    if (errorMessage.includes('401')) {
+      return { 
+        type: 'authentication', 
+        message: 'Authentication failed. Please sign in again.',
+        retryable: false,
+        statusCode: 401
+      };
+    }
+    if (errorMessage.includes('403')) {
+      return { 
+        type: 'permission', 
+        message: 'You do not have permission to perform this operation. Please contact your administrator.',
+        retryable: false,
+        statusCode: 403
+      };
+    }
+    if (errorMessage.includes('404')) {
+      return { 
+        type: 'not_found', 
+        message: 'The requested resource was not found.',
+        retryable: false,
+        statusCode: 404
+      };
+    }
+    if (errorMessage.includes('500') || errorMessage.includes('503')) {
+      return { 
+        type: 'server_error', 
+        message: 'The server is experiencing issues. Please try again in a moment.',
+        retryable: true,
+        statusCode: parseInt(errorMessage.match(/\d{3}/)?.[0]) || 500
+      };
+    }
+    if (errorMessage.includes('400')) {
+      return { 
+        type: 'bad_request', 
+        message: 'Invalid request. Please check your input and try again.',
+        retryable: false,
+        statusCode: 400
+      };
+    }
+    
+    return { 
+      type: 'unknown', 
+      message: `Failed to ${operation}. Please try again.`,
+      retryable: true,
+      statusCode: 0,
+      originalError: errorMessage
+    };
+  }
+
+  /**
+   * Generic method to make Graph API calls with retry logic and throttling handling
+   * @param {string} endpoint - The API endpoint (e.g., '/users')
+   * @param {Object} options - Fetch options
+   * @param {number} retryCount - Current retry attempt (internal use)
+   * @returns {Promise} API response
+   */
+  async makeRequest(endpoint, options = {}, retryCount = 0) {
     // Return mock data in demo mode
     if (isDemoMode()) {
       return this._getMockData(endpoint, options);
@@ -111,14 +185,57 @@ export class GraphService {
 
       const response = await fetch(url, { ...defaultOptions, ...options });
       
+      // Handle throttling (429 Too Many Requests)
+      if (response.status === 429 && retryCount < this.maxRetries) {
+        const retryAfter = parseInt(response.headers.get('Retry-After') || '5');
+        console.warn(`Request throttled. Retrying after ${retryAfter} seconds... (Attempt ${retryCount + 1}/${this.maxRetries})`);
+        
+        // Wait for the specified retry period
+        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+        
+        // Retry the request
+        return this.makeRequest(endpoint, options, retryCount + 1);
+      }
+
+      // Handle server errors with exponential backoff
+      if ((response.status === 500 || response.status === 503) && retryCount < this.maxRetries) {
+        const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 10000); // Max 10 seconds
+        console.warn(`Server error (${response.status}). Retrying after ${backoffDelay}ms... (Attempt ${retryCount + 1}/${this.maxRetries})`);
+        
+        await new Promise(resolve => setTimeout(resolve, backoffDelay));
+        return this.makeRequest(endpoint, options, retryCount + 1);
+      }
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Graph API error: ${response.status} - ${errorData.error?.message || response.statusText}`);
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          errorData = { error: { message: response.statusText } };
+        }
+        const error = new Error(`Graph API error: ${response.status} - ${errorData.error?.message || response.statusText}`);
+        error.statusCode = response.status;
+        error.errorData = errorData;
+        throw error;
+      }
+      
+      // Handle empty responses (204 No Content)
+      if (response.status === 204) {
+        return { success: true };
       }
       
       return await response.json();
     } catch (error) {
-      console.error('Graph API request error:', error);
+      const structuredError = this.handleGraphError(error, 'complete the request');
+      console.error('Graph API request error:', {
+        endpoint,
+        error: structuredError,
+        retryCount,
+        originalError: error
+      });
+      
+      // Attach structured error info to the error object
+      error.graphError = structuredError;
       throw error;
     }
   }
@@ -161,6 +278,14 @@ export class GraphService {
   }
 
   // User Management Methods
+  
+  /**
+   * Get users with pagination support
+   * @param {number} top - Number of users per page
+   * @param {number} skip - Number of users to skip
+   * @param {string} filter - OData filter string
+   * @returns {Promise} Response with value array and optional @odata.nextLink
+   */
   async getUsers(top = 25, skip = 0, filter = '') {
     let endpoint = `/users?$top=${top}&$skip=${skip}&$select=id,displayName,userPrincipalName,mail,jobTitle,department,accountEnabled,createdDateTime,lastPasswordChangeDateTime`;
     
@@ -171,8 +296,165 @@ export class GraphService {
     return this.makeRequest(endpoint);
   }
 
+  /**
+   * Get all users by following @odata.nextLink pagination
+   * @param {string} filter - Optional OData filter string
+   * @param {number} pageSize - Number of users per page (default: 100)
+   * @returns {Promise<Array>} All users matching the filter
+   */
+  async getAllUsers(filter = '', pageSize = 100) {
+    const users = [];
+    let endpoint = `/users?$top=${pageSize}&$select=id,displayName,userPrincipalName,mail,jobTitle,department,accountEnabled,createdDateTime,lastPasswordChangeDateTime`;
+    
+    if (filter) {
+      endpoint += `&$filter=${filter}`;
+    }
+    
+    // Follow pagination links
+    while (endpoint) {
+      const response = await this.makeRequest(endpoint.replace(this.baseUrl, ''));
+      
+      if (response.value) {
+        users.push(...response.value);
+      }
+      
+      // Check for next page
+      endpoint = response['@odata.nextLink'] || null;
+      
+      // Log progress for large datasets
+      if (endpoint) {
+        console.log(`Fetched ${users.length} users, loading more...`);
+      }
+    }
+    
+    console.log(`Total users fetched: ${users.length}`);
+    return { value: users, totalCount: users.length };
+  }
+
+  /**
+   * Get paginated users with explicit nextLink handling
+   * @param {string} nextLink - The @odata.nextLink from previous response, or null for first page
+   * @param {number} pageSize - Number of users per page
+   * @param {string} filter - Optional OData filter string
+   * @returns {Promise} Response with value array and @odata.nextLink
+   */
+  async getUsersPage(nextLink = null, pageSize = 25, filter = '') {
+    if (nextLink) {
+      // Use the full nextLink URL
+      return this.makeRequest(nextLink.replace(this.baseUrl, ''));
+    } else {
+      // First page
+      let endpoint = `/users?$top=${pageSize}&$select=id,displayName,userPrincipalName,mail,jobTitle,department,accountEnabled,createdDateTime,lastPasswordChangeDateTime`;
+      
+      if (filter) {
+        endpoint += `&$filter=${filter}`;
+      }
+      
+      return this.makeRequest(endpoint);
+    }
+  }
+
+  /**
+   * Get user by ID
+   */
   async getUserById(userId) {
     return this.makeRequest(`/users/${userId}?$select=id,displayName,userPrincipalName,mail,jobTitle,department,accountEnabled,createdDateTime,lastPasswordChangeDateTime,officeLocation,companyName,mobilePhone,businessPhones`);
+  }
+
+  /**
+   * Get user changes using delta query for efficient synchronization
+   * Use this to track changes instead of repeatedly fetching all users
+   * @param {string} deltaLink - The @odata.deltaLink from previous response, or null for initial sync
+   * @returns {Promise} Response with changes and new deltaLink
+   */
+  async getUsersDelta(deltaLink = null) {
+    if (isDemoMode()) {
+      return { 
+        value: MOCK_USERS, 
+        '@odata.deltaLink': '/users/delta?$deltatoken=demo-delta-token'
+      };
+    }
+
+    const endpoint = deltaLink 
+      ? deltaLink.replace(this.baseUrl, '')
+      : '/users/delta?$select=id,displayName,userPrincipalName,mail,jobTitle,department,accountEnabled,createdDateTime,lastPasswordChangeDateTime';
+    
+    return this.makeRequest(endpoint);
+  }
+
+  /**
+   * Execute multiple Graph API requests in a single batch
+   * Combines up to 20 requests into one HTTP call for better performance
+   * @param {Array} requests - Array of request objects with id, method, url, headers, body
+   * @returns {Promise} Response with array of individual responses
+   * 
+   * Example request format:
+   * {
+   *   id: '1',
+   *   method: 'PATCH',
+   *   url: '/users/userId',
+   *   headers: { 'Content-Type': 'application/json' },
+   *   body: { jobTitle: 'Manager' }
+   * }
+   */
+  async batchRequest(requests) {
+    if (isDemoMode()) {
+      console.log('Demo mode: simulating batch request with', requests.length, 'operations');
+      // Simulate successful batch responses in demo mode
+      return { 
+        responses: requests.map((req, i) => ({ 
+          id: req.id, 
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+          body: { success: true, id: req.id }
+        }))
+      };
+    }
+
+    // Validate batch size (Microsoft Graph limit is 20)
+    if (requests.length > 20) {
+      console.warn(`Batch request has ${requests.length} requests, but limit is 20. Splitting into multiple batches...`);
+      
+      // Split into chunks of 20
+      const batches = [];
+      for (let i = 0; i < requests.length; i += 20) {
+        batches.push(requests.slice(i, i + 20));
+      }
+      
+      // Execute batches sequentially
+      const allResponses = [];
+      for (const batch of batches) {
+        const response = await this.batchRequest(batch);
+        allResponses.push(...response.responses);
+      }
+      
+      return { responses: allResponses };
+    }
+
+    const batchBody = {
+      requests: requests.map(req => ({
+        id: req.id.toString(),
+        method: req.method || 'GET',
+        url: (req.url || '').replace(this.baseUrl, '').replace('https://graph.microsoft.com/v1.0', ''),
+        headers: req.headers || {},
+        body: req.body || undefined
+      }))
+    };
+
+    const response = await this.makeRequest('/$batch', {
+      method: 'POST',
+      body: JSON.stringify(batchBody)
+    });
+
+    // Check for failed requests and log warnings
+    const failedRequests = response.responses?.filter(r => r.status >= 400) || [];
+    if (failedRequests.length > 0) {
+      console.warn(`Batch request completed with ${failedRequests.length} failed operations:`, 
+        failedRequests.map(r => ({ id: r.id, status: r.status, error: r.body?.error?.message }))
+      );
+    }
+
+    return response;
   }
 
   async searchUsers(searchTerm) {

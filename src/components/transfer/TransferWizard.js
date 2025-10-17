@@ -112,6 +112,10 @@ const TransferWizard = () => {
     const results = [];
 
     try {
+      // Build batch requests for efficient execution
+      const batchRequests = [];
+      let requestId = 1;
+
       // 1. Update user profile information
       const updateData = {};
       let hasUpdates = false;
@@ -132,23 +136,75 @@ const TransferWizard = () => {
       }
 
       if (hasUpdates) {
+        batchRequests.push({
+          id: `profile-update-${requestId++}`,
+          method: 'PATCH',
+          url: `/users/${selectedUser.id}`,
+          headers: { 'Content-Type': 'application/json' },
+          body: updateData,
+          action: 'Profile Update',
+          successMessage: `Updated ${Object.keys(updateData).join(', ')}`,
+        });
+      }
+
+      // 2. Update email if requested (separate request)
+      if (transferOptions.updateEmail && transferOptions.newEmailPrefix) {
+        const domain = selectedUser.userPrincipalName.split('@')[1];
+        const newEmail = `${transferOptions.newEmailPrefix}@${domain}`;
+        
+        batchRequests.push({
+          id: `email-update-${requestId++}`,
+          method: 'PATCH',
+          url: `/users/${selectedUser.id}`,
+          headers: { 'Content-Type': 'application/json' },
+          body: { mail: newEmail },
+          action: 'Email Update',
+          successMessage: `Email updated to ${newEmail}`,
+        });
+      }
+
+      // Note: Manager update and notifications need to be done separately
+      // as they may require searching for manager or have dependencies
+      
+      // Execute batch requests if any
+      if (batchRequests.length > 0) {
         try {
-          await graphService.updateUser(selectedUser.id, updateData);
-          results.push({
-            action: 'Profile Update',
-            status: 'success',
-            message: `Updated ${Object.keys(updateData).join(', ')}`,
+          console.log(`Executing ${batchRequests.length} operations in batch request...`);
+          const batchResponse = await graphService.batchRequest(batchRequests);
+          
+          // Process batch responses
+          batchResponse.responses.forEach((response) => {
+            const request = batchRequests.find((r) => r.id === response.id);
+            if (response.status >= 200 && response.status < 300) {
+              results.push({
+                action: request.action,
+                status: 'success',
+                message: request.successMessage,
+              });
+            } else {
+              results.push({
+                action: request.action,
+                status: 'error',
+                message: response.body?.error?.message || `Failed with status ${response.status}`,
+              });
+            }
           });
         } catch (error) {
-          results.push({
-            action: 'Profile Update',
-            status: 'error',
-            message: error.message,
+          console.error('Batch request error:', error);
+          // If batch fails, add error results for all requests
+          batchRequests.forEach((req) => {
+            results.push({
+              action: req.action,
+              status: 'error',
+              message: error.graphError?.message || error.message,
+            });
           });
         }
       }
 
-      // 2. Update manager if specified
+      // Execute operations that can't be batched or need sequential processing
+
+      // 2. Update manager if specified (needs manager search first)
       if (transferOptions.newManager) {
         try {
           await graphService.updateUserManager(selectedUser.id, transferOptions.newManager);
@@ -161,34 +217,12 @@ const TransferWizard = () => {
           results.push({
             action: 'Manager Assignment',
             status: 'error',
-            message: error.message,
+            message: error.graphError?.message || error.message,
           });
         }
       }
 
-      // 3. Update email if requested
-      if (transferOptions.updateEmail && transferOptions.newEmailPrefix) {
-        try {
-          const domain = selectedUser.userPrincipalName.split('@')[1];
-          const newEmail = `${transferOptions.newEmailPrefix}@${domain}`;
-          await graphService.updateUser(selectedUser.id, {
-            mail: newEmail,
-          });
-          results.push({
-            action: 'Email Update',
-            status: 'success',
-            message: `Email updated to ${newEmail}`,
-          });
-        } catch (error) {
-          results.push({
-            action: 'Email Update',
-            status: 'error',
-            message: error.message,
-          });
-        }
-      }
-
-      // 4. Update group memberships
+      // 3. Update group memberships
       if (transferOptions.updateGroups) {
         try {
           // This would require department/role-to-group mapping logic
@@ -201,12 +235,12 @@ const TransferWizard = () => {
           results.push({
             action: 'Group Memberships',
             status: 'error',
-            message: error.message,
+            message: error.graphError?.message || error.message,
           });
         }
       }
 
-      // 5. Send notification to user
+      // 4. Send notification to user
       if (transferOptions.notifyUser) {
         try {
           await graphService.sendTransferNotification(
@@ -223,12 +257,12 @@ const TransferWizard = () => {
           results.push({
             action: 'User Notification',
             status: 'error',
-            message: error.message,
+            message: error.graphError?.message || error.message,
           });
         }
       }
 
-      // 6. Send notification to manager
+      // 5. Send notification to manager
       if (transferOptions.notifyManager && transferOptions.newManager) {
         try {
           await graphService.sendTransferNotification(
@@ -245,17 +279,26 @@ const TransferWizard = () => {
           results.push({
             action: 'Manager Notification',
             status: 'error',
-            message: error.message,
+            message: error.graphError?.message || error.message,
           });
         }
       }
 
       setExecutionResults(results);
       setCurrentStep(4);
-      toast.success('Transfer process completed!');
+      
+      // Check if all operations succeeded
+      const failedOperations = results.filter((r) => r.status === 'error');
+      if (failedOperations.length === 0) {
+        toast.success('Transfer process completed successfully!');
+      } else if (failedOperations.length < results.length) {
+        toast.warning(`Transfer completed with ${failedOperations.length} error(s)`);
+      } else {
+        toast.error('Transfer process failed');
+      }
     } catch (error) {
       console.error('Transfer execution error:', error);
-      toast.error('Transfer process failed');
+      toast.error(error.graphError?.message || 'Transfer process failed');
     } finally {
       setIsExecuting(false);
     }

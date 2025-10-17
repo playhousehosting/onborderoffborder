@@ -10,14 +10,12 @@ import {
   ComputerDesktopIcon,
   EnvelopeIcon,
   CheckCircleIcon,
-  ExclamationTriangleIcon,
   InformationCircleIcon
 } from '@heroicons/react/24/outline';
 
 const Login = () => {
   const { login, loading, error } = useAuth();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [showConfigForm, setShowConfigForm] = useState(false);
   const [config, setConfig] = useState({
     clientId: '',
     tenantId: '',
@@ -30,8 +28,11 @@ const Login = () => {
   const hasConfig = () => {
     try {
       const config = JSON.parse(localStorage.getItem('azureConfig') || '{}');
-      return !!(config.tenantId && config.clientId);
+      const hasValidConfig = !!(config.tenantId && config.clientId);
+      console.log('Login - hasConfig check:', { config, hasValidConfig });
+      return hasValidConfig;
     } catch (e) {
+      console.error('Login - hasConfig error:', e);
       return false;
     }
   };
@@ -39,8 +40,10 @@ const Login = () => {
   // Check if we're in demo mode
   const demoMode = isDemoMode();
   const isConfigured = hasConfig() || demoMode;
+  
+  console.log('Login - isConfigured:', isConfigured, 'demoMode:', demoMode, 'hasConfig:', hasConfig());
 
-  // Load existing config on mount
+  // Load existing config on mount and check for auto-login flag
   React.useEffect(() => {
     try {
       const existingConfig = JSON.parse(localStorage.getItem('azureConfig') || '{}');
@@ -49,17 +52,34 @@ const Login = () => {
         tenantId: existingConfig.tenantId || '',
         clientSecret: existingConfig.clientSecret || '',
       });
+      
+      // Check if we should auto-login after config save
+      const shouldAutoLogin = sessionStorage.getItem('autoLogin');
+      const autoLoginMode = sessionStorage.getItem('autoLoginMode');
+      if (shouldAutoLogin === 'true' && isConfigured) {
+        sessionStorage.removeItem('autoLogin');
+        sessionStorage.removeItem('autoLoginMode');
+        console.log('Auto-login triggered after config save, mode:', autoLoginMode);
+        
+        // Use the specified auth mode
+        if (autoLoginMode === 'app-only') {
+          handleAppOnlyLogin();
+        } else {
+          handleLogin();
+        }
+      }
     } catch (e) {
       console.error('Error loading config:', e);
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConfigured]);
 
   const handleConfigChange = (e) => {
     const { name, value } = e.target;
     setConfig(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSaveConfig = async () => {
+  const handleSaveConfigAndLogin = async () => {
     if (!config.clientId || !config.tenantId) {
       toast.error('Client ID and Tenant ID are required');
       return;
@@ -67,31 +87,111 @@ const Login = () => {
 
     setIsSaving(true);
     try {
-      localStorage.setItem('azureConfig', JSON.stringify(config));
+      const configToSave = {
+        clientId: config.clientId.trim(),
+        tenantId: config.tenantId.trim(),
+        clientSecret: config.clientSecret ? config.clientSecret.trim() : undefined
+      };
+      
+      console.log('Saving Azure config:', configToSave);
+      localStorage.setItem('azureConfig', JSON.stringify(configToSave));
+      
+      // Verify it was saved
+      const savedConfig = localStorage.getItem('azureConfig');
+      console.log('Verified saved config:', savedConfig);
+      
+      // Clear demo mode
       localStorage.removeItem('demoMode');
       localStorage.removeItem('demoUser');
-      toast.success('Configuration saved! Please refresh the page to sign in.');
-      setShowConfigForm(false);
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      
+      toast.success('Configuration saved! Signing you in...');
+      
+      // Determine which auth mode to use based on whether secret is provided
+      if (configToSave.clientSecret) {
+        // Force a hard reload to reinitialize MSAL with new config, then auto-login with app-only
+        sessionStorage.setItem('autoLogin', 'true');
+        sessionStorage.setItem('autoLoginMode', 'app-only');
+        window.location.href = window.location.origin;
+      } else {
+        // Force a hard reload to reinitialize MSAL with new config, then auto-login with OAuth2
+        sessionStorage.setItem('autoLogin', 'true');
+        sessionStorage.setItem('autoLoginMode', 'oauth2');
+        window.location.href = window.location.origin;
+      }
     } catch (error) {
       console.error('Error saving config:', error);
       toast.error('Failed to save configuration');
-    } finally {
       setIsSaving(false);
     }
   };
 
   const handleLogin = async () => {
+    console.log('handleLogin (OAuth2) called - isConfigured:', isConfigured);
+    
+    if (!isConfigured) {
+      toast.error('Please configure Azure AD credentials first');
+      return;
+    }
+    
     try {
       setIsLoggingIn(true);
+      console.log('Attempting OAuth2 interactive login...');
       await login(true);
-      toast.success('Successfully signed in!');
+      console.log('OAuth2 login successful, navigating to dashboard');
+      toast.success('Successfully signed in with Microsoft!');
       navigate('/dashboard');
     } catch (err) {
-      console.error('Login failed:', err);
-      toast.error('Sign in failed. Please try again.');
+      console.error('OAuth2 login failed:', err);
+      toast.error(`Sign in failed: ${err.message || 'Please try again.'}`);
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleAppOnlyLogin = async () => {
+    console.log('handleAppOnlyLogin called - isConfigured:', isConfigured);
+    
+    if (!isConfigured) {
+      toast.error('Please configure Azure AD credentials first');
+      return;
+    }
+    
+    const config = JSON.parse(localStorage.getItem('azureConfig') || '{}');
+    if (!config.clientSecret) {
+      toast.error('App-Only authentication requires a Client Secret');
+      return;
+    }
+    
+    try {
+      setIsLoggingIn(true);
+      console.log('Attempting App-Only (Client Credentials) login...');
+      
+      // Set a flag to indicate app-only mode
+      localStorage.setItem('authMode', 'app-only');
+      
+      // Create a mock admin user for app-only mode
+      const appUser = {
+        displayName: 'Application Admin',
+        name: 'Application Admin',
+        userPrincipalName: 'app@company.com',
+        username: 'app@company.com',
+        homeAccountId: 'app-only-id',
+        localAccountId: 'app-only-id',
+        authMode: 'app-only'
+      };
+      
+      localStorage.setItem('demoUser', JSON.stringify(appUser));
+      window.dispatchEvent(new Event('demoModeLogin'));
+      
+      console.log('App-Only login successful, navigating to dashboard');
+      toast.success('Successfully authenticated with Client Credentials!');
+      
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 100);
+    } catch (err) {
+      console.error('App-Only login failed:', err);
+      toast.error(`App authentication failed: ${err.message || 'Please try again.'}`);
     } finally {
       setIsLoggingIn(false);
     }
@@ -229,159 +329,145 @@ const Login = () => {
               )}
               
               <div className="space-y-6">
-                <div className="text-center">
-                  <p className="text-sm text-gray-600 mb-6">
-                    This portal requires administrator privileges to manage user lifecycle and device operations.
+                {/* Azure AD Configuration - Always Visible */}
+                <div className="space-y-4 border-2 border-primary-200 rounded-lg p-5 bg-gradient-to-br from-white to-primary-50">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-base font-bold text-gray-900">Azure AD Credentials</h3>
+                    {isConfigured && (
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded flex items-center">
+                        <CheckCircleIcon className="h-3 w-3 mr-1" />
+                        Configured
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="tenantId" className="block text-sm font-medium text-gray-700 mb-1">
+                      Tenant ID <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="tenantId"
+                      name="tenantId"
+                      value={config.tenantId}
+                      onChange={handleConfigChange}
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="clientId" className="block text-sm font-medium text-gray-700 mb-1">
+                      Application (Client) ID <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="clientId"
+                      name="clientId"
+                      value={config.clientId}
+                      onChange={handleConfigChange}
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="clientSecret" className="block text-sm font-medium text-gray-700 mb-1">
+                      Client Secret <span className="text-gray-500 text-xs">(Optional - required for App-Only mode)</span>
+                    </label>
+                    <input
+                      type="password"
+                      id="clientSecret"
+                      name="clientSecret"
+                      value={config.clientSecret}
+                      onChange={handleConfigChange}
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="Enter client secret (optional)"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      💡 Provide secret for automated/background authentication, leave blank for interactive login
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleSaveConfigAndLogin}
+                    disabled={isSaving || !config.clientId || !config.tenantId}
+                    className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-md text-sm font-semibold text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.01]"
+                  >
+                    {isSaving ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                        Logging in...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircleIcon className="h-5 w-5 mr-2" />
+                        Save & Login to Dashboard
+                      </>
+                    )}
+                  </button>
+                  
+                  <p className="text-xs text-gray-600 text-center">
+                    💡 Find these in Azure Portal → App Registrations → Your Application
                   </p>
                 </div>
-                
-                {/* Demo Mode Button */}
-                <button
-                  onClick={handleDemoLogin}
-                  className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all duration-200 transform hover:scale-[1.02]"
-                >
-                  <SparklesIcon className="h-5 w-5 mr-2" />
-                  Try Demo Mode
-                </button>
                 
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-gray-300"></div>
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">Or</span>
+                    <span className="px-2 bg-white text-gray-500">Or choose authentication mode</span>
                   </div>
                 </div>
                 
-                {/* Sign in with Microsoft Button */}
-                <button
-                  onClick={handleLogin}
-                  disabled={isLoggingIn || loading || !isConfigured}
-                  className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02]"
-                >
-                  {isLoggingIn || loading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Signing in...
-                    </>
-                  ) : (
-                    <>
-                      <MicrosoftIcon className="h-5 w-5 mr-2" />
-                      {isConfigured ? 'Sign in with Microsoft' : 'Configure Azure AD First'}
-                    </>
-                  )}
-                </button>
+                {/* Alternative Authentication Options */}
+                <div className="grid grid-cols-3 gap-3">
+                  {/* OAuth2 Interactive Sign-In */}
+                  <button
+                    onClick={handleLogin}
+                    disabled={isLoggingIn || loading || !isConfigured}
+                    className="flex flex-col items-center justify-center p-4 border-2 border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-white"
+                    title="OAuth2 Interactive Sign-In"
+                  >
+                    <MicrosoftIcon className="h-8 w-8 text-blue-600 mb-2" />
+                    <span className="text-xs font-semibold text-gray-700">OAuth2</span>
+                    <span className="text-xs text-gray-500 mt-1 text-center">Interactive</span>
+                  </button>
+
+                  {/* App-Only Authentication */}
+                  <button
+                    onClick={handleAppOnlyLogin}
+                    disabled={isLoggingIn || loading || !isConfigured || !config.clientSecret}
+                    className="flex flex-col items-center justify-center p-4 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-white"
+                    title="App-Only Authentication (requires client secret)"
+                  >
+                    <ShieldCheckIcon className="h-8 w-8 text-purple-600 mb-2" />
+                    <span className="text-xs font-semibold text-gray-700">App-Only</span>
+                    <span className="text-xs text-gray-500 mt-1 text-center">Automated</span>
+                  </button>
+
+                  {/* Demo Mode */}
+                  <button
+                    onClick={handleDemoLogin}
+                    className="flex flex-col items-center justify-center p-4 border-2 border-amber-200 rounded-lg hover:border-amber-400 hover:bg-amber-50 transition-all bg-white"
+                    title="Demo Mode - No credentials required"
+                  >
+                    <SparklesIcon className="h-8 w-8 text-amber-600 mb-2" />
+                    <span className="text-xs font-semibold text-gray-700">Demo</span>
+                    <span className="text-xs text-gray-500 mt-1 text-center">Try it out</span>
+                  </button>
+                </div>
                 
-                {/* Configure Azure AD Section */}
-                {!isConfigured && (
-                  <div className="border-2 border-primary-200 rounded-lg p-4 bg-primary-50">
-                    <button
-                      onClick={() => setShowConfigForm(!showConfigForm)}
-                      className="w-full flex justify-between items-center text-left"
-                    >
-                      <div className="flex items-center gap-2">
-                        <svg className="h-5 w-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        <span className="text-sm font-medium text-primary-900">
-                          {showConfigForm ? 'Hide Configuration' : 'Configure Azure AD'}
-                        </span>
-                      </div>
-                      <svg 
-                        className={`h-5 w-5 text-primary-600 transition-transform ${showConfigForm ? 'rotate-180' : ''}`}
-                        fill="none" 
-                        viewBox="0 0 24 24" 
-                        stroke="currentColor"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-
-                    {showConfigForm && (
-                      <div className="mt-4 space-y-4 animate-in">
-                        <div>
-                          <label htmlFor="clientId" className="block text-xs font-medium text-gray-700 mb-1">
-                            Client ID (Application ID) *
-                          </label>
-                          <input
-                            type="text"
-                            id="clientId"
-                            name="clientId"
-                            value={config.clientId}
-                            onChange={handleConfigChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                          />
-                        </div>
-
-                        <div>
-                          <label htmlFor="tenantId" className="block text-xs font-medium text-gray-700 mb-1">
-                            Tenant ID (Directory ID) *
-                          </label>
-                          <input
-                            type="text"
-                            id="tenantId"
-                            name="tenantId"
-                            value={config.tenantId}
-                            onChange={handleConfigChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                          />
-                        </div>
-
-                        <div>
-                          <label htmlFor="clientSecret" className="block text-xs font-medium text-gray-700 mb-1">
-                            Client Secret (Optional)
-                          </label>
-                          <input
-                            type="password"
-                            id="clientSecret"
-                            name="clientSecret"
-                            value={config.clientSecret}
-                            onChange={handleConfigChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                            placeholder="Enter client secret"
-                          />
-                        </div>
-
-                        <button
-                          onClick={handleSaveConfig}
-                          disabled={isSaving || !config.clientId || !config.tenantId}
-                          className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          {isSaving ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                              Saving...
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircleIcon className="h-4 w-4 mr-2" />
-                              Save Configuration
-                            </>
-                          )}
-                        </button>
-
-                        <p className="text-xs text-gray-600">
-                          💡 Find these in Azure Portal → App Registrations → Your App
-                        </p>
-                      </div>
-                    )}
+                {/* Info about selected mode */}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                  <div className="text-xs text-gray-600 space-y-1">
+                    <p><strong>OAuth2:</strong> Sign in with your Microsoft account (delegated permissions)</p>
+                    <p><strong>App-Only:</strong> Uses client secret for automated operations (requires secret above)</p>
+                    <p><strong>Demo:</strong> Explore the app with mock data (no credentials needed)</p>
                   </div>
-                )}
-                
-                {/* Show config status */}
-                {isConfigured && !demoMode && (
-                  <div className="text-center">
-                    <button
-                      onClick={() => navigate('/configure')}
-                      className="text-sm text-primary-600 hover:text-primary-700 underline"
-                    >
-                      Update Configuration
-                    </button>
-                  </div>
-                )}
+                </div>
+
                 
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">Required Permissions</h3>
