@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuration Test - Employee Offboarding Portal</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .container {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #1f2937;
+      border-bottom: 3px solid #667eea;
+      padding-bottom: 10px;
+    }
+    h2 {
+      color: #374151;
+      margin-top: 30px;
+    }
+    .test-section {
+      background: #f9fafb;
+      border-left: 4px solid #667eea;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+    }
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+    .status.pass { background: #d1fae5; color: #065f46; }
+    .status.fail { background: #fee2e2; color: #991b1b; }
+    .status.warning { background: #fef3c7; color: #92400e; }
+    .status.info { background: #dbeafe; color: #1e40af; }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 5px;
+      transition: all 0.3s;
+    }
+    button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    button.danger {
+      background: #dc2626;
+    }
+    button.danger:hover {
+      background: #b91c1c;
+    }
+    button.success {
+      background: #059669;
+    }
+    button.success:hover {
+      background: #047857;
+    }
+    pre {
+      background: #1f2937;
+      color: #f9fafb;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 14px;
+    }
+    .info-box {
+      background: #e0e7ff;
+      border: 2px solid #667eea;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 15px 0;
+    }
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .result {
+      margin: 10px 0;
+      padding: 10px;
+      background: white;
+      border-radius: 4px;
+      border-left: 4px solid #667eea;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Configuration Test Suite</h1>
+    <p><strong>Purpose:</strong> Test that the app displays correctly under all configuration scenarios</p>
+
+    <div class="info-box">
+      <strong>✅ Expected Behavior:</strong> The app should ALWAYS display and be navigable, regardless of configuration state.
+      Errors or missing configuration should show as dismissible warnings, not blocking screens.
+    </div>
+
+    <h2>Current Configuration Status</h2>
+    <div class="test-section">
+      <h3>Environment Variables <span class="status info" id="env-status">Checking...</span></h3>
+      <div id="env-results"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>Local Storage <span class="status info" id="storage-status">Checking...</span></h3>
+      <div id="storage-results"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>Demo Mode <span class="status info" id="demo-status">Checking...</span></h3>
+      <div id="demo-results"></div>
+    </div>
+
+    <h2>Test Scenarios</h2>
+    
+    <div class="test-section">
+      <h3>Test 1: No Configuration</h3>
+      <p>Clear all configuration and verify app still loads</p>
+      <div class="button-group">
+        <button onclick="runTest1()">Run Test 1</button>
+        <button class="danger" onclick="clearAllConfig()">Clear All Config</button>
+      </div>
+      <div id="test1-result"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>Test 2: Invalid Configuration</h3>
+      <p>Set invalid config and verify app shows warnings but still loads</p>
+      <div class="button-group">
+        <button onclick="runTest2()">Run Test 2</button>
+        <button onclick="setInvalidConfig()">Set Invalid Config</button>
+      </div>
+      <div id="test2-result"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>Test 3: Enable Demo Mode</h3>
+      <p>Enable demo mode and verify app works without Azure AD</p>
+      <div class="button-group">
+        <button onclick="runTest3()">Run Test 3</button>
+        <button class="success" onclick="enableDemoMode()">Enable Demo Mode</button>
+      </div>
+      <div id="test3-result"></div>
+    </div>
+
+    <h2>Quick Actions</h2>
+    <div class="button-group">
+      <button onclick="window.location.href='/'">Go to App Home</button>
+      <button onclick="window.location.href='/configure'">Go to Configure</button>
+      <button onclick="window.location.href='/login'">Go to Login</button>
+      <button onclick="showCurrentConfig()">Show Current Config</button>
+      <button class="danger" onclick="resetEverything()">Reset Everything</button>
+    </div>
+
+    <div id="config-display"></div>
+
+    <h2>Test Results Summary</h2>
+    <div id="summary" class="test-section">
+      <p><em>Run tests to see results...</em></p>
+    </div>
+  </div>
+
+  <script>
+    // Check current status
+    function checkStatus() {
+      // Check environment (simulated)
+      const hasEnvVars = false; // Can't check env vars from client
+      document.getElementById('env-status').textContent = 'N/A';
+      document.getElementById('env-status').className = 'status info';
+      document.getElementById('env-results').innerHTML = 
+        '<div class="result">Environment variables are checked server-side. Check console for REACT_APP_* variables.</div>';
+
+      // Check localStorage
+      const azureConfig = localStorage.getItem('azureConfig');
+      const demoMode = localStorage.getItem('demoMode');
+      
+      if (azureConfig) {
+        try {
+          const config = JSON.parse(azureConfig);
+          const isValid = config.clientId && config.tenantId && 
+                         config.clientId !== 'your-client-id-here' &&
+                         config.tenantId !== 'your-tenant-id';
+          
+          document.getElementById('storage-status').textContent = isValid ? 'Valid' : 'Invalid';
+          document.getElementById('storage-status').className = isValid ? 'status pass' : 'status warning';
+          document.getElementById('storage-results').innerHTML = `
+            <div class="result">
+              <strong>Azure Config Found:</strong><br>
+              Client ID: ${config.clientId || '(none)'}<br>
+              Tenant ID: ${config.tenantId || '(none)'}<br>
+              Valid: ${isValid ? 'Yes ✅' : 'No ⚠️'}
+            </div>
+          `;
+        } catch (e) {
+          document.getElementById('storage-status').textContent = 'Corrupt';
+          document.getElementById('storage-status').className = 'status fail';
+          document.getElementById('storage-results').innerHTML = 
+            '<div class="result">Corrupted configuration data</div>';
+        }
+      } else {
+        document.getElementById('storage-status').textContent = 'None';
+        document.getElementById('storage-status').className = 'status warning';
+        document.getElementById('storage-results').innerHTML = 
+          '<div class="result">No Azure configuration found</div>';
+      }
+
+      // Check demo mode
+      if (demoMode === 'true') {
+        document.getElementById('demo-status').textContent = 'Enabled';
+        document.getElementById('demo-status').className = 'status success';
+        document.getElementById('demo-results').innerHTML = 
+          '<div class="result">✅ Demo mode is active</div>';
+      } else {
+        document.getElementById('demo-status').textContent = 'Disabled';
+        document.getElementById('demo-status').className = 'status info';
+        document.getElementById('demo-results').innerHTML = 
+          '<div class="result">Demo mode is not enabled</div>';
+      }
+    }
+
+    function clearAllConfig() {
+      localStorage.clear();
+      sessionStorage.clear();
+      alert('✅ All configuration cleared!');
+      checkStatus();
+    }
+
+    function setInvalidConfig() {
+      localStorage.setItem('azureConfig', JSON.stringify({
+        clientId: 'invalid-client-id',
+        tenantId: 'invalid-tenant-id'
+      }));
+      alert('⚠️ Invalid configuration set!');
+      checkStatus();
+    }
+
+    function enableDemoMode() {
+      localStorage.setItem('demoMode', 'true');
+      alert('✅ Demo mode enabled!');
+      checkStatus();
+    }
+
+    function runTest1() {
+      clearAllConfig();
+      document.getElementById('test1-result').innerHTML = `
+        <div class="result">
+          <strong>Test 1 Setup Complete:</strong><br>
+          ✅ All configuration cleared<br>
+          ✅ Click "Go to App Home" to verify app loads<br>
+          ✅ Expected: Warning banner shown, but app is navigable
+        </div>
+      `;
+    }
+
+    function runTest2() {
+      setInvalidConfig();
+      document.getElementById('test2-result').innerHTML = `
+        <div class="result">
+          <strong>Test 2 Setup Complete:</strong><br>
+          ✅ Invalid configuration set<br>
+          ✅ Click "Go to App Home" to verify app loads<br>
+          ✅ Expected: Warning banner about invalid config, but app is navigable
+        </div>
+      `;
+    }
+
+    function runTest3() {
+      enableDemoMode();
+      document.getElementById('test3-result').innerHTML = `
+        <div class="result">
+          <strong>Test 3 Setup Complete:</strong><br>
+          ✅ Demo mode enabled<br>
+          ✅ Click "Go to App Home" or "Go to Login"<br>
+          ✅ Expected: App works in demo mode, no warnings
+        </div>
+      `;
+    }
+
+    function showCurrentConfig() {
+      const azureConfig = localStorage.getItem('azureConfig');
+      const demoMode = localStorage.getItem('demoMode');
+      const demoUser = localStorage.getItem('demoUser');
+      
+      let configHtml = '<div class="test-section"><h3>Current Configuration</h3>';
+      configHtml += '<pre>' + JSON.stringify({
+        azureConfig: azureConfig ? JSON.parse(azureConfig) : null,
+        demoMode: demoMode,
+        demoUser: demoUser ? JSON.parse(demoUser) : null
+      }, null, 2) + '</pre></div>';
+      
+      document.getElementById('config-display').innerHTML = configHtml;
+    }
+
+    function resetEverything() {
+      if (confirm('Are you sure? This will clear all data and reload the page.')) {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.reload();
+      }
+    }
+
+    // Run status check on load
+    checkStatus();
+  </script>
+</body>
+</html>
