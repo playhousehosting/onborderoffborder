@@ -1,4 +1,90 @@
 import { authService } from './authService';
+import { isDemoMode } from '../config/authConfig';
+
+// Mock data for demo mode
+const MOCK_USERS = [
+  {
+    id: '1',
+    displayName: 'John Doe',
+    userPrincipalName: 'john.doe@demo.com',
+    mail: 'john.doe@demo.com',
+    jobTitle: 'Software Engineer',
+    department: 'Engineering',
+    accountEnabled: true,
+    createdDateTime: '2024-01-15T00:00:00Z',
+    lastPasswordChangeDateTime: '2024-10-01T00:00:00Z',
+    officeLocation: 'Building 1',
+    companyName: 'Demo Company',
+    mobilePhone: '+1 555-0101',
+    businessPhones: ['+1 555-0100'],
+  },
+  {
+    id: '2',
+    displayName: 'Jane Smith',
+    userPrincipalName: 'jane.smith@demo.com',
+    mail: 'jane.smith@demo.com',
+    jobTitle: 'Product Manager',
+    department: 'Product',
+    accountEnabled: true,
+    createdDateTime: '2024-02-20T00:00:00Z',
+    lastPasswordChangeDateTime: '2024-09-15T00:00:00Z',
+    officeLocation: 'Building 2',
+    companyName: 'Demo Company',
+    mobilePhone: '+1 555-0102',
+    businessPhones: ['+1 555-0103'],
+  },
+  {
+    id: '3',
+    displayName: 'Bob Johnson',
+    userPrincipalName: 'bob.johnson@demo.com',
+    mail: 'bob.johnson@demo.com',
+    jobTitle: 'Designer',
+    department: 'Design',
+    accountEnabled: false,
+    createdDateTime: '2024-03-10T00:00:00Z',
+    lastPasswordChangeDateTime: '2024-08-20T00:00:00Z',
+    officeLocation: 'Building 1',
+    companyName: 'Demo Company',
+    mobilePhone: '+1 555-0104',
+    businessPhones: ['+1 555-0105'],
+  },
+  {
+    id: '4',
+    displayName: 'Alice Brown',
+    userPrincipalName: 'alice.brown@demo.com',
+    mail: 'alice.brown@demo.com',
+    jobTitle: 'Marketing Manager',
+    department: 'Marketing',
+    accountEnabled: true,
+    createdDateTime: '2024-04-05T00:00:00Z',
+    lastPasswordChangeDateTime: '2024-10-10T00:00:00Z',
+    officeLocation: 'Building 2',
+    companyName: 'Demo Company',
+    mobilePhone: '+1 555-0106',
+    businessPhones: ['+1 555-0107'],
+  },
+];
+
+const MOCK_DEVICES = [
+  {
+    id: 'device-1',
+    deviceName: 'LAPTOP-001',
+    operatingSystem: 'Windows 11',
+    osVersion: '10.0.22000.1',
+    complianceState: 'compliant',
+    lastSyncDateTime: new Date().toISOString(),
+    userPrincipalName: 'john.doe@demo.com',
+  },
+  {
+    id: 'device-2',
+    deviceName: 'LAPTOP-002',
+    operatingSystem: 'macOS',
+    osVersion: '13.0',
+    complianceState: 'compliant',
+    lastSyncDateTime: new Date().toISOString(),
+    userPrincipalName: 'jane.smith@demo.com',
+  },
+];
 
 export class GraphService {
   constructor() {
@@ -7,6 +93,11 @@ export class GraphService {
 
   // Generic method to make Graph API calls
   async makeRequest(endpoint, options = {}) {
+    // Return mock data in demo mode
+    if (isDemoMode()) {
+      return this._getMockData(endpoint, options);
+    }
+
     try {
       const token = await authService.getAccessToken();
       const url = `${this.baseUrl}${endpoint}`;
@@ -30,6 +121,43 @@ export class GraphService {
       console.error('Graph API request error:', error);
       throw error;
     }
+  }
+
+  // Mock data handler for demo mode
+  _getMockData(endpoint, options = {}) {
+    console.log('Demo mode: returning mock data for', endpoint);
+    
+    // Simulate async operation
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // Handle different endpoints
+        if (endpoint.includes('/users')) {
+          if (endpoint.includes('/users/') && !endpoint.includes('/memberOf')) {
+            // Single user request
+            const userId = endpoint.split('/users/')[1].split('?')[0];
+            const user = MOCK_USERS.find(u => u.id === userId) || MOCK_USERS[0];
+            resolve(user);
+          } else {
+            // User list request
+            resolve({ value: MOCK_USERS });
+          }
+        } else if (endpoint.includes('/deviceManagement/managedDevices')) {
+          resolve({ value: MOCK_DEVICES });
+        } else if (endpoint.includes('/memberOf')) {
+          // Mock groups
+          resolve({ value: [] });
+        } else if (endpoint.includes('/mailboxSettings')) {
+          resolve({
+            automaticRepliesSetting: {
+              status: 'disabled',
+            },
+          });
+        } else {
+          // Default empty response
+          resolve({ value: [] });
+        }
+      }, 300); // Simulate network delay
+    });
   }
 
   // User Management Methods
