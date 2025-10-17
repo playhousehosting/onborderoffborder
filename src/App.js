@@ -62,14 +62,21 @@ function App() {
 
   // Check if we have a valid Azure configuration or are in demo mode
   const hasValidConfig = () => {
+    // Demo mode is always valid
     if (isDemoMode()) return true;
     
     try {
       const config = JSON.parse(localStorage.getItem('azureConfig') || '{}');
+      // Valid if we have both tenant ID and client ID
       return !!(config.tenantId && config.clientId);
     } catch (e) {
       return false;
     }
+  };
+
+  // Always allow access without config - users can configure from the UI
+  const shouldShowConfigScreen = () => {
+    return !hasValidConfig();
   };
 
   useEffect(() => {
@@ -156,10 +163,12 @@ function App() {
               {msalWarningBanner}
               
               <Routes>
-                {/* Public Routes */}
+                {/* Public Routes - Always accessible */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/configure" element={<ConfigurationForm />} />
-                <Route path="/" element={<Navigate to={hasValidConfig() ? "/login" : "/configure"} replace />} />
+                
+                {/* Default route - show login if configured, otherwise configure screen */}
+                <Route path="/" element={<Navigate to={shouldShowConfigScreen() ? "/configure" : "/login"} replace />} />
                 
                 {/* Protected Routes */}
                 <Route

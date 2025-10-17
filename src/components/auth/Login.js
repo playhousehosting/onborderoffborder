@@ -19,13 +19,19 @@ const Login = () => {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const navigate = useNavigate();
   
+  // Check if we have configuration
+  const hasConfig = () => {
+    try {
+      const config = JSON.parse(localStorage.getItem('azureConfig') || '{}');
+      return !!(config.tenantId && config.clientId);
+    } catch (e) {
+      return false;
+    }
+  };
+  
   // Check if we're in demo mode
   const demoMode = isDemoMode();
-  
-  // Debug: Log the demo mode status and environment variables
-  console.log('Demo mode:', demoMode);
-  console.log('Client ID:', process.env.REACT_APP_CLIENT_ID);
-  console.log('Authority:', process.env.REACT_APP_AUTHORITY);
+  const isConfigured = hasConfig() || demoMode;
 
   const handleLogin = async () => {
     try {
@@ -129,7 +135,23 @@ const Login = () => {
                     <div className="ml-3">
                       <h3 className="text-sm font-medium text-amber-800">Demo Mode Active</h3>
                       <div className="mt-1 text-sm text-amber-700">
-                        The application is running in demo mode with placeholder credentials. Configure your Azure AD app registration in the .env file to enable full authentication.
+                        The application is running in demo mode. Click "Configure Azure AD" below to set up your own credentials.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {!isConfigured && !demoMode && (
+                <div className="mb-6 p-4 border border-blue-200 rounded-lg bg-blue-50">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <InformationCircleIcon className="h-5 w-5 text-blue-400" />
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-blue-800">Azure AD Not Configured</h3>
+                      <div className="mt-1 text-sm text-blue-700">
+                        Configure your Azure AD credentials to enable Microsoft authentication, or try Demo Mode to explore the application.
                       </div>
                     </div>
                   </div>
@@ -159,17 +181,28 @@ const Login = () => {
                   </p>
                 </div>
                 
+                {/* Demo Mode Button */}
                 <button
                   onClick={handleDemoLogin}
-                  className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all duration-200 transform hover:scale-[1.02] mb-3"
+                  className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all duration-200 transform hover:scale-[1.02]"
                 >
                   <SparklesIcon className="h-5 w-5 mr-2" />
                   Try Demo Mode
                 </button>
                 
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500">Or</span>
+                  </div>
+                </div>
+                
+                {/* Sign in with Microsoft Button */}
                 <button
                   onClick={handleLogin}
-                  disabled={isLoggingIn || loading}
+                  disabled={isLoggingIn || loading || !isConfigured}
                   className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02]"
                 >
                   {isLoggingIn || loading ? (
@@ -180,10 +213,36 @@ const Login = () => {
                   ) : (
                     <>
                       <MicrosoftIcon className="h-5 w-5 mr-2" />
-                      Sign in with Microsoft
+                      {isConfigured ? 'Sign in with Microsoft' : 'Configure Azure AD First'}
                     </>
                   )}
                 </button>
+                
+                {/* Configure Azure AD Button */}
+                {!isConfigured && (
+                  <button
+                    onClick={() => navigate('/configure')}
+                    className="w-full flex justify-center items-center py-3 px-4 border-2 border-primary-600 rounded-lg shadow-sm text-sm font-medium text-primary-700 bg-white hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 transform hover:scale-[1.02]"
+                  >
+                    <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Configure Azure AD
+                  </button>
+                )}
+                
+                {/* Show config status */}
+                {isConfigured && !demoMode && (
+                  <div className="text-center">
+                    <button
+                      onClick={() => navigate('/configure')}
+                      className="text-sm text-primary-600 hover:text-primary-700 underline"
+                    >
+                      Update Configuration
+                    </button>
+                  </div>
+                )}
                 
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">Required Permissions</h3>

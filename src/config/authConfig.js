@@ -149,25 +149,36 @@ export const apiConfig = {
 
 // Check if we're in demo mode (no valid credentials)
 export const isDemoMode = () => {
-  // Check localStorage first
+  // Check localStorage for explicit demo mode flag
   const demoModeFlag = localStorage.getItem('demoMode');
   if (demoModeFlag === 'true') {
     return true;
   }
   
-  // Check if environment variables are missing or placeholder values
-  const hasValidEnvVars = process.env.REACT_APP_CLIENT_ID && 
-                          process.env.REACT_APP_CLIENT_ID !== 'your-client-id-here' &&
-                          process.env.REACT_APP_AUTHORITY &&
-                          !process.env.REACT_APP_AUTHORITY.includes('your-tenant-id');
-  
-  // Check if we have valid config in localStorage
+  // Check if we have valid config in localStorage (prioritize this over env vars)
   const config = getAzureConfig();
   const hasValidLocalConfig = config.clientId && 
                                config.clientId !== 'your-client-id-here' &&
                                config.tenantId &&
                                config.tenantId !== 'your-tenant-id';
   
-  // We're in demo mode if we have neither valid env vars nor valid local config
-  return !hasValidEnvVars && !hasValidLocalConfig;
+  // If we have valid local config, we're not in demo mode
+  if (hasValidLocalConfig) {
+    return false;
+  }
+  
+  // Check if environment variables exist and are valid (fallback)
+  const hasValidEnvVars = process.env.REACT_APP_CLIENT_ID && 
+                          process.env.REACT_APP_CLIENT_ID !== 'your-client-id-here' &&
+                          process.env.REACT_APP_AUTHORITY &&
+                          !process.env.REACT_APP_AUTHORITY.includes('your-tenant-id');
+  
+  // If we have valid env vars, we're not in demo mode
+  if (hasValidEnvVars) {
+    return false;
+  }
+  
+  // No valid configuration found - not in demo mode, just unconfigured
+  // Demo mode must be explicitly enabled
+  return false;
 };
