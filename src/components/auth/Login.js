@@ -100,10 +100,6 @@ const Login = () => {
       const savedConfig = localStorage.getItem('azureConfig');
       console.log('Verified saved config:', savedConfig);
       
-      // Clear demo mode
-      localStorage.removeItem('demoMode');
-      localStorage.removeItem('demoUser');
-      
       toast.success('Configuration saved! Signing you in...');
       
       // Determine which auth mode to use based on whether secret is provided
@@ -111,7 +107,8 @@ const Login = () => {
         // App-Only mode - authenticate directly with client credentials
         console.log('Using App-Only authentication with client secret');
         
-        // Set a flag to indicate app-only mode
+        // Enable demo mode for app-only authentication (uses localStorage auth)
+        localStorage.setItem('demoMode', 'true');
         localStorage.setItem('authMode', 'app-only');
         
         // Create a mock admin user for app-only mode
@@ -126,15 +123,19 @@ const Login = () => {
         };
         
         localStorage.setItem('demoUser', JSON.stringify(appUser));
+        
+        // Dispatch event to AuthContext
         window.dispatchEvent(new Event('demoModeLogin'));
         
         console.log('✅ App-Only authentication complete, navigating to dashboard...');
         toast.success('Successfully authenticated! Redirecting to dashboard...');
         
-        // Navigate to dashboard immediately - no delay needed
-        setIsSaving(false);
-        console.log('Calling navigate("/dashboard")');
-        navigate('/dashboard');
+        // Wait for AuthContext to update, then navigate
+        setTimeout(() => {
+          setIsSaving(false);
+          console.log('Calling navigate("/dashboard")');
+          navigate('/dashboard');
+        }, 200);
       } else {
         // OAuth2 mode - requires page reload to reinitialize MSAL
         sessionStorage.setItem('autoLogin', 'true');
