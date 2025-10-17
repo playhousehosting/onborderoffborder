@@ -75,6 +75,14 @@ export class AuthService {
 
   // Get access token for Graph API
   async getAccessToken(scopes = loginRequest.scopes) {
+    // Check if we're using app-only authentication (client credentials flow)
+    const authMode = localStorage.getItem('authMode');
+    
+    if (authMode === 'app-only') {
+      return this.getAppOnlyToken();
+    }
+
+    // Standard OAuth2 flow with MSAL
     try {
       const account = this.getCurrentAccount();
       if (!account) {
@@ -108,6 +116,87 @@ export class AuthService {
         throw error;
       }
     }
+  }
+
+  // Get access token using app-only (client credentials) flow
+  async getAppOnlyToken() {
+    try {
+      // Get credentials from localStorage
+      const azureConfig = JSON.parse(localStorage.getItem('azureConfig') || '{}');
+      const { clientId, clientSecret, tenantId } = azureConfig;
+
+      if (!clientId || !clientSecret || !tenantId) {
+        throw new Error('App-only credentials not configured');
+      }
+
+      // Check if we have a cached token that's still valid
+      const cachedToken = this._getAppOnlyCachedToken();
+      if (cachedToken) {
+        return cachedToken;
+      }
+
+      // Get new token from Azure AD
+      const tokenEndpoint = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
+      const params = new URLSearchParams();
+      params.append('client_id', clientId);
+      params.append('client_secret', clientSecret);
+      params.append('scope', 'https://graph.microsoft.com/.default');
+      params.append('grant_type', 'client_credentials');
+
+      console.log('🔑 Acquiring app-only access token...');
+      
+      const response = await fetch(tokenEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params.toString(),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to get app-only token: ${errorData.error_description || response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Cache the token with expiration
+      this._cacheAppOnlyToken(data.access_token, data.expires_in);
+      
+      console.log('✅ App-only access token acquired');
+      return data.access_token;
+    } catch (error) {
+      console.error('Error getting app-only token:', error);
+      throw error;
+    }
+  }
+
+  // Get cached app-only token if still valid
+  _getAppOnlyCachedToken() {
+    try {
+      const cached = localStorage.getItem('appOnlyToken');
+      if (!cached) return null;
+
+      const { token, expiresAt } = JSON.parse(cached);
+      
+      // Check if token is still valid (with 5-minute buffer)
+      if (Date.now() < expiresAt - (5 * 60 * 1000)) {
+        console.log('✅ Using cached app-only token');
+        return token;
+      }
+
+      // Token expired, remove it
+      localStorage.removeItem('appOnlyToken');
+      return null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  // Cache app-only token with expiration
+  _cacheAppOnlyToken(token, expiresIn) {
+    const expiresAt = Date.now() + (expiresIn * 1000);
+    localStorage.setItem('appOnlyToken', JSON.stringify({ token, expiresAt }));
   }
 
   // Get token with specific scopes for offboarding
