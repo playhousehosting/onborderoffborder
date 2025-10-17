@@ -20,10 +20,5 @@
         }
       ]
     }
-  ],
-  "env": {
-    "REACT_APP_CLIENT_ID": "@react_app_client_id",
-    "REACT_APP_AUTHORITY": "@react_app_authority",
-    "REACT_APP_REDIRECT_URI": "@react_app_redirect_uri"
-  }
+  ]
 }
