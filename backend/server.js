@@ -72,8 +72,26 @@ const sessionConfig = {
   }
 };
 
-// Use Redis for session storage in production
-if (process.env.REDIS_URL) {
+// Use Neon Postgres for session storage (preferred)
+if (process.env.DATABASE_URL) {
+  const { createNeonSessionStore } = require('./config/neon-session');
+  
+  try {
+    const { store } = createNeonSessionStore({
+      databaseUrl: process.env.DATABASE_URL,
+      tableName: 'user_sessions',
+      pruneSessionInterval: 60 * 15 // Cleanup old sessions every 15 minutes
+    });
+    
+    sessionConfig.store = store;
+    console.log('✅ Using Neon Postgres for session storage');
+  } catch (err) {
+    console.error('❌ Failed to configure Neon session store:', err.message);
+    console.log('⚠️  Falling back to in-memory sessions');
+  }
+}
+// Fallback to Redis if configured
+else if (process.env.REDIS_URL) {
   const RedisStore = require('connect-redis').default;
   const { createClient } = require('redis');
   
@@ -89,6 +107,10 @@ if (process.env.REDIS_URL) {
   });
   
   console.log('✅ Using Redis for session storage');
+}
+// In-memory sessions for development
+else {
+  console.log('⚠️  Using in-memory sessions (development only)');
 }
 
 app.use(session(sessionConfig));

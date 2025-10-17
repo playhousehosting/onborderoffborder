@@ -100,7 +100,33 @@ The backend supports **hundreds of concurrent users**:
 
 ## 🌍 Production Deployment
 
-### Backend
+### 🚀 Recommended: Vercel + Neon (100% Free)
+
+**See complete step-by-step guide:** [VERCEL_NEON_DEPLOYMENT.md](VERCEL_NEON_DEPLOYMENT.md)
+
+**Quick Deploy:**
+```bash
+# 1. Setup Neon database (https://neon.tech) - Get DATABASE_URL
+# 2. Deploy backend
+cd backend
+vercel --prod
+# Set: DATABASE_URL, SESSION_SECRET, ENCRYPTION_KEY, FRONTEND_URL
+
+# 3. Deploy frontend
+cd ..
+vercel --prod
+# Set: REACT_APP_API_URL
+```
+
+**Why Vercel + Neon?**
+- ✅ Free tier handles hundreds of users
+- ✅ Auto-scaling serverless architecture
+- ✅ SSL/HTTPS included
+- ✅ Automatic database backups
+- ✅ No Redis needed - Postgres handles sessions
+- ✅ Deploy from GitHub in 5 minutes
+
+### Alternative: Azure App Service
 
 **Deploy to Azure App Service:**
 ```bash
@@ -109,31 +135,13 @@ az webapp create --resource-group myRG --plan myPlan --name my-api --runtime "NO
 az webapp config appsettings set --name my-api --settings @env-vars.json
 ```
 
-**Deploy to Heroku:**
-```bash
-heroku create employee-portal-api
-heroku addons:create heroku-redis:hobby-dev
-git subtree push --prefix backend heroku main
-```
-
 **Environment Variables Required:**
 - `NODE_ENV=production`
 - `SESSION_SECRET` (generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`)
 - `ENCRYPTION_KEY` (generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`)
 - `FRONTEND_URL` (your frontend domain)
-- `REDIS_URL` (for production session storage)
+- `DATABASE_URL` (Neon Postgres) or `REDIS_URL` (for Redis)
 - `ALLOWED_ORIGINS` (your frontend domain)
-
-### Frontend
-
-**Deploy to Vercel:**
-```bash
-npm run build
-vercel --prod
-```
-
-**Set Environment Variable:**
-- `REACT_APP_API_URL` = your backend URL
 
 ## 🔧 Configuration
 
@@ -145,7 +153,13 @@ PORT=5000
 FRONTEND_URL=https://your-frontend.vercel.app
 SESSION_SECRET=<64-char-hex-string>
 ENCRYPTION_KEY=<64-char-hex-string>
-REDIS_URL=redis://...
+
+# Neon Postgres (Recommended - Free tier)
+DATABASE_URL=postgresql://user:password@ep-xxxxx.aws.neon.tech/neondb?sslmode=require
+
+# OR Redis (Alternative)
+# REDIS_URL=redis://...
+
 ALLOWED_ORIGINS=https://your-frontend.vercel.app
 SECURE_COOKIES=true
 TRUST_PROXY=true
@@ -154,7 +168,7 @@ TRUST_PROXY=true
 ### Frontend (.env)
 
 ```env
-REACT_APP_API_URL=https://your-backend.azurewebsites.net
+REACT_APP_API_URL=https://your-backend.vercel.app
 ```
 
 ## 📋 API Endpoints
