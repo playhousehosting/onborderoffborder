@@ -271,6 +271,103 @@ export class GraphService {
     });
   }
 
+  async updateUserManager(userId, managerEmail) {
+    // In demo mode, just return success
+    if (isDemoMode()) {
+      return Promise.resolve({ success: true });
+    }
+
+    // First, search for the manager by email
+    const managerResults = await this.searchUsers(managerEmail);
+    if (!managerResults.value || managerResults.value.length === 0) {
+      throw new Error('Manager not found');
+    }
+
+    const managerId = managerResults.value[0].id;
+
+    return this.makeRequest(`/users/${userId}/manager/$ref`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        "@odata.id": `https://graph.microsoft.com/v1.0/users/${managerId}`
+      }),
+    });
+  }
+
+  async sendTransferNotification(userId, transferOptions, recipientType) {
+    // In demo mode, just return success
+    if (isDemoMode()) {
+      return Promise.resolve({ success: true });
+    }
+
+    const user = await this.getUserById(userId);
+    
+    let subject, content;
+    if (recipientType === 'user') {
+      subject = 'Your Role Transfer/Promotion';
+      content = `
+        <html>
+          <body>
+            <h2>Congratulations ${user.displayName}!</h2>
+            <p>We're excited to inform you about your upcoming role change.</p>
+            <h3>New Position Details:</h3>
+            <ul>
+              ${transferOptions.newDepartment ? `<li><strong>Department:</strong> ${transferOptions.newDepartment}</li>` : ''}
+              ${transferOptions.newJobTitle ? `<li><strong>Job Title:</strong> ${transferOptions.newJobTitle}</li>` : ''}
+              ${transferOptions.newOfficeLocation ? `<li><strong>Location:</strong> ${transferOptions.newOfficeLocation}</li>` : ''}
+              ${transferOptions.effectiveDate ? `<li><strong>Effective Date:</strong> ${new Date(transferOptions.effectiveDate).toLocaleDateString()}</li>` : ''}
+            </ul>
+            ${transferOptions.transferNotes ? `<p><strong>Notes:</strong> ${transferOptions.transferNotes}</p>` : ''}
+            <p>If you have any questions, please reach out to your manager or HR.</p>
+            <br/>
+            <p>Best regards,<br/>Human Resources</p>
+          </body>
+        </html>
+      `;
+    } else {
+      subject = 'New Team Member Transfer Notification';
+      content = `
+        <html>
+          <body>
+            <h2>New Team Member</h2>
+            <p>${user.displayName} will be joining your team.</p>
+            <h3>Transfer Details:</h3>
+            <ul>
+              ${transferOptions.newDepartment ? `<li><strong>Department:</strong> ${transferOptions.newDepartment}</li>` : ''}
+              ${transferOptions.newJobTitle ? `<li><strong>Job Title:</strong> ${transferOptions.newJobTitle}</li>` : ''}
+              ${transferOptions.effectiveDate ? `<li><strong>Start Date:</strong> ${new Date(transferOptions.effectiveDate).toLocaleDateString()}</li>` : ''}
+            </ul>
+            ${transferOptions.transferNotes ? `<p><strong>Notes:</strong> ${transferOptions.transferNotes}</p>` : ''}
+            <p>Please ensure ${user.displayName} has the necessary access and resources.</p>
+            <br/>
+            <p>Best regards,<br/>Human Resources</p>
+          </body>
+        </html>
+      `;
+    }
+
+    const emailBody = {
+      message: {
+        subject: subject,
+        body: {
+          contentType: 'HTML',
+          content: content,
+        },
+        toRecipients: [
+          {
+            emailAddress: {
+              address: user.mail || user.userPrincipalName,
+            },
+          },
+        ],
+      },
+    };
+
+    return this.makeRequest(`/users/${userId}/sendMail`, {
+      method: 'POST',
+      body: JSON.stringify(emailBody),
+    });
+  }
+
   // Group Management Methods
   async getUserGroups(userId) {
     return this.makeRequest(`/users/${userId}/memberOf?$select=displayName,id,groupTypes`);

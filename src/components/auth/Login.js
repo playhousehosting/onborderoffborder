@@ -453,8 +453,9 @@ const Login = () => {
             </div>
             
             <div className="text-center mt-6 text-xs text-gray-500">
-              <p>© 2023 Employee Offboarding Portal</p>
+              <p>© 2025 Employee Life Cycle Portal</p>
               <p className="mt-1">Powered by Microsoft Graph API</p>
+              <p className="mt-1">Built by Kameron McCain</p>
             </div>
           </div>
         </div>

@@ -298,6 +298,27 @@ const Dashboard = () => {
                   </div>
                 </div>
               </Link>
+
+              <Link
+                to="/transfer"
+                className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-purple-200"
+              >
+                <div className="p-6">
+                  <div className="flex items-center mb-4">
+                    <div className="bg-purple-100 rounded-lg p-3 group-hover:bg-purple-200 transition-colors">
+                      <ArrowTrendingUpIcon className="h-8 w-8 text-purple-600" />
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Transfer / Promote</h3>
+                  <p className="text-gray-600 mb-4">Process role changes, transfers, and promotions</p>
+                  <div className="flex items-center text-purple-600 font-medium">
+                    <span>Start transfer</span>
+                    <svg className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </div>
+              </Link>
             </>
           )}
 

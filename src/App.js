@@ -14,6 +14,7 @@ import Dashboard from './components/dashboard/Dashboard';
 import UserSearch from './components/users/UserSearch';
 import OnboardingWizard from './components/onboarding/OnboardingWizard';
 import OffboardingWizard from './components/offboarding/OffboardingWizard';
+import TransferWizard from './components/transfer/TransferWizard';
 import UserDetail from './components/users/UserDetail';
 import DeviceManagement from './components/intune/DeviceManagement';
 import ScheduledOffboarding from './components/offboarding/ScheduledOffboarding';
@@ -217,6 +218,16 @@ function App() {
                     <ProtectedRoute>
                       <Layout>
                         <OffboardingWizard />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/transfer/:userId?"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <TransferWizard />
                       </Layout>
                     </ProtectedRoute>
                   }
