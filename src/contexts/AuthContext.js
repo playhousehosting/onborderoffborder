@@ -36,41 +36,56 @@ export const AuthProvider = ({ children }) => {
   }, [msalInstance]);
 
   // Handle demo mode login event (from Login component)
-  // This uses a callback approach to handle async state updates
+  // Set a flag when demoModeLogin event fires
+  const [demoModeLoginTriggered, setDemoModeLoginTriggered] = useState(false);
+  
   useEffect(() => {
-    const handleDemoModeLogin = async () => {
+    const handleDemoModeLogin = () => {
       console.log('📡 AuthContext received demoModeLogin event');
-      const demoUser = localStorage.getItem('demoUser');
-      if (demoUser) {
-        try {
-          const parsedUser = JSON.parse(demoUser);
-          console.log('✅ AuthContext: Setting authenticated user:', parsedUser.displayName);
-          
-          // Use functional setState to ensure updates complete
-          setIsAuthenticated(true);
-          setUser(parsedUser);
-          setLoading(false);
-          setPermissions({
-            userManagement: true,
-            deviceManagement: true,
-            mailManagement: true,
-            sharePointManagement: true,
-            teamsManagement: true,
-          });
-          
-          // Dispatch a completion event that includes the updated state
-          window.dispatchEvent(new CustomEvent('authStateUpdated', { 
-            detail: { isAuthenticated: true, user: parsedUser }
-          }));
-        } catch (e) {
-          console.error('Error parsing demo user:', e);
-        }
-      }
+      setDemoModeLoginTriggered(true);
     };
 
     window.addEventListener('demoModeLogin', handleDemoModeLogin);
     return () => window.removeEventListener('demoModeLogin', handleDemoModeLogin);
   }, []);
+
+  // When demoModeLoginTriggered changes, update the auth state
+  useEffect(() => {
+    if (!demoModeLoginTriggered) return;
+
+    const demoUser = localStorage.getItem('demoUser');
+    if (demoUser) {
+      try {
+        const parsedUser = JSON.parse(demoUser);
+        console.log('✅ AuthContext: Setting authenticated user:', parsedUser.displayName);
+        
+        setIsAuthenticated(true);
+        setUser(parsedUser);
+        setLoading(false);
+        setPermissions({
+          userManagement: true,
+          deviceManagement: true,
+          mailManagement: true,
+          sharePointManagement: true,
+          teamsManagement: true,
+        });
+
+        // Dispatch completion event AFTER this render cycle completes
+        // Use requestAnimationFrame to ensure DOM is updated
+        requestAnimationFrame(() => {
+          console.log('✅ Auth state updated in context, dispatching authStateUpdated');
+          window.dispatchEvent(new CustomEvent('authStateUpdated', { 
+            detail: { isAuthenticated: true, user: parsedUser }
+          }));
+        });
+      } catch (e) {
+        console.error('Error parsing demo user:', e);
+      }
+    }
+
+    // Reset the trigger for next login
+    setDemoModeLoginTriggered(false);
+  }, [demoModeLoginTriggered]);
 
   // Check authentication status on mount
   useEffect(() => {
