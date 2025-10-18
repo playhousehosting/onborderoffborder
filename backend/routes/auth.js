@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
+const axios = require('axios');
 const { encryptCredentials } = require('../utils/encryption');
 const { validateCredentials, createMsalInstance, getAuthorizationUrl, acquireTokenByCode } = require('../services/authService');
 
@@ -79,24 +80,13 @@ router.post('/app-only-token', async (req, res) => {
     params.append('scope', 'https://graph.microsoft.com/.default');
     params.append('grant_type', 'client_credentials');
     
-    const response = await fetch(tokenEndpoint, {
-      method: 'POST',
+    const response = await axios.post(tokenEndpoint, params.toString(), {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: params.toString(),
     });
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Azure AD token error:', errorData);
-      return res.status(401).json({ 
-        error: 'Failed to acquire token',
-        details: errorData.error_description 
-      });
-    }
-    
-    const data = await response.json();
+    const data = response.data;
     console.log('✅ Backend: App-only token acquired');
     
     res.json({
@@ -107,6 +97,16 @@ router.post('/app-only-token', async (req, res) => {
     
   } catch (error) {
     console.error('App-only token error:', error);
+    
+    // Handle axios error response
+    if (error.response) {
+      console.error('Azure AD token error:', error.response.data);
+      return res.status(error.response.status || 401).json({ 
+        error: 'Failed to acquire token',
+        details: error.response.data.error_description || error.response.data.error || error.message
+      });
+    }
+    
     res.status(500).json({ error: 'Failed to get app-only token', details: error.message });
   }
 });
