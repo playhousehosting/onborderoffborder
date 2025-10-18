@@ -223,6 +223,15 @@ export const AuthProvider = ({ children }) => {
         }
         
         await checkPermissions();
+        
+        // Dispatch event to notify Login component that state is ready
+        // Use requestAnimationFrame to ensure state update is complete
+        requestAnimationFrame(() => {
+          console.log('✅ OAuth2 login state updated, dispatching oauthLoginStateUpdated');
+          window.dispatchEvent(new CustomEvent('oauthLoginStateUpdated', { 
+            detail: { isAuthenticated: true, user: response.account }
+          }));
+        });
       }
     } catch (err) {
       console.error('Login error:', err);

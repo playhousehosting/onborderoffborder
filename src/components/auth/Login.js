@@ -176,9 +176,26 @@ const Login = () => {
       setIsLoggingIn(true);
       console.log('Attempting OAuth2 interactive login...');
       await login(true);
-      console.log('OAuth2 login successful, navigating to dashboard');
       toast.success('Successfully signed in with Microsoft!');
-      navigate('/dashboard');
+      
+      // Wait for oauthLoginStateUpdated event before navigating
+      // This ensures isAuthenticated is true in context
+      const handleOAuthStateUpdated = () => {
+        console.log('✅ OAuth2 state updated in context, navigating to dashboard');
+        setIsLoggingIn(false);
+        navigate('/dashboard', { replace: true });
+        window.removeEventListener('oauthLoginStateUpdated', handleOAuthStateUpdated);
+      };
+      
+      window.addEventListener('oauthLoginStateUpdated', handleOAuthStateUpdated, { once: true });
+      
+      // Fallback timeout in case event doesn't fire
+      setTimeout(() => {
+        window.removeEventListener('oauthLoginStateUpdated', handleOAuthStateUpdated);
+        console.log('Timeout: Navigating to dashboard anyway');
+        setIsLoggingIn(false);
+        navigate('/dashboard', { replace: true });
+      }, 1000);
     } catch (err) {
       console.error('OAuth2 login failed:', err);
       toast.error(`Sign in failed: ${err.message || 'Please try again.'}`);
