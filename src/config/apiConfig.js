@@ -9,6 +9,7 @@ export const apiConfig = {
     validate: `${API_BASE_URL}/api/auth/validate`,
     loginAppOnly: `${API_BASE_URL}/api/auth/login-app-only`,
     loginOAuth2: `${API_BASE_URL}/api/auth/login-oauth2`,
+    appOnlyToken: `${API_BASE_URL}/api/auth/app-only-token`,
     callback: `${API_BASE_URL}/api/auth/callback`,
     session: `${API_BASE_URL}/api/auth/session`,
     logout: `${API_BASE_URL}/api/auth/logout`,

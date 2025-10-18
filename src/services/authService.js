@@ -135,16 +135,16 @@ export class AuthService {
         return cachedToken;
       }
 
-      // Get new token from Azure AD
-      const tokenEndpoint = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
+      // Get new token from backend (avoids CORS issues)
       console.log('🔑 Acquiring app-only access token via backend...');
       
-      // Get API URL from environment or construct it
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      // Import apiConfig to get the correct backend URL
+      const { apiConfig } = await import('../config/apiConfig');
       
       // Call backend endpoint instead of Azure AD directly (avoids CORS)
-      const response = await fetch(`${apiUrl}/api/auth/app-only-token`, {
+      const response = await fetch(apiConfig.endpoints.appOnlyToken, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
