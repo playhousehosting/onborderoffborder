@@ -1,8 +1,21 @@
 // Backend API Configuration
 // In production (Vercel), backend is on same domain, so use empty string
 // In development, use localhost:5000
+const isProduction = () => {
+  // Check if we're in production by looking at the hostname
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    // Production: vercel.app domains or custom domains (not localhost)
+    return hostname.includes('vercel.app') || 
+           hostname.includes('dynamicendpoint.com') ||
+           (!hostname.includes('localhost') && hostname !== '127.0.0.1');
+  }
+  // Fallback to NODE_ENV during build
+  return process.env.NODE_ENV === 'production';
+};
+
 const API_BASE_URL = process.env.REACT_APP_API_URL || 
-  (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000');
+  (isProduction() ? '' : 'http://localhost:5000');
 
 export const apiConfig = {
   baseURL: API_BASE_URL,
