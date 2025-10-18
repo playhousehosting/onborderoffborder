@@ -137,25 +137,27 @@ export class AuthService {
 
       // Get new token from Azure AD
       const tokenEndpoint = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
-      const params = new URLSearchParams();
-      params.append('client_id', clientId);
-      params.append('client_secret', clientSecret);
-      params.append('scope', 'https://graph.microsoft.com/.default');
-      params.append('grant_type', 'client_credentials');
-
-      console.log('🔑 Acquiring app-only access token...');
+      console.log('🔑 Acquiring app-only access token via backend...');
       
-      const response = await fetch(tokenEndpoint, {
+      // Get API URL from environment or construct it
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      
+      // Call backend endpoint instead of Azure AD directly (avoids CORS)
+      const response = await fetch(`${apiUrl}/api/auth/app-only-token`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
         },
-        body: params.toString(),
+        body: JSON.stringify({
+          clientId,
+          clientSecret,
+          tenantId,
+        }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(`Failed to get app-only token: ${errorData.error_description || response.statusText}`);
+        throw new Error(`Failed to get app-only token: ${errorData.error || response.statusText}`);
       }
 
       const data = await response.json();
@@ -163,7 +165,7 @@ export class AuthService {
       // Cache the token with expiration
       this._cacheAppOnlyToken(data.access_token, data.expires_in);
       
-      console.log('✅ App-only access token acquired');
+      console.log('✅ App-only access token acquired from backend');
       return data.access_token;
     } catch (error) {
       console.error('Error getting app-only token:', error);
