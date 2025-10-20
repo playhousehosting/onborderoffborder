@@ -77,7 +77,7 @@ export class AuthService {
   async getAccessToken(scopes = loginRequest.scopes) {
     // Check if we're using app-only authentication (client credentials flow)
     const authMode = localStorage.getItem('authMode');
-    
+
     if (authMode === 'app-only') {
       return this.getAppOnlyToken();
     }
@@ -100,17 +100,20 @@ export class AuthService {
     } catch (error) {
       // If silent acquisition fails, try interactive method
       if (error instanceof InteractionRequiredAuthError) {
-        try {
-          const request = {
-            scopes,
-            account: this.getCurrentAccount(),
-          };
-          const response = await this.msalInstance.acquireTokenRedirect(request);
-          return response.accessToken;
-        } catch (redirectError) {
-          console.error('Token acquisition redirect error:', redirectError);
-          throw redirectError;
-        }
+        // acquireTokenRedirect does not return a value - it redirects the page
+        // The token will be available after redirect via handleRedirectPromise()
+        const request = {
+          scopes,
+          account: this.getCurrentAccount(),
+        };
+
+        console.log('Interactive authentication required - redirecting...');
+        // This will redirect the page and not return
+        await this.msalInstance.acquireTokenRedirect(request);
+
+        // Code after redirect will never execute
+        // Token will be acquired on page load via handleRedirectPromise()
+        throw new Error('Redirecting for authentication');
       } else {
         console.error('Token acquisition error:', error);
         throw error;

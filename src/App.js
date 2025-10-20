@@ -31,13 +31,31 @@ const getMsalInstance = () => {
   // Always create a fresh instance to pick up config changes
   // This is necessary when user updates Azure AD config from the UI
   if (!msalInstance) {
-    msalInstance = new PublicClientApplication(msalConfig);
+    try {
+      msalInstance = new PublicClientApplication(msalConfig);
+    } catch (error) {
+      console.error('Failed to create MSAL instance:', error);
+      // Create a minimal instance to prevent app crash
+      // User will be prompted to configure
+      msalInstance = new PublicClientApplication({
+        auth: {
+          clientId: 'demo-client-id',
+          authority: 'https://login.microsoftonline.com/common',
+          redirectUri: window.location.origin,
+        },
+        cache: {
+          cacheLocation: 'sessionStorage',
+          storeAuthStateInCookie: false,
+        },
+      });
+    }
   }
   return msalInstance;
 };
 
 // Helper to reset MSAL instance (called when config changes)
 export const resetMsalInstance = () => {
+  console.log('🔄 Resetting MSAL instance to pick up new configuration');
   msalInstance = null;
 };
 
