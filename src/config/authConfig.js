@@ -16,9 +16,17 @@ export const msalConfig = {
     // Application (client) ID from the app registration
     clientId: process.env.REACT_APP_CLIENT_ID || getAzureConfig().clientId || '',
     // Directory (tenant) ID from the app registration
+    // IMPORTANT: For app-only authentication, always use specific tenant ID (not '/common')
+    // '/common' allows any Microsoft account but is not recommended for production
     authority: process.env.REACT_APP_AUTHORITY || (() => {
       const config = getAzureConfig();
-      return config.tenantId ? `https://login.microsoftonline.com/${config.tenantId}` : 'https://login.microsoftonline.com/common';
+      if (config.tenantId) {
+        // Use specific tenant ID for better security
+        return `https://login.microsoftonline.com/${config.tenantId}`;
+      }
+      // Fallback to 'organizations' (work/school accounts only, not personal Microsoft accounts)
+      // This is more secure than '/common' for enterprise apps
+      return 'https://login.microsoftonline.com/organizations';
     })(),
     // Usually the same as the App ID URI
     redirectUri: process.env.REACT_APP_REDIRECT_URI || window.location.origin,
