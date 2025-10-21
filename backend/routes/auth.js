@@ -60,12 +60,17 @@ router.post('/configure',
  * POST /api/auth/app-only-token
  * Get app-only access token (called by frontend)
  * This avoids CORS issues by routing token request through backend
+ * VERSION: 2.0 - Enhanced error handling
  */
 router.post('/app-only-token', async (req, res) => {
+  // Add version header to confirm deployment
+  res.setHeader('X-API-Version', '2.0-enhanced-errors');
+
   try {
     const { clientId, clientSecret, tenantId } = req.body;
 
-    console.log('🔑 Backend: Received app-only token request');
+    console.log('🔑 Backend: Received app-only token request [v2.0]');
+    console.log('  - Request body keys:', Object.keys(req.body));
     console.log('  - Tenant ID:', tenantId ? `${tenantId.substring(0, 8)}...` : 'MISSING');
     console.log('  - Client ID:', clientId ? `${clientId.substring(0, 8)}...` : 'MISSING');
     console.log('  - Client Secret:', clientSecret ? 'PROVIDED' : 'MISSING');
@@ -106,12 +111,13 @@ router.post('/app-only-token', async (req, res) => {
     });
     
     const data = response.data;
-    console.log('✅ Backend: App-only token acquired');
-    
+    console.log('✅ Backend: App-only token acquired [v2.0]');
+
     res.json({
       access_token: data.access_token,
       expires_in: data.expires_in,
-      token_type: data.token_type
+      token_type: data.token_type,
+      _version: '2.0'  // Version marker
     });
     
   } catch (error) {
