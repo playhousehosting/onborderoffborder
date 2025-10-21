@@ -262,20 +262,60 @@ const Login = () => {
     
     try {
       setIsLoggingIn(true);
-      console.log('Attempting Interactive (Delegated) login...');
+      console.log('🔵 Attempting Interactive (Delegated) login with MSAL...');
+      
+      // Verify MSAL configuration
+      const azureConfig = JSON.parse(localStorage.getItem('azureConfig') || '{}');
+      console.log('📋 Azure Config:', {
+        clientId: azureConfig.clientId ? '✓ Set' : '✗ Missing',
+        tenantId: azureConfig.tenantId ? '✓ Set' : '✗ Missing',
+        hasSecret: azureConfig.clientSecret ? '✓ Set (not needed for interactive)' : '✗ Not set (OK)'
+      });
       
       // Set auth mode to interactive
       localStorage.setItem('authMode', 'interactive');
       localStorage.removeItem('demoMode');
       
-      // Use the login function from AuthContext which uses MSAL
-      await login();
+      console.log('🔄 Initiating MSAL popup login...');
       
-      toast.success('Successfully signed in!');
+      // Wait for login to complete and auth state to update
+      await new Promise((resolve, reject) => {
+        const handleSuccess = () => {
+          console.log('✅ OAuth2 login state updated');
+          window.removeEventListener('oauthLoginStateUpdated', handleSuccess);
+          resolve();
+        };
+        
+        window.addEventListener('oauthLoginStateUpdated', handleSuccess, { once: true });
+        
+        // Call the login function from AuthContext which uses MSAL
+        login().catch(reject);
+        
+        // Timeout after 60 seconds
+        setTimeout(() => {
+          window.removeEventListener('oauthLoginStateUpdated', handleSuccess);
+          reject(new Error('Login timeout - popup may have been blocked'));
+        }, 60000);
+      });
+      
+      toast.success('Successfully signed in with Microsoft account!');
+      console.log('✅ Navigating to dashboard...');
       navigate('/dashboard');
     } catch (err) {
-      console.error('Interactive login failed:', err);
-      toast.error(`Sign in failed: ${err.message || 'Please try again.'}`);
+      console.error('❌ Interactive login failed:', err);
+      
+      // Provide specific error messages
+      let errorMessage = err.message || 'Unknown error occurred';
+      
+      if (errorMessage.includes('popup_window_error') || errorMessage.includes('blocked')) {
+        errorMessage = 'Popup was blocked. Please allow popups for this site and try again.';
+      } else if (errorMessage.includes('AADSTS')) {
+        errorMessage = `Azure AD error: ${errorMessage}. Check your app registration settings.`;
+      } else if (errorMessage.includes('timeout')) {
+        errorMessage = 'Login timed out. Please check your popup blocker and try again.';
+      }
+      
+      toast.error(`Sign in failed: ${errorMessage}`);
     } finally {
       setIsLoggingIn(false);
     }
@@ -501,6 +541,17 @@ const Login = () => {
                     💡 Find these in Azure Portal → App Registrations → Your Application
                   </p>
                 </div>
+                
+                {isConfigured && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div className="flex items-start">
+                      <InformationCircleIcon className="h-4 w-4 text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
+                      <div className="text-xs text-blue-700">
+                        <strong>For Interactive Sign-In:</strong> Add <code className="bg-blue-100 px-1 rounded">{window.location.origin}</code> as a redirect URI in Azure Portal → Authentication → Single-page application platform
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
