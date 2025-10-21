@@ -89,14 +89,33 @@ const OnboardingWizard = () => {
 
   const fetchAvailableResources = async () => {
     try {
-      const [licensesData, groupsData] = await Promise.all([
-        graphService.getAvailableLicenses(),
-        graphService.getGroups()
-      ]);
-      setAvailableLicenses(licensesData.value || []);
+      console.log('📊 Fetching available licenses and groups...');
+      
+      // Fetch groups
+      let groupsData = { value: [] };
+      try {
+        groupsData = await graphService.getAllGroups();
+        console.log(`✅ Loaded ${groupsData.value?.length || 0} groups`);
+      } catch (groupError) {
+        console.error('❌ Error fetching groups:', groupError);
+        toast.error('Failed to load groups. Please check permissions.');
+      }
+      
+      // Fetch licenses
+      let licensesData = { value: [] };
+      try {
+        licensesData = await graphService.getAvailableLicenses();
+        console.log(`✅ Loaded ${licensesData.value?.length || 0} licenses`);
+      } catch (licenseError) {
+        console.error('❌ Error fetching licenses:', licenseError);
+        toast.error('Failed to load licenses. Please check permissions.');
+      }
+      
       setAvailableGroups(groupsData.value || []);
+      setAvailableLicenses(licensesData.value || []);
     } catch (error) {
-      console.error('Error fetching available resources:', error);
+      console.error('❌ Error fetching available resources:', error);
+      toast.error('Failed to load onboarding resources');
     }
   };
 

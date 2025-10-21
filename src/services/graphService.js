@@ -661,6 +661,44 @@ export class GraphService {
   }
 
   // Group Management Methods
+  
+  /**
+   * Get all groups in the organization
+   * @param {number} top - Number of groups to return (default: 999)
+   * @returns {Promise} Response with groups
+   */
+  async getGroups(top = 999) {
+    return this.makeRequest(`/groups?$top=${top}&$select=id,displayName,description,groupTypes,mail,mailEnabled,securityEnabled`);
+  }
+
+  /**
+   * Get all groups by following @odata.nextLink pagination
+   * @returns {Promise<Array>} All groups
+   */
+  async getAllGroups() {
+    const groups = [];
+    let endpoint = `/groups?$top=999&$select=id,displayName,description,groupTypes,mail,mailEnabled,securityEnabled`;
+    
+    // Follow pagination links
+    while (endpoint) {
+      const response = await this.makeRequest(endpoint.replace(this.baseUrl, ''));
+      
+      if (response.value) {
+        groups.push(...response.value);
+      }
+      
+      // Check for next page
+      endpoint = response['@odata.nextLink'] || null;
+      
+      if (endpoint) {
+        console.log(`Fetched ${groups.length} groups, loading more...`);
+      }
+    }
+    
+    console.log(`Total groups fetched: ${groups.length}`);
+    return { value: groups, totalCount: groups.length };
+  }
+  
   async getUserGroups(userId) {
     return this.makeRequest(`/users/${userId}/memberOf?$select=displayName,id,groupTypes`);
   }
