@@ -345,14 +345,26 @@ router.post('/logout', (req, res) => {
  */
 router.get('/msal-config', (req, res) => {
   try {
+    console.log('🔍 MSAL config endpoint called');
+    console.log('🔍 All env vars available:', Object.keys(process.env).filter(k => k.startsWith('AZURE')));
+    
     const clientId = process.env.AZURE_CLIENT_ID;
     const tenantId = process.env.AZURE_TENANT_ID;
     
+    console.log('🔍 AZURE_CLIENT_ID present:', !!clientId);
+    console.log('🔍 AZURE_TENANT_ID present:', !!tenantId);
+    
     if (!clientId || !tenantId) {
       console.warn('⚠️ MSAL config requested but environment variables not set');
+      console.warn('⚠️ Available env vars:', Object.keys(process.env).sort().join(', '));
       return res.status(404).json({
         error: 'MSAL configuration not available',
-        message: 'Please set AZURE_CLIENT_ID and AZURE_TENANT_ID in Vercel environment variables'
+        message: 'Please set AZURE_CLIENT_ID and AZURE_TENANT_ID in Vercel environment variables',
+        debug: {
+          hasClientId: !!clientId,
+          hasTenantId: !!tenantId,
+          nodeEnv: process.env.NODE_ENV
+        }
       });
     }
     
