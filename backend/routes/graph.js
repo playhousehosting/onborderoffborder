@@ -90,7 +90,7 @@ router.patch('/users/:id', requireAuth, async (req, res) => {
 router.delete('/users/:id', requireAuth, async (req, res) => {
   try {
     await graphService.deleteUser(req.session, req.params.id);
-    res.json({ success: true, message: 'User deleted successfully' });
+    res.json({ success: true, message: 'User disabled successfully' });
   } catch (error) {
     res.status(error.status || 500).json({ error: error.message });
   }
