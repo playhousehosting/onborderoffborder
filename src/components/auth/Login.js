@@ -339,13 +339,17 @@ const Login = () => {
       
       console.log('✅ Backend MSAL config received:', {
         clientId: backendConfig.clientId.substring(0, 8) + '...',
-        tenantId: backendConfig.tenantId.substring(0, 8) + '...'
+        tenantId: backendConfig.tenantId.substring(0, 8) + '...',
+        isMultiTenant: backendConfig.isMultiTenant,
+        authority: backendConfig.authority
       });
       
       // Store backend config in localStorage for MSAL initialization
       const msalConfig = {
         clientId: backendConfig.clientId,
-        tenantId: backendConfig.tenantId
+        tenantId: backendConfig.tenantId,
+        authority: backendConfig.authority,  // Use authority from backend
+        isMultiTenant: backendConfig.isMultiTenant
       };
       localStorage.setItem('azureConfig', JSON.stringify(msalConfig));
       

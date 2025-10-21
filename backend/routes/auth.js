@@ -350,9 +350,11 @@ router.get('/msal-config', (req, res) => {
     
     const clientId = process.env.AZURE_CLIENT_ID;
     const tenantId = process.env.AZURE_TENANT_ID;
+    const isMultiTenant = process.env.AZURE_MULTITENANT === 'true';
     
     console.log('🔍 AZURE_CLIENT_ID present:', !!clientId);
     console.log('🔍 AZURE_TENANT_ID present:', !!tenantId);
+    console.log('🔍 Multi-tenant mode:', isMultiTenant);
     
     if (!clientId || !tenantId) {
       console.warn('⚠️ MSAL config requested but environment variables not set');
@@ -371,10 +373,19 @@ router.get('/msal-config', (req, res) => {
     console.log('✅ Providing MSAL config from environment variables');
     console.log('  - Client ID:', clientId.substring(0, 8) + '...');
     console.log('  - Tenant ID:', tenantId.substring(0, 8) + '...');
+    console.log('  - Multi-tenant:', isMultiTenant);
+    
+    // For multi-tenant apps, use 'common' or 'organizations' authority
+    // For single-tenant, use specific tenant ID
+    const authority = isMultiTenant 
+      ? 'https://login.microsoftonline.com/organizations'  // Work/school accounts from any org
+      : `https://login.microsoftonline.com/${tenantId}`;   // Specific tenant only
     
     res.json({
       clientId,
       tenantId,
+      authority,
+      isMultiTenant,
       redirectUri: `${req.protocol}://${req.get('host')}/auth/callback`
     });
   } catch (error) {
