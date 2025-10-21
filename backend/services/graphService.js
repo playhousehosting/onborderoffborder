@@ -115,10 +115,12 @@ async function updateUser(session, userId, userData) {
  * Delete user
  * @param {Object} session - User session
  * @param {string} userId - User ID
- * @returns {Promise<Object>} - Delete response
+ * @returns {Promise<Object>} - Disable response (user account disabled)
  */
 async function deleteUser(session, userId) {
-  return makeGraphRequest(session, `/users/${userId}`, 'DELETE');
+  // For offboarding we no longer permanently delete users. Instead, disable sign-in
+  // by setting accountEnabled to false. This preserves the user object for auditing.
+  return makeGraphRequest(session, `/users/${userId}`, 'PATCH', { accountEnabled: false });
 }
 
 /**

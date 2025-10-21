@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const { body, validationResult } = require('express-validator');
 const axios = require('axios');
 const { encryptCredentials } = require('../utils/encryption');
 const { validateCredentials, createMsalInstance, getAuthorizationUrl, acquireTokenByCode } = require('../services/authService');
@@ -9,21 +8,22 @@ const { validateCredentials, createMsalInstance, getAuthorizationUrl, acquireTok
  * POST /api/auth/configure
  * Save Azure AD credentials to user's session (encrypted)
  */
-router.post('/configure',
-  [
-    body('clientId').notEmpty().withMessage('Client ID is required'),
-    body('tenantId').notEmpty().withMessage('Tenant ID is required'),
-    body('clientSecret').optional(),
-  ],
-  async (req, res) => {
+router.post('/configure', async (req, res) => {
     try {
-      // Validate request
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+      const { clientId, tenantId, clientSecret } = req.body;
+      
+      // Manual validation
+      const errors = [];
+      if (!clientId || clientId.trim() === '') {
+        errors.push({ field: 'clientId', message: 'Client ID is required' });
+      }
+      if (!tenantId || tenantId.trim() === '') {
+        errors.push({ field: 'tenantId', message: 'Tenant ID is required' });
       }
       
-      const { clientId, tenantId, clientSecret } = req.body;
+      if (errors.length > 0) {
+        return res.status(400).json({ errors });
+      }
       
       // Encrypt credentials before storing in session
       const encryptedCredentials = encryptCredentials({

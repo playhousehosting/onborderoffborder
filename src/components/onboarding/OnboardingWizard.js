@@ -32,6 +32,13 @@ const OnboardingWizard = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   
+  // Copy groups from existing user
+  const [copyGroupsFromUser, setCopyGroupsFromUser] = useState(false);
+  const [copyUserSearchTerm, setCopyUserSearchTerm] = useState('');
+  const [copyUserSearchResults, setCopyUserSearchResults] = useState([]);
+  const [selectedCopyUser, setSelectedCopyUser] = useState(null);
+  const [copyingGroups, setCopyingGroups] = useState(false);
+  
   // New user information for onboarding
   const [newUserInfo, setNewUserInfo] = useState({
     firstName: '',
@@ -129,6 +136,50 @@ const OnboardingWizard = () => {
       toast.error('Failed to fetch user details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Search for users to copy groups from
+  const searchCopyUsers = async (term) => {
+    if (!term.trim()) {
+      setCopyUserSearchResults([]);
+      return;
+    }
+    
+    try {
+      setCopyingGroups(true);
+      const results = await graphService.searchUsers(term);
+      setCopyUserSearchResults(results.value || []);
+    } catch (error) {
+      console.error('Error searching users:', error);
+      toast.error('Failed to search users');
+    } finally {
+      setCopyingGroups(false);
+    }
+  };
+
+  // Copy groups from selected user
+  const handleCopyGroupsFromUser = async (user) => {
+    try {
+      setCopyingGroups(true);
+      setSelectedCopyUser(user);
+      
+      console.log(`📋 Copying groups from ${user.displayName}...`);
+      const userGroups = await graphService.getUserGroups(user.id);
+      
+      if (userGroups.value && userGroups.value.length > 0) {
+        const groupIds = userGroups.value.map(g => g.id);
+        handleOptionChange('selectedGroups', groupIds);
+        toast.success(`Copied ${groupIds.length} groups from ${user.displayName}`);
+        console.log(`✅ Copied ${groupIds.length} groups`);
+      } else {
+        toast.info(`${user.displayName} is not a member of any groups`);
+      }
+    } catch (error) {
+      console.error('Error copying groups:', error);
+      toast.error('Failed to copy groups from user');
+    } finally {
+      setCopyingGroups(false);
     }
   };
 
@@ -714,34 +765,131 @@ const OnboardingWizard = () => {
                   </div>
                   
                   {onboardingOptions.addToGroups && (
-                    <div className="ml-6">
-                      <label className="form-label">Select Groups</label>
-                      {availableGroups.length === 0 ? (
-                        <div className="text-sm text-gray-500 italic">Loading available groups...</div>
-                      ) : (
-                        <select
-                          multiple
-                          className="form-input min-h-[120px]"
-                          value={onboardingOptions.selectedGroups}
-                          onChange={(e) => {
-                            const selected = Array.from(e.target.selectedOptions, option => option.value);
-                            handleOptionChange('selectedGroups', selected);
-                          }}
-                        >
-                          {availableGroups.map((group) => (
-                            <option key={group.id} value={group.id}>
-                              {group.displayName}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                      <p className="mt-1 text-xs text-gray-500">
-                        Hold Ctrl/Cmd to select multiple groups
-                      </p>
+                    <div className="ml-6 space-y-4">
+                      {/* Copy from existing user option */}
+                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="flex items-center mb-3">
+                          <input
+                            type="checkbox"
+                            id="copyGroupsFromUser"
+                            className="form-checkbox"
+                            checked={copyGroupsFromUser}
+                            onChange={(e) => {
+                              setCopyGroupsFromUser(e.target.checked);
+                              if (!e.target.checked) {
+                                setSelectedCopyUser(null);
+                                setCopyUserSearchTerm('');
+                                setCopyUserSearchResults([]);
+                              }
+                            }}
+                          />
+                          <label htmlFor="copyGroupsFromUser" className="ml-2 text-sm font-medium text-blue-900">
+                            Copy groups from an existing user
+                          </label>
+                        </div>
+                        
+                        {copyGroupsFromUser && (
+                          <div className="space-y-3">
+                            {selectedCopyUser ? (
+                              <div className="p-3 bg-white border border-blue-300 rounded-lg">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center">
+                                    <UserIcon className="h-8 w-8 text-blue-600 mr-2" />
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-900">{selectedCopyUser.displayName}</p>
+                                      <p className="text-xs text-gray-500">{selectedCopyUser.mail || selectedCopyUser.userPrincipalName}</p>
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedCopyUser(null);
+                                      setCopyUserSearchTerm('');
+                                    }}
+                                    className="text-sm text-blue-600 hover:text-blue-800"
+                                  >
+                                    Change
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    className="form-input text-sm"
+                                    placeholder="Search for user by name or email..."
+                                    value={copyUserSearchTerm}
+                                    onChange={(e) => {
+                                      setCopyUserSearchTerm(e.target.value);
+                                      searchCopyUsers(e.target.value);
+                                    }}
+                                  />
+                                  {copyingGroups && (
+                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {copyUserSearchResults.length > 0 && (
+                                  <div className="max-h-40 overflow-y-auto border border-gray-200 rounded bg-white">
+                                    {copyUserSearchResults.map((user) => (
+                                      <div
+                                        key={user.id}
+                                        onClick={() => handleCopyGroupsFromUser(user)}
+                                        className="p-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                      >
+                                        <div className="flex items-center">
+                                          <UserIcon className="h-5 w-5 text-gray-400 mr-2" />
+                                          <div>
+                                            <p className="text-xs font-medium text-gray-900">{user.displayName}</p>
+                                            <p className="text-xs text-gray-500">{user.mail || user.userPrincipalName}</p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Manual group selection */}
+                      <div>
+                        <label className="form-label">
+                          {selectedCopyUser ? 'Or manually adjust groups' : 'Select Groups'}
+                        </label>
+                        {availableGroups.length === 0 ? (
+                          <div className="text-sm text-gray-500 italic">Loading available groups...</div>
+                        ) : (
+                          <select
+                            multiple
+                            className="form-input min-h-[120px]"
+                            value={onboardingOptions.selectedGroups}
+                            onChange={(e) => {
+                              const selected = Array.from(e.target.selectedOptions, option => option.value);
+                              handleOptionChange('selectedGroups', selected);
+                            }}
+                          >
+                            {availableGroups.map((group) => (
+                              <option key={group.id} value={group.id}>
+                                {group.displayName}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        <p className="mt-1 text-xs text-gray-500">
+                          Hold Ctrl/Cmd to select multiple groups
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
+
+              {/* Email Settings */}
 
               {/* Email Options */}
               <div className="card">
