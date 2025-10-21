@@ -32,6 +32,16 @@ const OnboardingWizard = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   
+  // New user information for onboarding
+  const [newUserInfo, setNewUserInfo] = useState({
+    firstName: '',
+    lastName: '',
+    displayName: '',
+    userPrincipalName: '',
+    mailNickname: '',
+    email: '',
+  });
+  
   // Onboarding options
   const [onboardingOptions, setOnboardingOptions] = useState({
     enableAccount: true,
@@ -63,8 +73,8 @@ const OnboardingWizard = () => {
   const [availableGroups, setAvailableGroups] = useState([]);
 
   const steps = [
-    { id: 'user-selection', name: 'Select User', icon: UserIcon },
-    { id: 'basic-info', name: 'Basic Information', icon: DocumentTextIcon },
+    { id: 'user-info', name: 'New User Information', icon: UserIcon },
+    { id: 'basic-info', name: 'Job Details', icon: DocumentTextIcon },
     { id: 'options', name: 'Configure Options', icon: CheckCircleIcon },
     { id: 'confirmation', name: 'Confirm & Execute', icon: ShieldCheckIcon },
     { id: 'results', name: 'Results', icon: CheckCircleIcon },
@@ -139,8 +149,18 @@ const OnboardingWizard = () => {
 
   const validateStep = () => {
     switch (steps[currentStep].id) {
-      case 'user-selection':
-        return selectedUser !== null;
+      case 'user-info':
+        if (!newUserInfo.firstName || !newUserInfo.lastName || !newUserInfo.userPrincipalName) {
+          toast.error('Please fill in all required fields (First Name, Last Name, Username)');
+          return false;
+        }
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(newUserInfo.userPrincipalName)) {
+          toast.error('Please enter a valid email address for the username');
+          return false;
+        }
+        return true;
       case 'basic-info':
         if (!onboardingOptions.department || !onboardingOptions.jobTitle) {
           toast.error('Please fill in all required fields');
@@ -356,91 +376,117 @@ const OnboardingWizard = () => {
 
   const renderStep = () => {
     switch (steps[currentStep].id) {
-      case 'user-selection':
+      case 'user-info':
         return (
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Select User to Onboard</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">New User Information</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Enter the details for the new employee you want to onboard.
+            </p>
             
-            {selectedUser ? (
-              <div className="card">
-                <div className="card-body">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-12 w-12">
-                        <div className="h-12 w-12 rounded-full bg-primary-100 flex items-center justify-center">
-                          <UserIcon className="h-8 w-8 text-primary-600" />
-                        </div>
-                      </div>
-                      <div className="ml-4">
-                        <h4 className="text-lg font-medium text-gray-900">{selectedUser.displayName}</h4>
-                        <p className="text-sm text-gray-500">{selectedUser.mail || selectedUser.userPrincipalName}</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setSelectedUser(null)}
-                      className="btn btn-secondary"
-                    >
-                      Change User
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <div className="mb-4">
-                  <label className="form-label">Search for user</label>
-                  <div className="relative">
+            <div className="card">
+              <div className="card-body">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <div>
+                    <label className="form-label">First Name *</label>
                     <input
                       type="text"
                       className="form-input"
-                      placeholder="Enter name or email"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="John"
+                      value={newUserInfo.firstName}
+                      onChange={(e) => {
+                        const firstName = e.target.value;
+                        setNewUserInfo(prev => ({
+                          ...prev,
+                          firstName,
+                          displayName: `${firstName} ${prev.lastName}`.trim(),
+                        }));
+                      }}
                     />
-                    {searching && (
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
-                      </div>
-                    )}
+                  </div>
+                  
+                  <div>
+                    <label className="form-label">Last Name *</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Doe"
+                      value={newUserInfo.lastName}
+                      onChange={(e) => {
+                        const lastName = e.target.value;
+                        setNewUserInfo(prev => ({
+                          ...prev,
+                          lastName,
+                          displayName: `${prev.firstName} ${lastName}`.trim(),
+                        }));
+                      }}
+                    />
+                  </div>
+                  
+                  <div className="sm:col-span-2">
+                    <label className="form-label">Display Name</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="John Doe"
+                      value={newUserInfo.displayName}
+                      onChange={(e) => setNewUserInfo(prev => ({ ...prev, displayName: e.target.value }))}
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Auto-filled from first and last name, but you can customize it
+                    </p>
+                  </div>
+                  
+                  <div className="sm:col-span-2">
+                    <label className="form-label">Username / Email Address *</label>
+                    <input
+                      type="email"
+                      className="form-input"
+                      placeholder="john.doe@company.com"
+                      value={newUserInfo.userPrincipalName}
+                      onChange={(e) => {
+                        const email = e.target.value;
+                        // Extract mail nickname from email
+                        const mailNickname = email.split('@')[0];
+                        setNewUserInfo(prev => ({
+                          ...prev,
+                          userPrincipalName: email,
+                          email: email,
+                          mailNickname: mailNickname,
+                        }));
+                      }}
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      This will be the user's login email address
+                    </p>
                   </div>
                 </div>
                 
-                {searchResults.length > 0 && (
-                  <div className="card">
-                    <div className="card-body">
-                      <div className="space-y-2">
-                        {searchResults.map((user) => (
-                          <div
-                            key={user.id}
-                            onClick={() => setSelectedUser(user)}
-                            className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-                          >
-                            <div className="flex items-center">
-                              <div className="flex-shrink-0 h-8 w-8">
-                                <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
-                                  <UserIcon className="h-5 w-5 text-primary-600" />
-                                </div>
-                              </div>
-                              <div className="ml-3">
-                                <p className="text-sm font-medium text-gray-900">{user.displayName}</p>
-                                <p className="text-sm text-gray-500">{user.mail || user.userPrincipalName}</p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <UserPlusIcon className="h-5 w-5 text-blue-400" />
+                    </div>
+                    <div className="ml-3">
+                      <h4 className="text-sm font-medium text-blue-800">Creating New User</h4>
+                      <p className="mt-1 text-sm text-blue-700">
+                        This wizard will create a new user account in your Azure AD with the information provided.
+                      </p>
                     </div>
                   </div>
-                )}
+                </div>
               </div>
-            )}
+            </div>
           </div>
         );
 
       case 'basic-info':
         return (
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Job Details & Contact Information</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Provide job-related information for {newUserInfo.displayName || 'the new employee'}.
+            </p>
             
             <div className="card">
               <div className="card-body">
@@ -784,10 +830,10 @@ const OnboardingWizard = () => {
                 <CheckCircleIcon className="h-5 w-5 text-green-400" />
                 <div className="ml-3">
                   <h3 className="text-sm font-medium text-green-800">
-                    Ready to onboard {selectedUser.displayName}
+                    Ready to onboard {newUserInfo.displayName}
                   </h3>
                   <div className="mt-2 text-sm text-green-700">
-                    Review the selected options below before executing the onboarding process.
+                    Review the information below before creating the new user account.
                   </div>
                 </div>
               </div>
@@ -795,17 +841,17 @@ const OnboardingWizard = () => {
             
             <div className="card mb-6">
               <div className="card-header">
-                <h4 className="text-md font-medium text-gray-900">User Information</h4>
+                <h4 className="text-md font-medium text-gray-900">New User Information</h4>
               </div>
               <div className="card-body">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <p className="text-sm font-medium text-gray-500">Name</p>
-                    <p className="text-sm text-gray-900">{selectedUser.displayName}</p>
+                    <p className="text-sm text-gray-900">{newUserInfo.displayName}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Email</p>
-                    <p className="text-sm text-gray-900">{selectedUser.mail || selectedUser.userPrincipalName}</p>
+                    <p className="text-sm font-medium text-gray-500">Email / Username</p>
+                    <p className="text-sm text-gray-900">{newUserInfo.userPrincipalName}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">Department</p>
@@ -828,7 +874,7 @@ const OnboardingWizard = () => {
                   {onboardingOptions.enableAccount && (
                     <div className="flex items-center text-sm">
                       <CheckCircleIcon className="h-4 w-4 text-success-500 mr-2" />
-                      Enable user account
+                      Create and enable user account
                     </div>
                   )}
                   {onboardingOptions.setPassword && (
