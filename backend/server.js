@@ -38,17 +38,27 @@ app.use(helmet({
 // CORS configuration
 const corsOptions = {
   origin: (origin, callback) => {
-    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()) || ['http://localhost:3000'];
+    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()) || [
+      'http://localhost:3000',
+      'http://localhost:5000',
+      'https://onboardingoffboarding.dynamicendpoints.com'
+    ];
+    
+    console.log('🔍 CORS check - Origin:', origin);
+    console.log('🔍 CORS check - Allowed origins:', allowedOrigins);
     
     // Allow requests without origin (same-origin, mobile apps, etc)
     if (!origin) {
+      console.log('✅ CORS: Allowing request without origin (same-origin)');
       return callback(null, true);
     }
     
     if (allowedOrigins.includes(origin)) {
+      console.log('✅ CORS: Allowing origin:', origin);
       callback(null, true);
     } else {
-      console.warn(`CORS rejected origin: ${origin}`);
+      console.warn(`❌ CORS rejected origin: ${origin}`);
+      console.warn(`   Allowed origins: ${allowedOrigins.join(', ')}`);
       callback(new Error('CORS policy: origin not allowed'));
     }
   },
