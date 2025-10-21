@@ -64,11 +64,30 @@ router.post('/configure',
 router.post('/app-only-token', async (req, res) => {
   try {
     const { clientId, clientSecret, tenantId } = req.body;
-    
+
+    console.log('🔑 Backend: Received app-only token request');
+    console.log('  - Tenant ID:', tenantId ? `${tenantId.substring(0, 8)}...` : 'MISSING');
+    console.log('  - Client ID:', clientId ? `${clientId.substring(0, 8)}...` : 'MISSING');
+    console.log('  - Client Secret:', clientSecret ? 'PROVIDED' : 'MISSING');
+
     if (!clientId || !clientSecret || !tenantId) {
-      return res.status(400).json({ error: 'Missing required credentials' });
+      console.error('❌ Backend: Missing required credentials in request body');
+      return res.status(400).json({
+        error: 'Missing required credentials',
+        details: `Missing: ${!clientId ? 'clientId ' : ''}${!clientSecret ? 'clientSecret ' : ''}${!tenantId ? 'tenantId' : ''}`.trim()
+      });
     }
-    
+
+    // Validate credentials are not placeholder values
+    const placeholders = ['your-client-id', 'your-tenant-id', 'your-client-secret', 'demo-'];
+    if (placeholders.some(p => clientId.includes(p) || tenantId.includes(p) || clientSecret.includes(p))) {
+      console.error('❌ Backend: Placeholder values detected in credentials');
+      return res.status(400).json({
+        error: 'Invalid credentials',
+        details: 'Please configure valid Azure AD credentials (not placeholder values)'
+      });
+    }
+
     console.log('🔑 Backend: Acquiring app-only token for tenant:', tenantId);
     
     // Call Azure AD token endpoint from backend (no CORS issues)
@@ -96,18 +115,31 @@ router.post('/app-only-token', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('App-only token error:', error);
-    
+    console.error('❌ Backend: App-only token error:', error.message);
+
     // Handle axios error response
     if (error.response) {
-      console.error('Azure AD token error:', error.response.data);
-      return res.status(error.response.status || 401).json({ 
+      const azureError = error.response.data;
+      console.error('❌ Azure AD token error details:', JSON.stringify(azureError, null, 2));
+
+      // Extract detailed error message
+      const errorDescription = azureError.error_description || azureError.error || error.message;
+
+      return res.status(error.response.status || 401).json({
         error: 'Failed to acquire token',
-        details: error.response.data.error_description || error.response.data.error || error.message
+        details: errorDescription,
+        azureError: azureError.error,
+        errorCode: azureError.error_codes?.[0]
       });
     }
-    
-    res.status(500).json({ error: 'Failed to get app-only token', details: error.message });
+
+    // Generic error (not from Azure)
+    console.error('❌ Backend: Non-Azure error:', error);
+    res.status(500).json({
+      error: 'Failed to get app-only token',
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 

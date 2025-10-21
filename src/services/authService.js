@@ -160,7 +160,9 @@ export class AuthService {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(`Failed to get app-only token: ${errorData.error || response.statusText}`);
+        const errorMessage = errorData.details || errorData.error || response.statusText;
+        console.error('Backend token error response:', errorData);
+        throw new Error(`Failed to get app-only token: ${errorMessage}`);
       }
 
       const data = await response.json();
