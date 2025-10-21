@@ -116,11 +116,16 @@ router.post('/app-only-token', async (req, res) => {
     
   } catch (error) {
     console.error('❌ Backend: App-only token error:', error.message);
+    console.error('Error name:', error.name);
+    console.error('Error code:', error.code);
+    console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
 
     // Handle axios error response
     if (error.response) {
       const azureError = error.response.data;
       console.error('❌ Azure AD token error details:', JSON.stringify(azureError, null, 2));
+      console.error('Response status:', error.response.status);
+      console.error('Response headers:', error.response.headers);
 
       // Extract detailed error message
       const errorDescription = azureError.error_description || azureError.error || error.message;
@@ -133,11 +138,24 @@ router.post('/app-only-token', async (req, res) => {
       });
     }
 
-    // Generic error (not from Azure)
+    // Handle axios request error (network issues, etc.)
+    if (error.request) {
+      console.error('❌ Backend: Request was made but no response received');
+      console.error('Request details:', error.request);
+      return res.status(500).json({
+        error: 'Network error',
+        details: 'Failed to connect to Azure AD token endpoint. Please check network connectivity.',
+        message: error.message
+      });
+    }
+
+    // Generic error (not from Azure or network)
     console.error('❌ Backend: Non-Azure error:', error);
     res.status(500).json({
       error: 'Failed to get app-only token',
       details: error.message,
+      errorName: error.name,
+      errorCode: error.code,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }

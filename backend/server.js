@@ -169,14 +169,24 @@ app.get('/', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  console.error('❌ Global error handler caught error:', err);
+  console.error('Error stack:', err.stack);
+  console.error('Error details:', {
+    message: err.message,
+    status: err.status,
+    name: err.name,
+    code: err.code
+  });
   
-  // Don't expose error details in production
+  // Provide useful error information while maintaining security
   const errorResponse = {
-    error: process.env.NODE_ENV === 'production' 
-      ? 'An error occurred' 
-      : err.message,
-    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
+    error: err.message || 'An error occurred',
+    // Include additional context in development
+    ...(process.env.NODE_ENV !== 'production' && { 
+      stack: err.stack,
+      name: err.name,
+      code: err.code
+    })
   };
   
   res.status(err.status || 500).json(errorResponse);
