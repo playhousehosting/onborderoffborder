@@ -281,16 +281,26 @@ export class GraphService {
   
   /**
    * Get users with pagination support
+   * Note: Microsoft Graph API doesn't support $skip for users endpoint
+   * Use $top for page size and @odata.nextLink for pagination
    * @param {number} top - Number of users per page
-   * @param {number} skip - Number of users to skip
    * @param {string} filter - OData filter string
+   * @param {string} nextLink - Optional next page URL from previous response
    * @returns {Promise} Response with value array and optional @odata.nextLink
    */
-  async getUsers(top = 25, skip = 0, filter = '') {
-    let endpoint = `/users?$top=${top}&$skip=${skip}&$select=id,displayName,userPrincipalName,mail,jobTitle,department,accountEnabled,createdDateTime,lastPasswordChangeDateTime`;
+  async getUsers(top = 25, filter = '', nextLink = null) {
+    let endpoint;
     
-    if (filter) {
-      endpoint += `&$filter=${filter}`;
+    if (nextLink) {
+      // Use the nextLink URL directly (remove base URL if present)
+      endpoint = nextLink.replace(this.baseUrl, '');
+    } else {
+      // Build initial query
+      endpoint = `/users?$top=${top}&$select=id,displayName,userPrincipalName,mail,jobTitle,department,accountEnabled,createdDateTime,lastPasswordChangeDateTime`;
+      
+      if (filter) {
+        endpoint += `&$filter=${filter}`;
+      }
     }
     
     return this.makeRequest(endpoint);
