@@ -69,6 +69,18 @@ const Login = () => {
           handleLogin();
         }
       }
+      
+      // Check if we should trigger interactive login after page reload
+      const pendingInteractiveLogin = sessionStorage.getItem('pendingInteractiveLogin');
+      if (pendingInteractiveLogin === 'true' && isConfigured) {
+        sessionStorage.removeItem('pendingInteractiveLogin');
+        console.log('✅ Backend MSAL config loaded, triggering interactive login...');
+        
+        // Trigger the actual MSAL login now that config is loaded
+        setTimeout(() => {
+          triggerMsalLogin();
+        }, 500);
+      }
     } catch (e) {
       console.error('Error loading config:', e);
     }
@@ -254,29 +266,15 @@ const Login = () => {
     }
   };
 
-  const handleInteractiveLogin = async () => {
-    if (!isConfigured) {
-      toast.error('Please configure Azure AD credentials first');
-      return;
-    }
-    
+  // Trigger MSAL login (called after page reload with backend config)
+  const triggerMsalLogin = async () => {
     try {
       setIsLoggingIn(true);
-      console.log('🔵 Attempting Interactive (Delegated) login with MSAL...');
-      
-      // Verify MSAL configuration
-      const azureConfig = JSON.parse(localStorage.getItem('azureConfig') || '{}');
-      console.log('📋 Azure Config:', {
-        clientId: azureConfig.clientId ? '✓ Set' : '✗ Missing',
-        tenantId: azureConfig.tenantId ? '✓ Set' : '✗ Missing',
-        hasSecret: azureConfig.clientSecret ? '✓ Set (not needed for interactive)' : '✗ Not set (OK)'
-      });
+      console.log('🔄 Initiating MSAL popup login with backend config...');
       
       // Set auth mode to interactive
       localStorage.setItem('authMode', 'interactive');
       localStorage.removeItem('demoMode');
-      
-      console.log('🔄 Initiating MSAL popup login...');
       
       // Wait for login to complete and auth state to update
       await new Promise((resolve, reject) => {
@@ -317,6 +315,62 @@ const Login = () => {
       
       toast.error(`Sign in failed: ${errorMessage}`);
     } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleInteractiveLogin = async () => {
+    try {
+      setIsLoggingIn(true);
+      console.log('🔵 Attempting Interactive (OAuth2) login with backend MSAL config...');
+      
+      // Import the fetchMsalConfigFromBackend function dynamically
+      const { fetchMsalConfigFromBackend } = await import('../../config/authConfig');
+      
+      // Fetch MSAL configuration from backend environment variables
+      console.log('🔍 Fetching MSAL config from backend Vercel environment...');
+      const backendConfig = await fetchMsalConfigFromBackend();
+      
+      if (!backendConfig || !backendConfig.clientId || !backendConfig.tenantId) {
+        console.error('❌ Backend MSAL config not available');
+        toast.error('Interactive authentication not configured on backend. Please set AZURE_CLIENT_ID and AZURE_TENANT_ID in Vercel environment variables.');
+        return;
+      }
+      
+      console.log('✅ Backend MSAL config received:', {
+        clientId: backendConfig.clientId.substring(0, 8) + '...',
+        tenantId: backendConfig.tenantId.substring(0, 8) + '...'
+      });
+      
+      // Store backend config in localStorage for MSAL initialization
+      const msalConfig = {
+        clientId: backendConfig.clientId,
+        tenantId: backendConfig.tenantId
+      };
+      localStorage.setItem('azureConfig', JSON.stringify(msalConfig));
+      
+      // Set auth mode to interactive
+      localStorage.setItem('authMode', 'interactive');
+      localStorage.removeItem('demoMode');
+      
+      // Reset MSAL instance to pick up new configuration
+      console.log('🔄 Resetting MSAL instance with backend config...');
+      const { resetMsalInstance } = await import('../../App');
+      resetMsalInstance();
+      
+      // Reload the page to reinitialize MSAL with new config
+      console.log('🔄 Reloading page to apply new MSAL configuration...');
+      toast.success('Configuration loaded from backend. Initializing authentication...');
+      
+      // Set a flag to auto-trigger login after reload
+      sessionStorage.setItem('pendingInteractiveLogin', 'true');
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } catch (err) {
+      console.error('❌ Failed to load backend config:', err);
+      toast.error(`Failed to load configuration: ${err.message || 'Please try again.'}`);
       setIsLoggingIn(false);
     }
   };
@@ -542,16 +596,14 @@ const Login = () => {
                   </p>
                 </div>
                 
-                {isConfigured && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <div className="flex items-start">
-                      <InformationCircleIcon className="h-4 w-4 text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
-                      <div className="text-xs text-blue-700">
-                        <strong>For Interactive Sign-In:</strong> Add <code className="bg-blue-100 px-1 rounded">{window.location.origin}</code> as a redirect URI in Azure Portal → Authentication → Single-page application platform
-                      </div>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-start">
+                    <InformationCircleIcon className="h-4 w-4 text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
+                    <div className="text-xs text-blue-700">
+                      <strong>Interactive Sign-In:</strong> Uses multi-tenant app credentials from Vercel backend environment (AZURE_CLIENT_ID, AZURE_TENANT_ID)
                     </div>
                   </div>
-                )}
+                </div>
                 
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">

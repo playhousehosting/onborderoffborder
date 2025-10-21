@@ -2,6 +2,8 @@
  * Configuration for MSAL.js authentication
  */
 
+import { backendApi } from './apiConfig';
+
 // Helper function to get config from localStorage
 const getAzureConfig = () => {
   try {
@@ -9,6 +11,48 @@ const getAzureConfig = () => {
   } catch (e) {
     return {};
   }
+};
+
+// Fetch MSAL configuration from backend environment variables
+let backendConfigPromise = null;
+let cachedBackendConfig = null;
+
+export const fetchMsalConfigFromBackend = async () => {
+  // Return cached config if available
+  if (cachedBackendConfig) {
+    return cachedBackendConfig;
+  }
+  
+  // Return existing promise if already fetching
+  if (backendConfigPromise) {
+    return backendConfigPromise;
+  }
+  
+  backendConfigPromise = (async () => {
+    try {
+      console.log('🔍 Fetching MSAL config from backend...');
+      const response = await fetch(`${backendApi.baseURL}/auth/msal-config`);
+      
+      if (response.ok) {
+        const config = await response.json();
+        console.log('✅ Received MSAL config from backend');
+        console.log('  - Client ID:', config.clientId?.substring(0, 8) + '...');
+        console.log('  - Tenant ID:', config.tenantId?.substring(0, 8) + '...');
+        cachedBackendConfig = config;
+        return config;
+      } else {
+        console.warn('⚠️ Backend MSAL config not available:', response.status);
+        return null;
+      }
+    } catch (error) {
+      console.warn('⚠️ Failed to fetch MSAL config from backend:', error.message);
+      return null;
+    } finally {
+      backendConfigPromise = null;
+    }
+  })();
+  
+  return backendConfigPromise;
 };
 
 export const msalConfig = {

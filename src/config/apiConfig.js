@@ -29,6 +29,7 @@ export const apiConfig = {
     callback: `${API_BASE_URL}/api/auth/callback`,
     session: `${API_BASE_URL}/api/auth/session`,
     logout: `${API_BASE_URL}/api/auth/logout`,
+    msalConfig: `${API_BASE_URL}/api/auth/msal-config`,
     
     // Graph endpoints (proxied through backend)
     graphMe: `${API_BASE_URL}/api/graph/me`,
@@ -46,5 +47,8 @@ export const apiConfig = {
     },
   },
 };
+
+// Alias for consistency across codebase
+export const backendApi = apiConfig;
 
 export default apiConfig;

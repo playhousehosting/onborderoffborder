@@ -339,6 +339,39 @@ router.post('/logout', (req, res) => {
 });
 
 /**
+ * GET /api/auth/msal-config
+ * Get MSAL configuration from backend environment variables
+ * Used for interactive OAuth2 authentication
+ */
+router.get('/msal-config', (req, res) => {
+  try {
+    const clientId = process.env.AZURE_CLIENT_ID;
+    const tenantId = process.env.AZURE_TENANT_ID;
+    
+    if (!clientId || !tenantId) {
+      console.warn('⚠️ MSAL config requested but environment variables not set');
+      return res.status(404).json({
+        error: 'MSAL configuration not available',
+        message: 'Please set AZURE_CLIENT_ID and AZURE_TENANT_ID in Vercel environment variables'
+      });
+    }
+    
+    console.log('✅ Providing MSAL config from environment variables');
+    console.log('  - Client ID:', clientId.substring(0, 8) + '...');
+    console.log('  - Tenant ID:', tenantId.substring(0, 8) + '...');
+    
+    res.json({
+      clientId,
+      tenantId,
+      redirectUri: `${req.protocol}://${req.get('host')}/auth/callback`
+    });
+  } catch (error) {
+    console.error('❌ Error getting MSAL config:', error);
+    res.status(500).json({ error: 'Failed to retrieve MSAL configuration' });
+  }
+});
+
+/**
  * DELETE /api/auth/credentials
  * Clear credentials from session
  */
