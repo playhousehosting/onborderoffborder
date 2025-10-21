@@ -38,11 +38,14 @@ const Dashboard = () => {
         
         // Only fetch data if user has permissions
         if (hasPermission('userManagement')) {
-          // Get user statistics
-          const usersData = await graphService.getUsers(999);
+          // Get ALL user statistics using pagination
+          console.log('📊 Fetching all users with pagination...');
+          const usersData = await graphService.getAllUsers('', 999); // Fetch 999 per page for better performance
           const totalUsers = usersData.value?.length || 0;
           const activeUsers = usersData.value?.filter(u => u.accountEnabled).length || 0;
           const disabledUsers = totalUsers - activeUsers;
+          
+          console.log(`✅ Loaded ${totalUsers} total users (${activeUsers} active, ${disabledUsers} disabled)`);
           
           // Get device statistics if user has device management permission
           let totalDevices = 0;

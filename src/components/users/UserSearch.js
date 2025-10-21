@@ -15,6 +15,7 @@ import {
 const UserSearch = () => {
   const { hasPermission } = useAuth();
   const [users, setUsers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]); // Store all users for client-side filtering
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -25,36 +26,23 @@ const UserSearch = () => {
   });
   const usersPerPage = 25;
 
+  // Fetch all users once on mount
   useEffect(() => {
-    fetchUsers();
-  }, [currentPage, searchTerm, filters]);
+    fetchAllUsers();
+  }, []);
 
-  const fetchUsers = async () => {
+  // Filter and paginate when filters/search/page changes
+  useEffect(() => {
+    filterAndPaginateUsers();
+  }, [currentPage, searchTerm, filters, allUsers]);
+
+  const fetchAllUsers = async () => {
     try {
       setLoading(true);
-      let filterQuery = '';
-      
-      // Build filter query
-      const filterConditions = [];
-      
-      if (searchTerm) {
-        filterConditions.push(`startswith(displayName,'${searchTerm}') or startswith(userPrincipalName,'${searchTerm}') or startswith(mail,'${searchTerm}')`);
-      }
-      
-      if (filters.accountEnabled !== 'all') {
-        const isEnabled = filters.accountEnabled === 'enabled';
-        filterConditions.push(`accountEnabled eq ${isEnabled}`);
-      }
-      
-      if (filterConditions.length > 0) {
-        filterQuery = `&$filter=${filterConditions.join(' and ')}`;
-      }
-      
-      const skip = (currentPage - 1) * usersPerPage;
-      const response = await graphService.getUsers(usersPerPage, skip, filterQuery);
-      
-      setUsers(response.value || []);
-      setTotalUsers(response['@odata.count'] || response.value?.length || 0);
+      console.log('📊 Fetching all users for search...');
+      const response = await graphService.getAllUsers('', 999); // Fetch 999 per page
+      setAllUsers(response.value || []);
+      console.log(`✅ Loaded ${response.value?.length || 0} users`);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Failed to fetch users');
@@ -63,10 +51,42 @@ const UserSearch = () => {
     }
   };
 
+  const filterAndPaginateUsers = () => {
+    let filtered = [...allUsers];
+
+    // Apply search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(user =>
+        user.displayName?.toLowerCase().includes(searchLower) ||
+        user.userPrincipalName?.toLowerCase().includes(searchLower) ||
+        user.mail?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Apply account status filter
+    if (filters.accountEnabled !== 'all') {
+      const isEnabled = filters.accountEnabled === 'enabled';
+      filtered = filtered.filter(user => user.accountEnabled === isEnabled);
+    }
+
+    // Apply department filter
+    if (filters.department !== 'all') {
+      filtered = filtered.filter(user => user.department === filters.department);
+    }
+
+    setTotalUsers(filtered.length);
+
+    // Paginate
+    const startIndex = (currentPage - 1) * usersPerPage;
+    const endIndex = startIndex + usersPerPage;
+    setUsers(filtered.slice(startIndex, endIndex));
+  };
+
   const handleSearch = (e) => {
     e.preventDefault();
     setCurrentPage(1);
-    fetchUsers();
+    // Filter will be applied automatically by useEffect
   };
 
   const handleFilterChange = (key, value) => {
