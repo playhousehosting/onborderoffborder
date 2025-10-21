@@ -381,12 +381,21 @@ router.get('/msal-config', (req, res) => {
       ? 'https://login.microsoftonline.com/organizations'  // Work/school accounts from any org
       : `https://login.microsoftonline.com/${tenantId}`;   // Specific tenant only
     
+    // Get frontend URL for redirect URI
+    // In production, use the FRONTEND_URL env var
+    // In development, use the referer or default to localhost
+    const frontendUrl = process.env.FRONTEND_URL || 
+                       req.get('referer')?.replace(/\/$/, '') || 
+                       'http://localhost:3000';
+    
+    console.log('  - Frontend URL:', frontendUrl);
+    
     res.json({
       clientId,
       tenantId,
       authority,
       isMultiTenant,
-      redirectUri: `${req.protocol}://${req.get('host')}/auth/callback`
+      redirectUri: frontendUrl  // Frontend origin for popup authentication
     });
   } catch (error) {
     console.error('❌ Error getting MSAL config:', error);
