@@ -33,6 +33,10 @@ app.use(helmet({
       imgSrc: ["'self'", 'data:', 'https:'],
     },
   },
+  // Disable COOP header to allow MSAL popup authentication to work
+  // MSAL needs to monitor popup windows which COOP blocks
+  crossOriginOpenerPolicy: false,
+  crossOriginEmbedderPolicy: false,
 }));
 
 // CORS configuration
