@@ -118,19 +118,32 @@ export const AuthProvider = ({ children }) => {
             }
           }
         }
-        
+
+        // Check if we're in app-only mode (client credentials, no user)
+        const authMode = localStorage.getItem('authMode');
+        if (authMode === 'app-only') {
+          console.log('🔑 App-only mode detected - skipping MSAL user account checks');
+          // App-only uses application permissions, not user permissions
+          // Authentication is already handled by demo mode logic above
+          setLoading(false);
+          return;
+        }
+
+        // OAuth2 user authentication mode - use MSAL
+        console.log('👤 OAuth2 user mode - checking MSAL account');
+
         // Wait for authService to be initialized
         if (!authService.msalInstance) {
           setLoading(false);
           return;
         }
-        
+
         const account = authService.getCurrentAccount();
-        
+
         if (account) {
           setIsAuthenticated(true);
           setUser(account);
-          
+
           // Get detailed user info from Graph API
           try {
             const userInfo = await graphService.getUserById(account.homeAccountId);
@@ -138,8 +151,8 @@ export const AuthProvider = ({ children }) => {
           } catch (userInfoError) {
             console.warn('Could not fetch detailed user info:', userInfoError);
           }
-          
-          // Check permissions
+
+          // Check permissions (OAuth2 delegated permissions)
           await checkPermissions();
         } else {
           setIsAuthenticated(false);
@@ -245,13 +258,21 @@ export const AuthProvider = ({ children }) => {
   // Logout function
   const logout = useCallback(() => {
     try {
-      // Clear demo user if in demo mode
-      if (isDemoMode()) {
+      const authMode = localStorage.getItem('authMode');
+
+      // Handle app-only mode logout
+      if (authMode === 'app-only' || isDemoMode()) {
+        console.log('🔓 Logging out from app-only/demo mode');
         localStorage.removeItem('demoUser');
+        localStorage.removeItem('authMode');
+        localStorage.removeItem('appOnlyToken'); // Clear cached app-only token
+        // Don't clear azureConfig - user might want to log in again
       } else {
+        // OAuth2 mode - use MSAL logout
+        console.log('🔓 Logging out from OAuth2 mode');
         authService.logout();
       }
-      
+
       setIsAuthenticated(false);
       setUser(null);
       setPermissions({

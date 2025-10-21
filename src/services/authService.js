@@ -124,26 +124,34 @@ export class AuthService {
   // Get access token using app-only (client credentials) flow
   async getAppOnlyToken() {
     try {
-      // Get credentials from localStorage
+      // Get credentials from localStorage (what user entered in config form)
       const azureConfig = JSON.parse(localStorage.getItem('azureConfig') || '{}');
       const { clientId, clientSecret, tenantId } = azureConfig;
 
+      console.log('🔑 Reading credentials from localStorage (user entered):');
+      console.log('  - Tenant ID:', tenantId ? `${tenantId.substring(0, 8)}...` : 'MISSING');
+      console.log('  - Client ID:', clientId ? `${clientId.substring(0, 8)}...` : 'MISSING');
+      console.log('  - Client Secret:', clientSecret ? 'PROVIDED' : 'MISSING');
+
       if (!clientId || !clientSecret || !tenantId) {
-        throw new Error('App-only credentials not configured');
+        throw new Error('App-only credentials not configured. Please go to Settings and configure your Azure AD credentials.');
       }
 
       // Check if we have a cached token that's still valid
       const cachedToken = this._getAppOnlyCachedToken();
       if (cachedToken) {
+        console.log('✅ Using cached app-only token');
         return cachedToken;
       }
 
       // Get new token from backend (avoids CORS issues)
-      console.log('🔑 Acquiring app-only access token via backend...');
-      
+      console.log('🔑 Sending credentials to backend for token acquisition...');
+
       // Import apiConfig to get the correct backend URL
       const { apiConfig } = await import('../config/apiConfig');
-      
+
+      console.log('🌐 Backend URL:', apiConfig.endpoints.appOnlyToken);
+
       // Call backend endpoint instead of Azure AD directly (avoids CORS)
       const response = await fetch(apiConfig.endpoints.appOnlyToken, {
         method: 'POST',
@@ -159,21 +167,34 @@ export class AuthService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          errorData = { error: response.statusText };
+        }
+
         const errorMessage = errorData.details || errorData.error || response.statusText;
-        console.error('Backend token error response:', errorData);
+
+        console.error('❌ Backend returned error:');
+        console.error('  - Status:', response.status);
+        console.error('  - Error:', errorData.error);
+        console.error('  - Details:', errorData.details);
+        console.error('  - Full response:', errorData);
+
         throw new Error(`Failed to get app-only token: ${errorMessage}`);
       }
 
       const data = await response.json();
-      
+
       // Cache the token with expiration
       this._cacheAppOnlyToken(data.access_token, data.expires_in);
-      
-      console.log('✅ App-only access token acquired from backend');
+
+      console.log('✅ App-only access token acquired successfully from backend');
       return data.access_token;
     } catch (error) {
-      console.error('Error getting app-only token:', error);
+      console.error('❌ Error getting app-only token:', error.message);
+      console.error('Full error:', error);
       throw error;
     }
   }
