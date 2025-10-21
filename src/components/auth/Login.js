@@ -16,6 +16,7 @@ import {
 const Login = () => {
   const { login, loading, error } = useAuth();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [authMode, setAuthMode] = useState(localStorage.getItem('preferredAuthMode') || 'app-only');
   const [config, setConfig] = useState({
     clientId: '',
     tenantId: '',
@@ -253,6 +254,33 @@ const Login = () => {
     }
   };
 
+  const handleInteractiveLogin = async () => {
+    if (!isConfigured) {
+      toast.error('Please configure Azure AD credentials first');
+      return;
+    }
+    
+    try {
+      setIsLoggingIn(true);
+      console.log('Attempting Interactive (Delegated) login...');
+      
+      // Set auth mode to interactive
+      localStorage.setItem('authMode', 'interactive');
+      localStorage.removeItem('demoMode');
+      
+      // Use the login function from AuthContext which uses MSAL
+      await login();
+      
+      toast.success('Successfully signed in!');
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('Interactive login failed:', err);
+      toast.error(`Sign in failed: ${err.message || 'Please try again.'}`);
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
   const handleDemoLogin = () => {
     // Enable demo mode
     localStorage.setItem('demoMode', 'true');
@@ -280,6 +308,12 @@ const Login = () => {
     setTimeout(() => {
       navigate('/dashboard');
     }, 100);
+  };
+
+  const toggleAuthMode = () => {
+    const newMode = authMode === 'app-only' ? 'interactive' : 'app-only';
+    setAuthMode(newMode);
+    localStorage.setItem('preferredAuthMode', newMode);
   };
 
   return (
@@ -481,10 +515,10 @@ const Login = () => {
                 <div className="grid grid-cols-3 gap-3">
                   {/* OAuth2 Interactive Sign-In */}
                   <button
-                    onClick={handleLogin}
+                    onClick={handleInteractiveLogin}
                     disabled={isLoggingIn || loading || !isConfigured}
                     className="flex flex-col items-center justify-center p-4 border-2 border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-white"
-                    title="OAuth2 Interactive Sign-In"
+                    title="OAuth2 Interactive Sign-In - Sign in with your Microsoft account"
                   >
                     <MicrosoftIcon className="h-8 w-8 text-blue-600 mb-2" />
                     <span className="text-xs font-semibold text-gray-700">OAuth2</span>
