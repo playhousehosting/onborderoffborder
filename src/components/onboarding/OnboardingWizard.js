@@ -648,28 +648,28 @@ const OnboardingWizard = () => {
                   {onboardingOptions.assignLicenses && (
                     <div className="ml-6">
                       <label className="form-label">Select Licenses</label>
-                      <div className="space-y-2 max-h-40 overflow-y-auto">
-                        {availableLicenses.map((license) => (
-                          <div key={license.skuId} className="flex items-center">
-                            <input
-                              type="checkbox"
-                              id={`license-${license.skuId}`}
-                              className="form-checkbox"
-                              checked={onboardingOptions.selectedLicenses.includes(license.skuId)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  handleOptionChange('selectedLicenses', [...onboardingOptions.selectedLicenses, license.skuId]);
-                                } else {
-                                  handleOptionChange('selectedLicenses', onboardingOptions.selectedLicenses.filter(id => id !== license.skuId));
-                                }
-                              }}
-                            />
-                            <label htmlFor={`license-${license.skuId}`} className="ml-2 text-sm text-gray-700">
+                      {availableLicenses.length === 0 ? (
+                        <div className="text-sm text-gray-500 italic">Loading available licenses...</div>
+                      ) : (
+                        <select
+                          multiple
+                          className="form-input min-h-[120px]"
+                          value={onboardingOptions.selectedLicenses}
+                          onChange={(e) => {
+                            const selected = Array.from(e.target.selectedOptions, option => option.value);
+                            handleOptionChange('selectedLicenses', selected);
+                          }}
+                        >
+                          {availableLicenses.map((license) => (
+                            <option key={license.skuId} value={license.skuId}>
                               {license.displayName || license.skuPartNumber}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                      <p className="mt-1 text-xs text-gray-500">
+                        Hold Ctrl/Cmd to select multiple licenses
+                      </p>
                     </div>
                   )}
                 </div>
@@ -697,28 +697,28 @@ const OnboardingWizard = () => {
                   {onboardingOptions.addToGroups && (
                     <div className="ml-6">
                       <label className="form-label">Select Groups</label>
-                      <div className="space-y-2 max-h-40 overflow-y-auto">
-                        {availableGroups.map((group) => (
-                          <div key={group.id} className="flex items-center">
-                            <input
-                              type="checkbox"
-                              id={`group-${group.id}`}
-                              className="form-checkbox"
-                              checked={onboardingOptions.selectedGroups.includes(group.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  handleOptionChange('selectedGroups', [...onboardingOptions.selectedGroups, group.id]);
-                                } else {
-                                  handleOptionChange('selectedGroups', onboardingOptions.selectedGroups.filter(id => id !== group.id));
-                                }
-                              }}
-                            />
-                            <label htmlFor={`group-${group.id}`} className="ml-2 text-sm text-gray-700">
+                      {availableGroups.length === 0 ? (
+                        <div className="text-sm text-gray-500 italic">Loading available groups...</div>
+                      ) : (
+                        <select
+                          multiple
+                          className="form-input min-h-[120px]"
+                          value={onboardingOptions.selectedGroups}
+                          onChange={(e) => {
+                            const selected = Array.from(e.target.selectedOptions, option => option.value);
+                            handleOptionChange('selectedGroups', selected);
+                          }}
+                        >
+                          {availableGroups.map((group) => (
+                            <option key={group.id} value={group.id}>
                               {group.displayName}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                      <p className="mt-1 text-xs text-gray-500">
+                        Hold Ctrl/Cmd to select multiple groups
+                      </p>
                     </div>
                   )}
                 </div>
