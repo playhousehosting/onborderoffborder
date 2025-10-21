@@ -134,13 +134,16 @@ export const AuthProvider = ({ children }) => {
 
         // Wait for authService to be initialized
         if (!authService.msalInstance) {
+          console.log('⏳ MSAL instance not ready yet');
           setLoading(false);
           return;
         }
 
         const account = authService.getCurrentAccount();
+        console.log('🔍 Current MSAL account:', account?.username || 'none');
 
         if (account) {
+          console.log('✅ Found MSAL account, setting authenticated state');
           setIsAuthenticated(true);
           setUser(account);
 
@@ -155,6 +158,7 @@ export const AuthProvider = ({ children }) => {
           // Check permissions (OAuth2 delegated permissions)
           await checkPermissions();
         } else {
+          console.log('❌ No MSAL account found');
           setIsAuthenticated(false);
           setUser(null);
         }

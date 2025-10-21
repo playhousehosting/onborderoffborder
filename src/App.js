@@ -120,8 +120,32 @@ function App() {
         
         const initPromise = (async () => {
           await msal.initialize();
+          
+          console.log('🔍 MSAL initialized, handling redirect promise...');
+          
           // Handle redirect promise to complete sign-in flow
-          await msal.handleRedirectPromise();
+          const response = await msal.handleRedirectPromise();
+          
+          if (response) {
+            console.log('✅ MSAL redirect handled successfully:', response.account?.username);
+            // Set auth mode to interactive if we got a successful response
+            localStorage.setItem('authMode', 'interactive');
+            
+            // Dispatch event to notify AuthContext that login succeeded
+            window.dispatchEvent(new CustomEvent('oauthLoginStateUpdated', { 
+              detail: { isAuthenticated: true, user: response.account }
+            }));
+          } else {
+            // Check if we have any accounts in cache
+            const accounts = msal.getAllAccounts();
+            if (accounts.length > 0) {
+              console.log('✅ MSAL account found in cache:', accounts[0].username);
+              msal.setActiveAccount(accounts[0]);
+              localStorage.setItem('authMode', 'interactive');
+            } else {
+              console.log('ℹ️ No MSAL accounts found in cache');
+            }
+          }
         })();
         
         await Promise.race([initPromise, timeoutPromise]);
