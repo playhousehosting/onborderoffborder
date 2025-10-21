@@ -31,7 +31,12 @@ export const fetchMsalConfigFromBackend = async () => {
   backendConfigPromise = (async () => {
     try {
       console.log('🔍 Fetching MSAL config from backend...');
-      const response = await fetch(`${backendApi.baseURL}/auth/msal-config`);
+      const url = `${backendApi.baseURL}/api/auth/msal-config`;
+      console.log('🔍 Fetching from URL:', url);
+      const response = await fetch(url);
+      
+      console.log('🔍 Response status:', response.status);
+      console.log('🔍 Response content-type:', response.headers.get('content-type'));
       
       if (response.ok) {
         const config = await response.json();
@@ -41,7 +46,9 @@ export const fetchMsalConfigFromBackend = async () => {
         cachedBackendConfig = config;
         return config;
       } else {
+        const text = await response.text();
         console.warn('⚠️ Backend MSAL config not available:', response.status);
+        console.warn('⚠️ Response body:', text.substring(0, 200));
         return null;
       }
     } catch (error) {
