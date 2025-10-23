@@ -739,6 +739,11 @@ const Login = () => {
               <p>© 2025 Employee Life Cycle Portal</p>
               <p className="mt-1">Powered by Microsoft Graph API</p>
               <p className="mt-1">Built by Kameron McCain</p>
+              <p className="mt-2">
+                <a href="/faq" className="text-blue-600 hover:text-blue-700 font-medium">
+                  View FAQ & Documentation
+                </a>
+              </p>
             </div>
           </div>
         </div>

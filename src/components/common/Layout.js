@@ -13,6 +13,7 @@ import {
   XMarkIcon,
   ShieldCheckIcon,
   CalendarIcon,
+  QuestionMarkCircleIcon,
 } from '@heroicons/react/24/outline';
 
 const Layout = ({ children }) => {
@@ -52,6 +53,7 @@ const Layout = ({ children }) => {
       current: location.pathname === '/devices',
       permission: 'deviceManagement'
     },
+    { name: 'FAQ', href: '/faq', icon: QuestionMarkCircleIcon, current: location.pathname === '/faq' },
     { name: 'Settings', href: '/settings', icon: CogIcon, current: location.pathname === '/settings' },
   ];
 

@@ -20,6 +20,7 @@ import DeviceManagement from './components/intune/DeviceManagement';
 import ScheduledOffboarding from './components/offboarding/ScheduledOffboarding';
 import Settings from './components/settings/Settings';
 import ConfigurationForm from './components/auth/ConfigurationForm';
+import FAQ from './components/common/FAQ';
 import NotFound from './components/common/NotFound';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { isDemoMode } from './config/authConfig';
@@ -220,6 +221,7 @@ function App() {
                 {/* Public Routes - Always accessible */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/configure" element={<ConfigurationForm />} />
+                <Route path="/faq" element={<FAQ />} />
                 
                 {/* Default route - show login if configured, otherwise configure screen */}
                 <Route path="/" element={<Navigate to={shouldShowConfigScreen() ? "/configure" : "/login"} replace />} />

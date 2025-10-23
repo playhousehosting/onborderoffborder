@@ -13,6 +13,7 @@ const authRoutes = require('./routes/auth');
 const graphRoutes = require('./routes/graph');
 const diagnosticRoutes = require('./routes/diagnostic');
 const adRoutes = require('./routes/ad');
+const exchangeRoutes = require('./routes/exchange');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -168,6 +169,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/graph', graphRoutes);
 app.use('/api/diagnostic', diagnosticRoutes);
 app.use('/api/ad', adRoutes);
+app.use('/api/exchange', exchangeRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
