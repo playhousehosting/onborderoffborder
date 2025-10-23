@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   QuestionMarkCircleIcon,
   ChevronDownIcon,
@@ -10,10 +11,13 @@ import {
   ShieldCheckIcon,
   DocumentTextIcon,
   ExclamationTriangleIcon,
-  RocketLaunchIcon
+  RocketLaunchIcon,
+  HomeIcon,
+  ArrowLeftIcon
 } from '@heroicons/react/24/outline';
 
 const FAQ = () => {
+  const navigate = useNavigate();
   const [openCategory, setOpenCategory] = useState(null);
   const [openQuestion, setOpenQuestion] = useState(null);
 
@@ -24,6 +28,92 @@ const FAQ = () => {
 
   const toggleQuestion = (questionId) => {
     setOpenQuestion(openQuestion === questionId ? null : questionId);
+  };
+
+  // Helper function to format FAQ answers with better styling
+  const formatAnswer = (answer) => {
+    // Split answer into sections
+    const sections = answer.split('\n\n');
+    
+    return sections.map((section, index) => {
+      // Check if section is a list (starts with bullet points or numbers)
+      const isBulletList = section.trim().match(/^[•✅✓❌]/);
+      const isNumberedList = section.trim().match(/^\d+[\.)]/);
+      const isHeading = section.trim().match(/^\*\*(.+?)\*\*/);
+      
+      if (isBulletList || section.includes('•') || section.includes('✅')) {
+        // Format as bullet list
+        const items = section.split('\n').filter(line => line.trim());
+        return (
+          <ul key={index} className="space-y-2 my-4">
+            {items.map((item, i) => {
+              // Remove bullet character and trim
+              const cleanItem = item.replace(/^[•✅✓❌]\s*/, '').trim();
+              const isBold = cleanItem.startsWith('**');
+              
+              return (
+                <li key={i} className="flex items-start">
+                  <span className="text-blue-500 mr-3 mt-1 flex-shrink-0">
+                    {item.includes('✅') ? '✅' : item.includes('❌') ? '❌' : '•'}
+                  </span>
+                  <span className={isBold ? 'font-semibold' : ''}>
+                    {cleanItem.replace(/\*\*/g, '')}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        );
+      } else if (isNumberedList) {
+        // Format as numbered list
+        const items = section.split('\n').filter(line => line.trim());
+        return (
+          <ol key={index} className="list-decimal list-inside space-y-2 my-4 ml-2">
+            {items.map((item, i) => {
+              const cleanItem = item.replace(/^\d+[\.)]\s*/, '').trim();
+              return (
+                <li key={i} className="text-gray-700">
+                  {cleanItem}
+                </li>
+              );
+            })}
+          </ol>
+        );
+      } else if (section.includes('**') && section.split('**').length > 2) {
+        // Format text with bold sections
+        const parts = section.split('**');
+        return (
+          <p key={index} className="text-gray-700 leading-relaxed my-3">
+            {parts.map((part, i) => 
+              i % 2 === 0 ? part : <strong key={i} className="font-semibold text-gray-900">{part}</strong>
+            )}
+          </p>
+        );
+      } else if (section.trim().startsWith('OPTION') || section.trim().startsWith('SCENARIO')) {
+        // Format as highlighted section
+        return (
+          <div key={index} className="bg-blue-50 border-l-4 border-blue-400 p-4 my-4 rounded-r">
+            <p className="text-gray-800 leading-relaxed whitespace-pre-line">{section}</p>
+          </div>
+        );
+      } else if (section.includes(':') && section.split(':')[0].length < 50) {
+        // Format as definition/description
+        const [term, ...rest] = section.split(':');
+        return (
+          <div key={index} className="my-3">
+            <dt className="font-semibold text-gray-900 mb-1">{term}:</dt>
+            <dd className="text-gray-700 ml-4 leading-relaxed">{rest.join(':')}</dd>
+          </div>
+        );
+      } else {
+        // Regular paragraph
+        return (
+          <p key={index} className="text-gray-700 leading-relaxed my-3">
+            {section}
+          </p>
+        );
+      }
+    });
   };
 
   const faqCategories = [
@@ -266,6 +356,17 @@ const FAQ = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
+        {/* Back to Dashboard Button */}
+        <div className="mb-6">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <ArrowLeftIcon className="h-5 w-5 mr-2" />
+            Back to Dashboard
+          </button>
+        </div>
+
         {/* Header */}
         <div className="text-center mb-12">
           <QuestionMarkCircleIcon className="mx-auto h-16 w-16 text-blue-600 mb-4" />
@@ -286,16 +387,20 @@ const FAQ = () => {
             <div key={category.category} className="mb-6">
               <button
                 onClick={() => toggleCategory(category.category)}
-                className="w-full bg-white rounded-lg shadow-md p-6 flex items-center justify-between hover:shadow-lg transition-shadow duration-200"
+                className="w-full bg-white rounded-lg shadow-md p-6 flex items-center justify-between hover:shadow-lg transition-all duration-200 hover:scale-[1.01]"
               >
                 <div className="flex items-center space-x-4">
-                  <CategoryIcon className="h-8 w-8 text-blue-600" />
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    {category.category}
-                  </h2>
-                  <span className="text-sm text-gray-500">
-                    ({category.questions.length} questions)
-                  </span>
+                  <div className="p-3 bg-blue-100 rounded-lg">
+                    <CategoryIcon className="h-8 w-8 text-blue-600" />
+                  </div>
+                  <div className="text-left">
+                    <h2 className="text-2xl font-bold text-gray-900">
+                      {category.category}
+                    </h2>
+                    <span className="text-sm text-gray-500">
+                      {category.questions.length} question{category.questions.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
                 </div>
                 {isCategoryOpen ? (
                   <ChevronUpIcon className="h-6 w-6 text-gray-500" />
@@ -312,28 +417,29 @@ const FAQ = () => {
                     return (
                       <div
                         key={q.id}
-                        className="bg-white rounded-lg shadow overflow-hidden"
+                        className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200"
                       >
                         <button
                           onClick={() => toggleQuestion(q.id)}
-                          className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors duration-150"
+                          className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-blue-50 transition-colors duration-150"
                         >
-                          <h3 className="text-lg font-semibold text-gray-900 pr-8">
-                            {q.question}
+                          <h3 className="text-lg font-semibold text-gray-900 pr-8 flex items-start">
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-sm font-bold mr-3 flex-shrink-0 mt-0.5">
+                              Q
+                            </span>
+                            <span className="flex-1">{q.question}</span>
                           </h3>
                           {isQuestionOpen ? (
-                            <ChevronUpIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                            <ChevronUpIcon className="h-5 w-5 text-blue-500 flex-shrink-0" />
                           ) : (
                             <ChevronDownIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
                           )}
                         </button>
 
                         {isQuestionOpen && (
-                          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                          <div className="px-6 py-6 bg-gradient-to-br from-gray-50 to-white border-t border-gray-200">
                             <div className="prose prose-blue max-w-none">
-                              <p className="text-gray-700 whitespace-pre-line">
-                                {q.answer}
-                              </p>
+                              {formatAnswer(q.answer)}
                             </div>
                           </div>
                         )}
