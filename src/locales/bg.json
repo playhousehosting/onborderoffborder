@@ -1,0 +1,57 @@
+{
+  "common": {
+    "back": "Назад",
+    "backToDashboard": "Обратно към Табло",
+    "loading": "Зареждане...",
+    "error": "Грешка",
+    "success": "Успех",
+    "save": "Запази",
+    "cancel": "Отказ",
+    "delete": "Изтрий",
+    "edit": "Редактирай",
+    "view": "Преглед",
+    "search": "Търсене",
+    "filter": "Филтър",
+    "refresh": "Обнови",
+    "logout": "Изход",
+    "language": "Език",
+    "theme": "Тема",
+    "darkMode": "Тъмен Режим",
+    "lightMode": "Светъл Режим"
+  },
+  "nav": {
+    "dashboard": "Табло",
+    "userSearch": "Търсене на Потребители",
+    "onboarding": "Въвеждане",
+    "offboarding": "Освобождаване",
+    "scheduledOffboarding": "Планирано Освобождаване",
+    "deviceManagement": "Управление на Устройства",
+    "faq": "Често Задавани Въпроси",
+    "settings": "Настройки"
+  },
+  "faq": {
+    "title": "Често Задавани Въпроси",
+    "subtitle": "Всичко, което трябва да знаете за Портала за Жизнения Цикъл на Служителите",
+    "question": "В",
+    "questions": "въпроса",
+    "stillHaveQuestions": "Имате още въпроси?",
+    "stillHaveQuestionsDesc": "Тук сме, за да помогнем. Разгледайте нашите допълнителни ресурси или се свържете с общността.",
+    "viewDocumentation": "Преглед на Документацията",
+    "reportIssue": "Докладване на Проблем",
+    "joinDiscussion": "Присъединяване към Дискусия"
+  },
+  "auth": {
+    "signIn": "Вход",
+    "signInWithMicrosoft": "Вход с Microsoft",
+    "signInRequired": "Необходим е вход",
+    "pleaseSignIn": "Моля, влезте, за да получите достъп до портала",
+    "sessionExpired": "Вашата сесия изтече",
+    "pleaseSignInAgain": "Моля, влезте отново, за да продължите"
+  },
+  "dashboard": {
+    "welcome": "Добре дошли",
+    "quickActions": "Бързи Действия",
+    "recentActivity": "Последна Активност",
+    "statistics": "Статистика"
+  }
+}

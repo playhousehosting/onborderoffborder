@@ -1,0 +1,57 @@
+{
+  "common": {
+    "back": "Atrás",
+    "backToDashboard": "Volver al Panel",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "view": "Ver",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "refresh": "Actualizar",
+    "logout": "Cerrar Sesión",
+    "language": "Idioma",
+    "theme": "Tema",
+    "darkMode": "Modo Oscuro",
+    "lightMode": "Modo Claro"
+  },
+  "nav": {
+    "dashboard": "Panel",
+    "userSearch": "Buscar Usuarios",
+    "onboarding": "Alta de Empleados",
+    "offboarding": "Baja de Empleados",
+    "scheduledOffboarding": "Bajas Programadas",
+    "deviceManagement": "Gestión de Dispositivos",
+    "faq": "Preguntas Frecuentes",
+    "settings": "Configuración"
+  },
+  "faq": {
+    "title": "Preguntas Frecuentes",
+    "subtitle": "Todo lo que necesitas saber sobre el Portal de Ciclo de Vida del Empleado",
+    "question": "P",
+    "questions": "preguntas",
+    "stillHaveQuestions": "¿Aún tienes preguntas?",
+    "stillHaveQuestionsDesc": "Estamos aquí para ayudarte. Consulta nuestros recursos adicionales o contacta con la comunidad.",
+    "viewDocumentation": "Ver Documentación",
+    "reportIssue": "Reportar un Problema",
+    "joinDiscussion": "Unirse a la Discusión"
+  },
+  "auth": {
+    "signIn": "Iniciar Sesión",
+    "signInWithMicrosoft": "Iniciar sesión con Microsoft",
+    "signInRequired": "Inicio de sesión requerido",
+    "pleaseSignIn": "Por favor, inicia sesión para acceder al portal",
+    "sessionExpired": "Tu sesión ha expirado",
+    "pleaseSignInAgain": "Por favor, inicia sesión nuevamente para continuar"
+  },
+  "dashboard": {
+    "welcome": "Bienvenido",
+    "quickActions": "Acciones Rápidas",
+    "recentActivity": "Actividad Reciente",
+    "statistics": "Estadísticas"
+  }
+}

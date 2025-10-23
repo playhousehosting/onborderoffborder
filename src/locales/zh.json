@@ -1,0 +1,57 @@
+{
+  "common": {
+    "back": "返回",
+    "backToDashboard": "返回仪表板",
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功",
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "view": "查看",
+    "search": "搜索",
+    "filter": "筛选",
+    "refresh": "刷新",
+    "logout": "退出",
+    "language": "语言",
+    "theme": "主题",
+    "darkMode": "深色模式",
+    "lightMode": "浅色模式"
+  },
+  "nav": {
+    "dashboard": "仪表板",
+    "userSearch": "用户搜索",
+    "onboarding": "入职",
+    "offboarding": "离职",
+    "scheduledOffboarding": "计划离职",
+    "deviceManagement": "设备管理",
+    "faq": "常见问题",
+    "settings": "设置"
+  },
+  "faq": {
+    "title": "常见问题",
+    "subtitle": "关于员工生命周期门户您需要了解的一切",
+    "question": "问",
+    "questions": "个问题",
+    "stillHaveQuestions": "还有问题吗？",
+    "stillHaveQuestionsDesc": "我们随时为您提供帮助。查看我们的其他资源或联系社区。",
+    "viewDocumentation": "查看文档",
+    "reportIssue": "报告问题",
+    "joinDiscussion": "加入讨论"
+  },
+  "auth": {
+    "signIn": "登录",
+    "signInWithMicrosoft": "使用Microsoft登录",
+    "signInRequired": "需要登录",
+    "pleaseSignIn": "请登录以访问门户",
+    "sessionExpired": "您的会话已过期",
+    "pleaseSignInAgain": "请重新登录以继续"
+  },
+  "dashboard": {
+    "welcome": "欢迎",
+    "quickActions": "快速操作",
+    "recentActivity": "最近活动",
+    "statistics": "统计"
+  }
+}

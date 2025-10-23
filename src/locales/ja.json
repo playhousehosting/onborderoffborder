@@ -1,0 +1,57 @@
+{
+  "common": {
+    "back": "戻る",
+    "backToDashboard": "ダッシュボードに戻る",
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "success": "成功",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "edit": "編集",
+    "view": "表示",
+    "search": "検索",
+    "filter": "フィルター",
+    "refresh": "更新",
+    "logout": "ログアウト",
+    "language": "言語",
+    "theme": "テーマ",
+    "darkMode": "ダークモード",
+    "lightMode": "ライトモード"
+  },
+  "nav": {
+    "dashboard": "ダッシュボード",
+    "userSearch": "ユーザー検索",
+    "onboarding": "オンボーディング",
+    "offboarding": "オフボーディング",
+    "scheduledOffboarding": "予定されたオフボーディング",
+    "deviceManagement": "デバイス管理",
+    "faq": "よくある質問",
+    "settings": "設定"
+  },
+  "faq": {
+    "title": "よくある質問",
+    "subtitle": "従業員ライフサイクルポータルについて知っておくべきすべてのこと",
+    "question": "質問",
+    "questions": "件の質問",
+    "stillHaveQuestions": "まだ質問がありますか？",
+    "stillHaveQuestionsDesc": "私たちがお手伝いします。追加のリソースを参照するか、コミュニティにお問い合わせください。",
+    "viewDocumentation": "ドキュメントを表示",
+    "reportIssue": "問題を報告",
+    "joinDiscussion": "ディスカッションに参加"
+  },
+  "auth": {
+    "signIn": "サインイン",
+    "signInWithMicrosoft": "Microsoftでサインイン",
+    "signInRequired": "サインインが必要です",
+    "pleaseSignIn": "ポータルにアクセスするにはサインインしてください",
+    "sessionExpired": "セッションが期限切れです",
+    "pleaseSignInAgain": "続行するには再度サインインしてください"
+  },
+  "dashboard": {
+    "welcome": "ようこそ",
+    "quickActions": "クイックアクション",
+    "recentActivity": "最近のアクティビティ",
+    "statistics": "統計"
+  }
+}

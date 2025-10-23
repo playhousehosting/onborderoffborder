@@ -1,0 +1,57 @@
+{
+  "common": {
+    "back": "Back",
+    "backToDashboard": "Back to Dashboard",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "search": "Search",
+    "filter": "Filter",
+    "refresh": "Refresh",
+    "logout": "Sign Out",
+    "language": "Language",
+    "theme": "Theme",
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "userSearch": "User Search",
+    "onboarding": "Onboarding",
+    "offboarding": "Offboarding",
+    "scheduledOffboarding": "Scheduled Offboarding",
+    "deviceManagement": "Device Management",
+    "faq": "FAQ",
+    "settings": "Settings"
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Everything you need to know about the Employee Lifecycle Portal",
+    "question": "Q",
+    "questions": "questions",
+    "stillHaveQuestions": "Still have questions?",
+    "stillHaveQuestionsDesc": "We're here to help. Check out our additional resources or reach out to the community.",
+    "viewDocumentation": "View Documentation",
+    "reportIssue": "Report an Issue",
+    "joinDiscussion": "Join Discussion"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signInWithMicrosoft": "Sign in with Microsoft",
+    "signInRequired": "Sign in required",
+    "pleaseSignIn": "Please sign in to access the portal",
+    "sessionExpired": "Your session has expired",
+    "pleaseSignInAgain": "Please sign in again to continue"
+  },
+  "dashboard": {
+    "welcome": "Welcome",
+    "quickActions": "Quick Actions",
+    "recentActivity": "Recent Activity",
+    "statistics": "Statistics"
+  }
+}

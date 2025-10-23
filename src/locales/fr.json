@@ -1,0 +1,57 @@
+{
+  "common": {
+    "back": "Retour",
+    "backToDashboard": "Retour au Tableau de Bord",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "view": "Voir",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "refresh": "Actualiser",
+    "logout": "Se Déconnecter",
+    "language": "Langue",
+    "theme": "Thème",
+    "darkMode": "Mode Sombre",
+    "lightMode": "Mode Clair"
+  },
+  "nav": {
+    "dashboard": "Tableau de Bord",
+    "userSearch": "Recherche d'Utilisateurs",
+    "onboarding": "Intégration",
+    "offboarding": "Départ",
+    "scheduledOffboarding": "Départs Programmés",
+    "deviceManagement": "Gestion des Appareils",
+    "faq": "FAQ",
+    "settings": "Paramètres"
+  },
+  "faq": {
+    "title": "Foire Aux Questions",
+    "subtitle": "Tout ce que vous devez savoir sur le Portail du Cycle de Vie des Employés",
+    "question": "Q",
+    "questions": "questions",
+    "stillHaveQuestions": "Vous avez encore des questions?",
+    "stillHaveQuestionsDesc": "Nous sommes là pour vous aider. Consultez nos ressources supplémentaires ou contactez la communauté.",
+    "viewDocumentation": "Voir la Documentation",
+    "reportIssue": "Signaler un Problème",
+    "joinDiscussion": "Rejoindre la Discussion"
+  },
+  "auth": {
+    "signIn": "Se Connecter",
+    "signInWithMicrosoft": "Se connecter avec Microsoft",
+    "signInRequired": "Connexion requise",
+    "pleaseSignIn": "Veuillez vous connecter pour accéder au portail",
+    "sessionExpired": "Votre session a expiré",
+    "pleaseSignInAgain": "Veuillez vous reconnecter pour continuer"
+  },
+  "dashboard": {
+    "welcome": "Bienvenue",
+    "quickActions": "Actions Rapides",
+    "recentActivity": "Activité Récente",
+    "statistics": "Statistiques"
+  }
+}

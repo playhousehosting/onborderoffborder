@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import StartupHealthCheck from './components/common/StartupHealthCheck';
+import './i18n'; // Initialize i18n
 
 // Add global error handlers
 window.addEventListener('error', (event) => {

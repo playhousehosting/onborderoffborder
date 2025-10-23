@@ -4,6 +4,7 @@ import { MsalProvider } from '@azure/msal-react';
 import { PublicClientApplication } from '@azure/msal-browser';
 import { msalConfig } from './config/authConfig';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { Toaster } from 'react-hot-toast';
 import './index.css';
 
@@ -210,23 +211,24 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <MsalProvider instance={msal}>
-        <AuthProvider>
-          <Router>
-            <div className="App">
-              {/* Show warning banner if there's a configuration issue */}
-              {msalWarningBanner}
-              
-              <Routes>
-                {/* Public Routes - Always accessible */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/configure" element={<ConfigurationForm />} />
-                <Route path="/faq" element={<FAQ />} />
+      <ThemeProvider>
+        <MsalProvider instance={msal}>
+          <AuthProvider>
+            <Router>
+              <div className="App">
+                {/* Show warning banner if there's a configuration issue */}
+                {msalWarningBanner}
                 
-                {/* Default route - show login if configured, otherwise configure screen */}
-                <Route path="/" element={<Navigate to={shouldShowConfigScreen() ? "/configure" : "/login"} replace />} />
-                
-                {/* Protected Routes */}
+                <Routes>
+                  {/* Public Routes - Always accessible */}
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/configure" element={<ConfigurationForm />} />
+                  <Route path="/faq" element={<FAQ />} />
+                  
+                  {/* Default route - show login if configured, otherwise configure screen */}
+                  <Route path="/" element={<Navigate to={shouldShowConfigScreen() ? "/configure" : "/login"} replace />} />
+                  
+                  {/* Protected Routes */}
                 <Route
                   path="/dashboard"
                   element={
@@ -349,6 +351,7 @@ function App() {
           </Router>
         </AuthProvider>
       </MsalProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

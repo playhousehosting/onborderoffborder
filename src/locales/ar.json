@@ -1,0 +1,57 @@
+{
+  "common": {
+    "back": "رجوع",
+    "backToDashboard": "العودة إلى لوحة التحكم",
+    "loading": "جاري التحميل...",
+    "error": "خطأ",
+    "success": "نجاح",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "view": "عرض",
+    "search": "بحث",
+    "filter": "تصفية",
+    "refresh": "تحديث",
+    "logout": "تسجيل الخروج",
+    "language": "اللغة",
+    "theme": "المظهر",
+    "darkMode": "الوضع الداكن",
+    "lightMode": "الوضع الفاتح"
+  },
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "userSearch": "البحث عن المستخدمين",
+    "onboarding": "التعيين",
+    "offboarding": "إنهاء الخدمة",
+    "scheduledOffboarding": "إنهاء الخدمة المجدول",
+    "deviceManagement": "إدارة الأجهزة",
+    "faq": "الأسئلة الشائعة",
+    "settings": "الإعدادات"
+  },
+  "faq": {
+    "title": "الأسئلة الشائعة",
+    "subtitle": "كل ما تحتاج إلى معرفته حول بوابة دورة حياة الموظف",
+    "question": "س",
+    "questions": "أسئلة",
+    "stillHaveQuestions": "لا تزال لديك أسئلة؟",
+    "stillHaveQuestionsDesc": "نحن هنا للمساعدة. راجع مواردنا الإضافية أو تواصل مع المجتمع.",
+    "viewDocumentation": "عرض الوثائق",
+    "reportIssue": "الإبلاغ عن مشكلة",
+    "joinDiscussion": "الانضمام إلى النقاش"
+  },
+  "auth": {
+    "signIn": "تسجيل الدخول",
+    "signInWithMicrosoft": "تسجيل الدخول باستخدام Microsoft",
+    "signInRequired": "تسجيل الدخول مطلوب",
+    "pleaseSignIn": "يرجى تسجيل الدخول للوصول إلى البوابة",
+    "sessionExpired": "انتهت صلاحية جلستك",
+    "pleaseSignInAgain": "يرجى تسجيل الدخول مرة أخرى للمتابعة"
+  },
+  "dashboard": {
+    "welcome": "مرحبا",
+    "quickActions": "الإجراءات السريعة",
+    "recentActivity": "النشاط الأخير",
+    "statistics": "الإحصائيات"
+  }
+}

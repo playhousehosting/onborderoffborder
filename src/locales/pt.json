@@ -1,0 +1,57 @@
+{
+  "common": {
+    "back": "Voltar",
+    "backToDashboard": "Voltar ao Painel",
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "view": "Visualizar",
+    "search": "Pesquisar",
+    "filter": "Filtrar",
+    "refresh": "Atualizar",
+    "logout": "Sair",
+    "language": "Idioma",
+    "theme": "Tema",
+    "darkMode": "Modo Escuro",
+    "lightMode": "Modo Claro"
+  },
+  "nav": {
+    "dashboard": "Painel",
+    "userSearch": "Pesquisa de Usuários",
+    "onboarding": "Integração",
+    "offboarding": "Desligamento",
+    "scheduledOffboarding": "Desligamentos Agendados",
+    "deviceManagement": "Gerenciamento de Dispositivos",
+    "faq": "Perguntas Frequentes",
+    "settings": "Configurações"
+  },
+  "faq": {
+    "title": "Perguntas Frequentes",
+    "subtitle": "Tudo o que você precisa saber sobre o Portal do Ciclo de Vida do Funcionário",
+    "question": "P",
+    "questions": "perguntas",
+    "stillHaveQuestions": "Ainda tem dúvidas?",
+    "stillHaveQuestionsDesc": "Estamos aqui para ajudar. Confira nossos recursos adicionais ou entre em contato com a comunidade.",
+    "viewDocumentation": "Ver Documentação",
+    "reportIssue": "Relatar Problema",
+    "joinDiscussion": "Participar da Discussão"
+  },
+  "auth": {
+    "signIn": "Entrar",
+    "signInWithMicrosoft": "Entrar com Microsoft",
+    "signInRequired": "Login necessário",
+    "pleaseSignIn": "Por favor, faça login para acessar o portal",
+    "sessionExpired": "Sua sessão expirou",
+    "pleaseSignInAgain": "Por favor, faça login novamente para continuar"
+  },
+  "dashboard": {
+    "welcome": "Bem-vindo",
+    "quickActions": "Ações Rápidas",
+    "recentActivity": "Atividade Recente",
+    "statistics": "Estatísticas"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "common": {
+    "back": "Zurück",
+    "backToDashboard": "Zurück zum Dashboard",
+    "loading": "Wird geladen...",
+    "error": "Fehler",
+    "success": "Erfolg",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "view": "Ansehen",
+    "search": "Suchen",
+    "filter": "Filter",
+    "refresh": "Aktualisieren",
+    "logout": "Abmelden",
+    "language": "Sprache",
+    "theme": "Design",
+    "darkMode": "Dunkelmodus",
+    "lightMode": "Hellmodus"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "userSearch": "Benutzersuche",
+    "onboarding": "Einarbeitung",
+    "offboarding": "Austritt",
+    "scheduledOffboarding": "Geplante Austritte",
+    "deviceManagement": "Geräteverwaltung",
+    "faq": "FAQ",
+    "settings": "Einstellungen"
+  },
+  "faq": {
+    "title": "Häufig Gestellte Fragen",
+    "subtitle": "Alles, was Sie über das Mitarbeiter-Lifecycle-Portal wissen müssen",
+    "question": "F",
+    "questions": "Fragen",
+    "stillHaveQuestions": "Haben Sie noch Fragen?",
+    "stillHaveQuestionsDesc": "Wir sind hier, um zu helfen. Schauen Sie sich unsere zusätzlichen Ressourcen an oder wenden Sie sich an die Community.",
+    "viewDocumentation": "Dokumentation Anzeigen",
+    "reportIssue": "Problem Melden",
+    "joinDiscussion": "An Diskussion Teilnehmen"
+  },
+  "auth": {
+    "signIn": "Anmelden",
+    "signInWithMicrosoft": "Mit Microsoft Anmelden",
+    "signInRequired": "Anmeldung erforderlich",
+    "pleaseSignIn": "Bitte melden Sie sich an, um auf das Portal zuzugreifen",
+    "sessionExpired": "Ihre Sitzung ist abgelaufen",
+    "pleaseSignInAgain": "Bitte melden Sie sich erneut an, um fortzufahren"
+  },
+  "dashboard": {
+    "welcome": "Willkommen",
+    "quickActions": "Schnellaktionen",
+    "recentActivity": "Letzte Aktivität",
+    "statistics": "Statistiken"
+  }
+}
