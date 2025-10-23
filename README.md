@@ -22,10 +22,14 @@ A comprehensive full-stack web application for managing the complete employee li
 
 ### Onboarding
 - **New User Creation**: Enter first name, last name, email, and display name
+- **On-Premises AD Support**: Create users in on-prem Active Directory that sync to Azure AD
 - **Auto-Loading Dropdowns**: Multi-select for licenses and groups with automatic resource loading
 - **Group Assignment**: Assign users to security groups and distribution lists
 - **License Assignment**: Allocate Microsoft 365 licenses during user creation
 - **Copy Groups Feature**: Clone group memberships from existing users (in development)
+- **Hybrid Identity**: Supports both cloud-only and synchronized user accounts
+
+📖 See [ON_PREM_AD_SETUP.md](./ON_PREM_AD_SETUP.md) for on-premises Active Directory integration guide.
 
 ### Offboarding
 - **Account Disabling**: Disable accounts instead of deletion (preserves audit trail)

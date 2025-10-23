@@ -12,6 +12,7 @@ const crypto = require('crypto');
 const authRoutes = require('./routes/auth');
 const graphRoutes = require('./routes/graph');
 const diagnosticRoutes = require('./routes/diagnostic');
+const adRoutes = require('./routes/ad');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -166,6 +167,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/graph', graphRoutes);
 app.use('/api/diagnostic', diagnosticRoutes);
+app.use('/api/ad', adRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

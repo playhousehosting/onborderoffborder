@@ -47,6 +47,13 @@ const OnboardingWizard = () => {
     userPrincipalName: '',
     mailNickname: '',
     email: '',
+    createInOnPremAD: false, // Toggle between on-prem AD and Azure AD
+  });
+  
+  // On-premises AD configuration status
+  const [adConfigStatus, setAdConfigStatus] = useState({
+    configured: false,
+    loading: true,
   });
   
   // Onboarding options
@@ -92,7 +99,25 @@ const OnboardingWizard = () => {
       fetchUser(userId);
     }
     fetchAvailableResources();
+    checkADConfigStatus();
   }, [userId]);
+
+  const checkADConfigStatus = async () => {
+    try {
+      const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
+      const response = await fetch(`${API_BASE_URL}/api/ad/config-status`);
+      const data = await response.json();
+      setAdConfigStatus({
+        configured: data.configured,
+        loading: false,
+        server: data.server,
+        domain: data.domain,
+      });
+    } catch (error) {
+      console.error('Error checking AD config:', error);
+      setAdConfigStatus({ configured: false, loading: false });
+    }
+  };
 
   const fetchAvailableResources = async () => {
     try {
@@ -274,6 +299,74 @@ const OnboardingWizard = () => {
     const results = [];
 
     try {
+      // Step 0: Create user (if creating new user in on-prem AD or Azure AD)
+      let createdUserId = selectedUser?.id;
+      
+      if (!selectedUser && newUserInfo.createInOnPremAD) {
+        // Create user in on-premises Active Directory
+        try {
+          const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
+          const response = await fetch(`${API_BASE_URL}/api/ad/create-user`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              firstName: newUserInfo.firstName,
+              lastName: newUserInfo.lastName,
+              displayName: newUserInfo.displayName,
+              email: newUserInfo.email,
+              userPrincipalName: newUserInfo.userPrincipalName,
+              samAccountName: newUserInfo.mailNickname,
+              password: onboardingOptions.temporaryPassword,
+              department: onboardingOptions.department,
+              jobTitle: onboardingOptions.jobTitle,
+              officeLocation: onboardingOptions.officeLocation,
+              phoneNumber: onboardingOptions.businessPhone,
+              changePasswordAtLogon: onboardingOptions.requirePasswordChange,
+              enabled: onboardingOptions.enableAccount,
+            }),
+          });
+
+          const data = await response.json();
+          
+          if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Failed to create user in on-premises AD');
+          }
+
+          results.push({
+            action: 'Create On-Prem AD User',
+            status: 'success',
+            message: `User created in on-premises AD. Will sync to Azure AD within 30 minutes.`,
+            details: data.user,
+          });
+
+          // Note: We cannot continue with Azure AD operations until sync completes
+          toast.success('User created in on-premises AD! Azure AD sync will take ~30 minutes.');
+          setExecutionResults(results);
+          setCurrentStep(4); // Move to results step
+          setIsExecuting(false);
+          return; // Exit early - user must wait for sync
+
+        } catch (error) {
+          results.push({
+            action: 'Create On-Prem AD User',
+            status: 'error',
+            message: error.message,
+          });
+          setExecutionResults(results);
+          setCurrentStep(4);
+          setIsExecuting(false);
+          toast.error('Failed to create user in on-premises AD');
+          return;
+        }
+      }
+
+      // If no selected user and not creating in on-prem AD, user should be searched/selected first
+      if (!selectedUser) {
+        toast.error('Please select a user to onboard');
+        setIsExecuting(false);
+        return;
+      }
       // 1. Enable account and set password
       if (onboardingOptions.enableAccount) {
         try {
@@ -532,15 +625,49 @@ const OnboardingWizard = () => {
                   </div>
                 </div>
                 
+                {/* On-Premises AD Option */}
+                {!adConfigStatus.loading && adConfigStatus.configured && (
+                  <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-start">
+                      <input
+                        type="checkbox"
+                        id="createInOnPremAD"
+                        className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        checked={newUserInfo.createInOnPremAD}
+                        onChange={(e) => setNewUserInfo(prev => ({ ...prev, createInOnPremAD: e.target.checked }))}
+                      />
+                      <label htmlFor="createInOnPremAD" className="ml-3 flex-1">
+                        <div className="flex items-center">
+                          <ComputerDesktopIcon className="h-5 w-5 text-green-600 mr-2" />
+                          <span className="text-sm font-medium text-green-900">
+                            Create user in On-Premises Active Directory
+                          </span>
+                        </div>
+                        <p className="mt-1 text-sm text-green-700">
+                          User will be created in on-premises AD ({adConfigStatus.domain}) and automatically 
+                          synced to Azure AD via Azure AD Connect within 30 minutes. 
+                          <strong className="block mt-1">Note:</strong> Azure AD features (licenses, groups, email) 
+                          can only be configured after sync completes.
+                        </p>
+                      </label>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                   <div className="flex">
                     <div className="flex-shrink-0">
                       <UserPlusIcon className="h-5 w-5 text-blue-400" />
                     </div>
                     <div className="ml-3">
-                      <h4 className="text-sm font-medium text-blue-800">Creating New User</h4>
+                      <h4 className="text-sm font-medium text-blue-800">
+                        {newUserInfo.createInOnPremAD ? 'Creating On-Premises User' : 'Creating Cloud User'}
+                      </h4>
                       <p className="mt-1 text-sm text-blue-700">
-                        This wizard will create a new user account in your Azure AD with the information provided.
+                        {newUserInfo.createInOnPremAD
+                          ? 'This wizard will create a new user account in your on-premises Active Directory. The user will sync to Azure AD automatically.'
+                          : 'This wizard will create a new user account in your Azure AD with the information provided.'
+                        }
                       </p>
                     </div>
                   </div>
