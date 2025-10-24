@@ -1,5 +1,4 @@
 {
-  "_comment": "Updated 2025-10-24: Force rebuild after FAQ.js fixes",
   "version": 2,
   "builds": [
     {
