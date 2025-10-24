@@ -161,6 +161,8 @@ const Layout = ({ children }) => {
 };
 
 const Sidebar = ({ navigation }) => {
+  const { t } = useTranslation();
+  
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
       <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
