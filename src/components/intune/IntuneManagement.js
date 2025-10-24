@@ -54,7 +54,7 @@ import {
   PhonelinkErase as RetireIcon,
   DeleteForever as WipeIcon,
   Lock as LockIcon,
-  Restart as RestartIcon,
+  RestartAlt as RestartIcon,
   Search as SearchIcon,
   Add as AddIcon,
   CloudUpload as UploadIcon,
