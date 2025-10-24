@@ -20,6 +20,7 @@
     "lightMode": "浅色模式"
   },
   "nav": {
+    "appTitle": "员工生命周期门户",
     "dashboard": "仪表板",
     "userSearch": "用户搜索",
     "onboarding": "入职",
@@ -28,6 +29,63 @@
     "deviceManagement": "设备管理",
     "faq": "常见问题",
     "settings": "设置"
+  },
+  "dashboard": {
+    "welcomeBack": "欢迎回来！",
+    "totalUsers": "用户总数",
+    "activeUsers": "活跃用户",
+    "activeDevices": "活跃设备",
+    "quickActions": "快速操作",
+    "recentActivity": "最近活动",
+    "noRecentActivity": "没有最近的活动显示"
+  },
+  "users": {
+    "searchUsers": "搜索用户",
+    "displayName": "显示名称",
+    "email": "电子邮件",
+    "department": "部门",
+    "jobTitle": "职位",
+    "status": "状态",
+    "actions": "操作"
+  },
+  "onboarding": {
+    "title": "员工入职",
+    "startOnboarding": "开始入职",
+    "selectUser": "选择用户",
+    "basicInfo": "基本信息",
+    "assignGroups": "分配组",
+    "provisionEmail": "配置电子邮件",
+    "assignDevices": "分配设备",
+    "review": "审查",
+    "complete": "完成"
+  },
+  "offboarding": {
+    "title": "员工离职",
+    "startOffboarding": "开始离职",
+    "selectUser": "选择用户",
+    "revokeAccess": "撤销访问权限",
+    "backupData": "备份数据",
+    "reassignAssets": "重新分配资产",
+    "review": "审查",
+    "complete": "完成"
+  },
+  "devices": {
+    "title": "设备管理",
+    "deviceName": "设备名称",
+    "deviceType": "设备类型",
+    "owner": "所有者",
+    "compliance": "合规性",
+    "lastSync": "上次同步",
+    "actions": "操作"
+  },
+  "settings": {
+    "title": "设置",
+    "general": "常规",
+    "notifications": "通知",
+    "security": "安全",
+    "preferences": "偏好设置",
+    "saveSettings": "保存设置",
+    "resetToDefaults": "恢复默认设置"
   },
   "faq": {
     "title": "常见问题",
@@ -48,10 +106,18 @@
     "sessionExpired": "您的会话已过期",
     "pleaseSignInAgain": "请重新登录以继续"
   },
-  "dashboard": {
-    "welcome": "欢迎",
-    "quickActions": "快速操作",
-    "recentActivity": "最近活动",
-    "statistics": "统计"
+  "errors": {
+    "generic": "发生错误",
+    "notFound": "未找到",
+    "unauthorized": "未授权",
+    "serverError": "服务器错误",
+    "networkError": "网络错误"
+  },
+  "notifications": {
+    "success": "成功",
+    "error": "错误",
+    "warning": "警告",
+    "info": "信息",
+    "confirmAction": "您确定要执行此操作吗？"
   }
 }

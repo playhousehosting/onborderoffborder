@@ -142,21 +142,21 @@ const Settings = () => {
   return (
     <div className="animate-in">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
           Configure application settings and preferences
         </p>
       </div>
 
       {/* Demo Mode Banner */}
       {isDemo && (
-        <div className="mb-6 bg-gradient-to-r from-purple-50 to-pink-50 border-l-4 border-purple-500 p-4 rounded-r-lg">
+        <div className="mb-6 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-l-4 border-purple-500 p-4 rounded-r-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <ShieldCheckIcon className="h-6 w-6 text-purple-600" />
+              <ShieldCheckIcon className="h-6 w-6 text-purple-600 dark:text-purple-400" />
               <div>
-                <p className="text-sm font-medium text-purple-900">Demo Mode Active</p>
-                <p className="text-sm text-purple-700">You're using the app with mock data. Configure Azure AD for production use.</p>
+                <p className="text-sm font-medium text-purple-900 dark:text-purple-300">Demo Mode Active</p>
+                <p className="text-sm text-purple-700 dark:text-purple-400">You're using the app with mock data. Configure Azure AD for production use.</p>
               </div>
             </div>
             <button
@@ -170,7 +170,7 @@ const Settings = () => {
       )}
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
+      <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
         <nav className="-mb-px flex gap-6">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -181,8 +181,8 @@ const Settings = () => {
                 className={`
                   flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors
                   ${activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                   }
                 `}
               >

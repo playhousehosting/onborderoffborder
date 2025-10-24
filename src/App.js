@@ -19,6 +19,7 @@ import TransferWizard from './components/transfer/TransferWizard';
 import UserDetail from './components/users/UserDetail';
 import DeviceManagement from './components/intune/DeviceManagement';
 import ScheduledOffboarding from './components/offboarding/ScheduledOffboarding';
+import WorkflowManagement from './components/workflows/WorkflowManagement';
 import Settings from './components/settings/Settings';
 import ConfigurationForm from './components/auth/ConfigurationForm';
 import FAQ from './components/common/FAQ';
@@ -295,6 +296,16 @@ function App() {
                     <ProtectedRoute>
                       <Layout>
                         <ScheduledOffboarding />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/workflows"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <WorkflowManagement />
                       </Layout>
                     </ProtectedRoute>
                   }

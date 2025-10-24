@@ -542,8 +542,8 @@ const OnboardingWizard = () => {
       case 'user-info':
         return (
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">New User Information</h3>
-            <p className="text-sm text-gray-600 mb-6">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">New User Information</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
               Enter the details for the new employee you want to onboard.
             </p>
             
@@ -680,8 +680,8 @@ const OnboardingWizard = () => {
       case 'basic-info':
         return (
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Job Details & Contact Information</h3>
-            <p className="text-sm text-gray-600 mb-6">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Job Details & Contact Information</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
               Provide job-related information for {newUserInfo.displayName || 'the new employee'}.
             </p>
             
@@ -751,13 +751,13 @@ const OnboardingWizard = () => {
       case 'options':
         return (
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Configure Onboarding Options</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Configure Onboarding Options</h3>
             
             <div className="space-y-6">
               {/* Account Options */}
               <div className="card">
                 <div className="card-header">
-                  <h4 className="text-md font-medium text-gray-900">Account Settings</h4>
+                  <h4 className="text-md font-medium text-gray-900 dark:text-gray-100">Account Settings</h4>
                 </div>
                 <div className="card-body space-y-4">
                   <div className="flex items-center">
@@ -826,7 +826,7 @@ const OnboardingWizard = () => {
               {/* License Options */}
               <div className="card">
                 <div className="card-header">
-                  <h4 className="text-md font-medium text-gray-900">License Assignment</h4>
+                  <h4 className="text-md font-medium text-gray-900 dark:text-gray-100">License Assignment</h4>
                 </div>
                 <div className="card-body space-y-4">
                   <div className="flex items-center">
@@ -837,7 +837,7 @@ const OnboardingWizard = () => {
                       checked={onboardingOptions.assignLicenses}
                       onChange={(e) => handleOptionChange('assignLicenses', e.target.checked)}
                     />
-                    <label htmlFor="assignLicenses" className="ml-2 text-sm text-gray-700">
+                    <label htmlFor="assignLicenses" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                       Assign licenses
                     </label>
                   </div>
@@ -875,7 +875,7 @@ const OnboardingWizard = () => {
               {/* Group Options */}
               <div className="card">
                 <div className="card-header">
-                  <h4 className="text-md font-medium text-gray-900">Group Membership</h4>
+                  <h4 className="text-md font-medium text-gray-900 dark:text-gray-100">Group Membership</h4>
                 </div>
                 <div className="card-body space-y-4">
                   <div className="flex items-center">
@@ -1021,7 +1021,7 @@ const OnboardingWizard = () => {
               {/* Email Options */}
               <div className="card">
                 <div className="card-header">
-                  <h4 className="text-md font-medium text-gray-900">Email Settings</h4>
+                  <h4 className="text-md font-medium text-gray-900 dark:text-gray-100">Email Settings</h4>
                 </div>
                 <div className="card-body space-y-4">
                   <div className="flex items-center">
@@ -1081,7 +1081,7 @@ const OnboardingWizard = () => {
               {/* Training Options */}
               <div className="card">
                 <div className="card-header">
-                  <h4 className="text-md font-medium text-gray-900">Training & Orientation</h4>
+                  <h4 className="text-md font-medium text-gray-900 dark:text-gray-100">Training & Orientation</h4>
                 </div>
                 <div className="card-body space-y-4">
                   <div className="flex items-center">
@@ -1117,16 +1117,16 @@ const OnboardingWizard = () => {
       case 'confirmation':
         return (
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Onboarding Details</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Confirm Onboarding Details</h3>
             
-            <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-6">
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md p-4 mb-6">
               <div className="flex">
                 <CheckCircleIcon className="h-5 w-5 text-green-400" />
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-green-800">
+                  <h3 className="text-sm font-medium text-green-800 dark:text-green-300">
                     Ready to onboard {newUserInfo.displayName}
                   </h3>
-                  <div className="mt-2 text-sm text-green-700">
+                  <div className="mt-2 text-sm text-green-700 dark:text-green-400">
                     Review the information below before creating the new user account.
                   </div>
                 </div>
@@ -1135,25 +1135,25 @@ const OnboardingWizard = () => {
             
             <div className="card mb-6">
               <div className="card-header">
-                <h4 className="text-md font-medium text-gray-900">New User Information</h4>
+                <h4 className="text-md font-medium text-gray-900 dark:text-gray-100">New User Information</h4>
               </div>
               <div className="card-body">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Name</p>
-                    <p className="text-sm text-gray-900">{newUserInfo.displayName}</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Name</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">{newUserInfo.displayName}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Email / Username</p>
-                    <p className="text-sm text-gray-900">{newUserInfo.userPrincipalName}</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Email / Username</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">{newUserInfo.userPrincipalName}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Department</p>
-                    <p className="text-sm text-gray-900">{onboardingOptions.department}</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Department</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">{onboardingOptions.department}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Job Title</p>
-                    <p className="text-sm text-gray-900">{onboardingOptions.jobTitle}</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Job Title</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">{onboardingOptions.jobTitle}</p>
                   </div>
                 </div>
               </div>
@@ -1161,7 +1161,7 @@ const OnboardingWizard = () => {
             
             <div className="card">
               <div className="card-header">
-                <h4 className="text-md font-medium text-gray-900">Selected Actions</h4>
+                <h4 className="text-md font-medium text-gray-900 dark:text-gray-100">Selected Actions</h4>
               </div>
               <div className="card-body">
                 <div className="space-y-2">
@@ -1236,7 +1236,7 @@ const OnboardingWizard = () => {
       case 'results':
         return (
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Onboarding Results</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Onboarding Results</h3>
             
             <div className="card">
               <div className="card-body">
@@ -1246,8 +1246,8 @@ const OnboardingWizard = () => {
                       key={index}
                       className={`p-4 rounded-lg border ${
                         result.status === 'success'
-                          ? 'bg-success-50 border-success-200'
-                          : 'bg-danger-50 border-danger-200'
+                          ? 'bg-success-50 dark:bg-success-900/20 border-success-200 dark:border-success-800'
+                          : 'bg-danger-50 dark:bg-danger-900/20 border-danger-200 dark:border-danger-800'
                       }`}
                     >
                       <div className="flex items-start">
@@ -1298,8 +1298,8 @@ const OnboardingWizard = () => {
   return (
     <div className="animate-in">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Employee Onboarding</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Employee Onboarding</h1>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
           Set up new employees with their accounts, licenses, and resources
         </p>
       </div>
@@ -1321,7 +1321,7 @@ const OnboardingWizard = () => {
                       ? 'bg-success-600 border-success-600'
                       : currentStep === stepIdx
                       ? 'bg-primary-600 border-primary-600'
-                      : 'border-gray-300'
+                      : 'border-gray-300 dark:border-gray-600'
                   }`}
                   >
                     {currentStep > stepIdx ? (
@@ -1329,13 +1329,13 @@ const OnboardingWizard = () => {
                     ) : (
                       <step.icon
                         className={`w-6 h-6 ${
-                          currentStep === stepIdx ? 'text-primary-600' : 'text-gray-400'
+                          currentStep === stepIdx ? 'text-white' : 'text-gray-400 dark:text-gray-500'
                         }`}
                       />
                     )}
                   </div>
                   <span className={`ml-4 text-sm font-medium ${
-                    currentStep === stepIdx ? 'text-primary-600' : 'text-gray-500'
+                    currentStep === stepIdx ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400'
                   }`}>
                     {step.name}
                   </span>
@@ -1343,7 +1343,7 @@ const OnboardingWizard = () => {
                 {stepIdx !== steps.length - 1 && (
                   <div
                     className={`flex-1 h-0.5 mx-4 ${
-                      currentStep > stepIdx ? 'bg-success-600' : 'bg-gray-300'
+                      currentStep > stepIdx ? 'bg-success-600' : 'bg-gray-300 dark:bg-gray-600'
                     }`}
                   />
                 )}

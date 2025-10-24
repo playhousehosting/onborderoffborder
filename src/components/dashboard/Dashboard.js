@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { graphService } from '../../services/graphService';
 import toast from 'react-hot-toast';
 import {
@@ -20,6 +21,7 @@ import {
 
 const Dashboard = () => {
   const { user, hasPermission } = useAuth();
+  const { t } = useTranslation();
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeUsers: 0,
@@ -159,7 +161,7 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400"></div>
       </div>
     );
   }
@@ -167,67 +169,67 @@ const Dashboard = () => {
   return (
     <div className="animate-in">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl p-8 mb-8 text-white shadow-xl">
+      <div className="bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 rounded-2xl p-8 mb-8 text-white shadow-xl">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.displayName || user?.name}! 👋</h1>
-            <p className="text-primary-100 text-lg">
+            <h1 className="text-3xl font-bold mb-2">{t('dashboard.welcomeBack')}, {user?.displayName || user?.name}! 👋</h1>
+            <p className="text-primary-100 dark:text-primary-200 text-lg">
               Ready to streamline your employee lifecycle management today?
             </p>
           </div>
           <div className="hidden lg:block">
-            <SparklesIcon className="h-16 w-16 text-primary-200" />
+            <SparklesIcon className="h-16 w-16 text-primary-200 dark:text-primary-300" />
           </div>
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-        <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 p-4">
             <div className="flex items-center justify-between">
               <UserGroupIcon className="h-8 w-8 text-white" />
-              <span className="text-blue-100 text-sm font-medium">Total</span>
+              <span className="text-blue-100 dark:text-blue-200 text-sm font-medium">Total</span>
             </div>
           </div>
           <div className="p-6">
-            <div className="text-3xl font-bold text-gray-900">{stats.totalUsers}</div>
-            <div className="text-sm text-gray-600 mt-1">Total Users</div>
-            <div className="flex items-center mt-3 text-sm text-blue-600">
+            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.totalUsers}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('dashboard.totalUsers')}</div>
+            <div className="flex items-center mt-3 text-sm text-blue-600 dark:text-blue-400">
               <ArrowTrendingUpIcon className="h-4 w-4 mr-1" />
               <span>Active directory</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
-          <div className="bg-gradient-to-r from-green-500 to-green-600 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+          <div className="bg-gradient-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 p-4">
             <div className="flex items-center justify-between">
               <CheckCircleIcon className="h-8 w-8 text-white" />
-              <span className="text-green-100 text-sm font-medium">Active</span>
+              <span className="text-green-100 dark:text-green-200 text-sm font-medium">Active</span>
             </div>
           </div>
           <div className="p-6">
-            <div className="text-3xl font-bold text-gray-900">{stats.activeUsers}</div>
-            <div className="text-sm text-gray-600 mt-1">Active Users</div>
-            <div className="flex items-center mt-3 text-sm text-green-600">
+            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.activeUsers}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">Active Users</div>
+            <div className="flex items-center mt-3 text-sm text-green-600 dark:text-green-400">
               <ShieldCheckIcon className="h-4 w-4 mr-1" />
               <span>Currently enabled</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
-          <div className="bg-gradient-to-r from-amber-500 to-amber-600 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+          <div className="bg-gradient-to-r from-amber-500 to-amber-600 dark:from-amber-600 dark:to-amber-700 p-4">
             <div className="flex items-center justify-between">
               <UserMinusIcon className="h-8 w-8 text-white" />
-              <span className="text-amber-100 text-sm font-medium">Disabled</span>
+              <span className="text-amber-100 dark:text-amber-200 text-sm font-medium">Disabled</span>
             </div>
           </div>
           <div className="p-6">
-            <div className="text-3xl font-bold text-gray-900">{stats.disabledUsers}</div>
-            <div className="text-sm text-gray-600 mt-1">Disabled Users</div>
-            <div className="flex items-center mt-3 text-sm text-amber-600">
+            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.disabledUsers}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">Disabled Users</div>
+            <div className="flex items-center mt-3 text-sm text-amber-600 dark:text-amber-400">
               <ClockIcon className="h-4 w-4 mr-1" />
               <span>Recently offboarded</span>
             </div>
@@ -235,17 +237,17 @@ const Dashboard = () => {
         </div>
 
         {hasPermission('deviceManagement') && (
-          <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
-            <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-500 to-purple-600 dark:from-purple-600 dark:to-purple-700 p-4">
               <div className="flex items-center justify-between">
                 <ComputerDesktopIcon className="h-8 w-8 text-white" />
-                <span className="text-purple-100 text-sm font-medium">Devices</span>
+                <span className="text-purple-100 dark:text-purple-200 text-sm font-medium">Devices</span>
               </div>
             </div>
             <div className="p-6">
-              <div className="text-3xl font-bold text-gray-900">{stats.totalDevices}</div>
-              <div className="text-sm text-gray-600 mt-1">Managed Devices</div>
-              <div className="flex items-center mt-3 text-sm text-purple-600">
+              <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.totalDevices}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('dashboard.activeDevices')}</div>
+              <div className="flex items-center mt-3 text-sm text-purple-600 dark:text-purple-400">
                 <CogIcon className="h-4 w-4 mr-1" />
                 <span>Intune managed</span>
               </div>
@@ -256,23 +258,23 @@ const Dashboard = () => {
 
       {/* Quick Actions */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">What would you like to do today?</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">{t('dashboard.quickActions')}</h2>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {hasPermission('userManagement') && (
             <>
               <Link
                 to="/onboarding"
-                className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-green-200"
+                className="group bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:border-green-200 dark:hover:border-green-700"
               >
                 <div className="p-6">
                   <div className="flex items-center mb-4">
-                    <div className="bg-green-100 rounded-lg p-3 group-hover:bg-green-200 transition-colors">
-                      <UserPlusIcon className="h-8 w-8 text-green-600" />
+                    <div className="bg-green-100 dark:bg-green-900/30 rounded-lg p-3 group-hover:bg-green-200 dark:group-hover:bg-green-800/40 transition-colors">
+                      <UserPlusIcon className="h-8 w-8 text-green-600 dark:text-green-400" />
                     </div>
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Start Onboarding</h3>
-                  <p className="text-gray-600 mb-4">Set up a new employee with all necessary accounts and resources</p>
-                  <div className="flex items-center text-green-600 font-medium">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Start Onboarding</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">Set up a new employee with all necessary accounts and resources</p>
+                  <div className="flex items-center text-green-600 dark:text-green-400 font-medium">
                     <span>Get started</span>
                     <svg className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -283,17 +285,17 @@ const Dashboard = () => {
 
               <Link
                 to="/offboarding"
-                className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-red-200"
+                className="group bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:border-red-200 dark:hover:border-red-700"
               >
                 <div className="p-6">
                   <div className="flex items-center mb-4">
-                    <div className="bg-red-100 rounded-lg p-3 group-hover:bg-red-200 transition-colors">
-                      <UserMinusIcon className="h-8 w-8 text-red-600" />
+                    <div className="bg-red-100 dark:bg-red-900/30 rounded-lg p-3 group-hover:bg-red-200 dark:group-hover:bg-red-800/40 transition-colors">
+                      <UserMinusIcon className="h-8 w-8 text-red-600 dark:text-red-400" />
                     </div>
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Start Offboarding</h3>
-                  <p className="text-gray-600 mb-4">Process departing employee accounts and data securely</p>
-                  <div className="flex items-center text-red-600 font-medium">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Start Offboarding</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">Process departing employee accounts and data securely</p>
+                  <div className="flex items-center text-red-600 dark:text-red-400 font-medium">
                     <span>Begin process</span>
                     <svg className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -304,17 +306,17 @@ const Dashboard = () => {
 
               <Link
                 to="/transfer"
-                className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-purple-200"
+                className="group bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:border-purple-200 dark:hover:border-purple-700"
               >
                 <div className="p-6">
                   <div className="flex items-center mb-4">
-                    <div className="bg-purple-100 rounded-lg p-3 group-hover:bg-purple-200 transition-colors">
-                      <ArrowTrendingUpIcon className="h-8 w-8 text-purple-600" />
+                    <div className="bg-purple-100 dark:bg-purple-900/30 rounded-lg p-3 group-hover:bg-purple-200 dark:group-hover:bg-purple-800/40 transition-colors">
+                      <ArrowTrendingUpIcon className="h-8 w-8 text-purple-600 dark:text-purple-400" />
                     </div>
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Transfer / Promote</h3>
-                  <p className="text-gray-600 mb-4">Process role changes, transfers, and promotions</p>
-                  <div className="flex items-center text-purple-600 font-medium">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Transfer / Promote</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">Process role changes, transfers, and promotions</p>
+                  <div className="flex items-center text-purple-600 dark:text-purple-400 font-medium">
                     <span>Start transfer</span>
                     <svg className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -327,17 +329,17 @@ const Dashboard = () => {
 
           <Link
             to="/users"
-            className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-blue-200"
+            className="group bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:border-blue-200 dark:hover:border-blue-700"
           >
             <div className="p-6">
               <div className="flex items-center mb-4">
-                <div className="bg-blue-100 rounded-lg p-3 group-hover:bg-blue-200 transition-colors">
-                  <UserGroupIcon className="h-8 w-8 text-blue-600" />
+                <div className="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-3 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/40 transition-colors">
+                  <UserGroupIcon className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Search Users</h3>
-              <p className="text-gray-600 mb-4">Find and manage user accounts across your organization</p>
-              <div className="flex items-center text-blue-600 font-medium">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Search Users</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">Find and manage user accounts across your organization</p>
+              <div className="flex items-center text-blue-600 dark:text-blue-400 font-medium">
                 <span>Browse users</span>
                 <svg className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -357,9 +359,9 @@ const Dashboard = () => {
                     <CalendarIcon className="h-8 w-8 text-amber-600" />
                   </div>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Scheduled Offboarding</h3>
-                <p className="text-gray-600 mb-4">Schedule and manage future employee offboarding processes</p>
-                <div className="flex items-center text-amber-600 font-medium">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Scheduled Offboarding</h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">Schedule and manage future employee offboarding processes</p>
+                <div className="flex items-center text-amber-600 dark:text-amber-400 font-medium">
                   <span>View schedule</span>
                   <svg className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -372,17 +374,17 @@ const Dashboard = () => {
           {hasPermission('deviceManagement') && (
             <Link
               to="/devices"
-              className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-purple-200"
+              className="group bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:border-purple-200 dark:hover:border-purple-700"
             >
               <div className="p-6">
                 <div className="flex items-center mb-4">
-                  <div className="bg-purple-100 rounded-lg p-3 group-hover:bg-purple-200 transition-colors">
-                    <ComputerDesktopIcon className="h-8 w-8 text-purple-600" />
+                  <div className="bg-purple-100 dark:bg-purple-900/30 rounded-lg p-3 group-hover:bg-purple-200 dark:group-hover:bg-purple-800/40 transition-colors">
+                    <ComputerDesktopIcon className="h-8 w-8 text-purple-600 dark:text-purple-400" />
                   </div>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Manage Devices</h3>
-                <p className="text-gray-600 mb-4">View and manage Intune devices across your organization</p>
-                <div className="flex items-center text-purple-600 font-medium">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Manage Devices</h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">View and manage Intune devices across your organization</p>
+                <div className="flex items-center text-purple-600 dark:text-purple-400 font-medium">
                   <span>View devices</span>
                   <svg className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -396,8 +398,8 @@ const Dashboard = () => {
 
       {/* Recent Activity */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Recent Activity</h2>
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">{t('dashboard.recentActivity')}</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
           <div className="p-6">
             {recentActivity.length > 0 ? (
               <div className="flow-root">
@@ -406,15 +408,15 @@ const Dashboard = () => {
                     <li key={activity.id}>
                       <div className="relative pb-8">
                         {activityIdx !== recentActivity.length - 1 ? (
-                          <span className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true" />
+                          <span className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
                         ) : null}
                         <div className="relative flex items-start space-x-3">
                           <div className="relative">
                             {getActivityIcon(activity.type)}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="text-sm text-gray-500">
-                              <div className="font-medium text-gray-900">{activity.user}</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              <div className="font-medium text-gray-900 dark:text-gray-100">{activity.user}</div>
                               <div className="mt-0.5">
                                 {activity.action}
                                 <span className="mx-1">•</span>
@@ -432,9 +434,9 @@ const Dashboard = () => {
                 </ul>
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500">
-                <ClockIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p>No recent activity to display</p>
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <ClockIcon className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                <p>{t('dashboard.noRecentActivity')}</p>
               </div>
             )}
           </div>

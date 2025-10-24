@@ -99,13 +99,13 @@ const UserSearch = () => {
   const getStatusBadge = (user) => {
     if (user.accountEnabled) {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-800 dark:bg-success-900/30 dark:text-success-400">
           Active
         </span>
       );
     } else {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger-100 text-danger-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger-100 text-danger-800 dark:bg-danger-900/30 dark:text-danger-400">
           Disabled
         </span>
       );
@@ -115,8 +115,8 @@ const UserSearch = () => {
   return (
     <div className="animate-in">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">User Search</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">User Search</h1>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
           Search and manage users in your organization
         </p>
       </div>
@@ -166,7 +166,7 @@ const UserSearch = () => {
       </div>
 
       {/* Results Summary */}
-      <div className="mb-4 text-sm text-gray-700">
+      <div className="mb-4 text-sm text-gray-700 dark:text-gray-300">
         Showing {users.length} of {totalUsers} users
       </div>
 
@@ -179,41 +179,41 @@ const UserSearch = () => {
             </div>
           ) : users.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       User
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Status
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Department
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Job Title
                     </th>
-                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                   {users.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50">
+                    <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
-                              <UserIcon className="h-6 w-6 text-primary-600" />
+                            <div className="h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                              <UserIcon className="h-6 w-6 text-primary-600 dark:text-primary-400" />
                             </div>
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                               {user.displayName}
                             </div>
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
                               {user.mail || user.userPrincipalName}
                             </div>
                           </div>
@@ -222,17 +222,17 @@ const UserSearch = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(user)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {user.department || '—'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {user.jobTitle || '—'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
                           <Link
                             to={`/users/${user.id}`}
-                            className="text-primary-600 hover:text-primary-900"
+                            className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300"
                           >
                             View
                           </Link>
@@ -242,14 +242,14 @@ const UserSearch = () => {
                               {user.accountEnabled ? (
                                 <Link
                                   to={`/offboarding/${user.id}`}
-                                  className="text-danger-600 hover:text-danger-900"
+                                  className="text-danger-600 hover:text-danger-900 dark:text-danger-400 dark:hover:text-danger-300"
                                 >
                                   Offboard
                                 </Link>
                               ) : (
                                 <Link
                                   to={`/onboarding/${user.id}`}
-                                  className="text-success-600 hover:text-success-900"
+                                  className="text-success-600 hover:text-success-900 dark:text-success-400 dark:hover:text-success-300"
                                 >
                                   Onboard
                                 </Link>
@@ -265,9 +265,9 @@ const UserSearch = () => {
             </div>
           ) : (
             <div className="text-center py-12">
-              <UserIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No users found</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <UserIcon className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No users found</h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 Try adjusting your search or filter criteria
               </p>
             </div>
@@ -278,7 +278,7 @@ const UserSearch = () => {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="mt-6 flex items-center justify-between">
-          <div className="text-sm text-gray-700">
+          <div className="text-sm text-gray-700 dark:text-gray-300">
             Showing {((currentPage - 1) * usersPerPage) + 1} to{' '}
             {Math.min(currentPage * usersPerPage, totalUsers)} of {totalUsers} results
           </div>
@@ -290,7 +290,7 @@ const UserSearch = () => {
             >
               Previous
             </button>
-            <span className="px-3 py-2 text-sm text-gray-700">
+            <span className="px-3 py-2 text-sm text-gray-700 dark:text-gray-300">
               Page {currentPage} of {totalPages}
             </span>
             <button

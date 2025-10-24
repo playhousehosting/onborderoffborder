@@ -20,6 +20,7 @@
     "lightMode": "Mode Clair"
   },
   "nav": {
+    "appTitle": "Portail du Cycle de Vie des Employés",
     "dashboard": "Tableau de Bord",
     "userSearch": "Recherche d'Utilisateurs",
     "onboarding": "Intégration",
@@ -28,6 +29,63 @@
     "deviceManagement": "Gestion des Appareils",
     "faq": "FAQ",
     "settings": "Paramètres"
+  },
+  "dashboard": {
+    "welcomeBack": "Bienvenue!",
+    "totalUsers": "Total des Utilisateurs",
+    "activeUsers": "Utilisateurs Actifs",
+    "activeDevices": "Appareils Actifs",
+    "quickActions": "Actions Rapides",
+    "recentActivity": "Activité Récente",
+    "noRecentActivity": "Aucune activité récente à afficher"
+  },
+  "users": {
+    "searchUsers": "Rechercher des Utilisateurs",
+    "displayName": "Nom d'Affichage",
+    "email": "Email",
+    "department": "Département",
+    "jobTitle": "Titre du Poste",
+    "status": "Statut",
+    "actions": "Actions"
+  },
+  "onboarding": {
+    "title": "Intégration d'Employé",
+    "startOnboarding": "Démarrer l'Intégration",
+    "selectUser": "Sélectionner un Utilisateur",
+    "basicInfo": "Informations de Base",
+    "assignGroups": "Attribuer des Groupes",
+    "provisionEmail": "Provisionner l'Email",
+    "assignDevices": "Attribuer des Appareils",
+    "review": "Réviser",
+    "complete": "Terminer"
+  },
+  "offboarding": {
+    "title": "Départ d'Employé",
+    "startOffboarding": "Démarrer le Départ",
+    "selectUser": "Sélectionner un Utilisateur",
+    "revokeAccess": "Révoquer l'Accès",
+    "backupData": "Sauvegarder les Données",
+    "reassignAssets": "Réattribuer les Ressources",
+    "review": "Réviser",
+    "complete": "Terminer"
+  },
+  "devices": {
+    "title": "Gestion des Appareils",
+    "deviceName": "Nom de l'Appareil",
+    "deviceType": "Type d'Appareil",
+    "owner": "Propriétaire",
+    "compliance": "Conformité",
+    "lastSync": "Dernière Synchronisation",
+    "actions": "Actions"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "general": "Général",
+    "notifications": "Notifications",
+    "security": "Sécurité",
+    "preferences": "Préférences",
+    "saveSettings": "Enregistrer les Paramètres",
+    "resetToDefaults": "Réinitialiser aux Valeurs par Défaut"
   },
   "faq": {
     "title": "Foire Aux Questions",
@@ -48,10 +106,19 @@
     "sessionExpired": "Votre session a expiré",
     "pleaseSignInAgain": "Veuillez vous reconnecter pour continuer"
   },
-  "dashboard": {
-    "welcome": "Bienvenue",
-    "quickActions": "Actions Rapides",
-    "recentActivity": "Activité Récente",
-    "statistics": "Statistiques"
+  "errors": {
+    "generic": "Une erreur s'est produite",
+    "notFound": "Non trouvé",
+    "unauthorized": "Non autorisé",
+    "serverError": "Erreur du serveur",
+    "networkError": "Erreur réseau"
+  },
+  "notifications": {
+    "success": "Succès",
+    "error": "Erreur",
+    "warning": "Avertissement",
+    "info": "Information",
+    "confirmAction": "Êtes-vous sûr de vouloir effectuer cette action?"
   }
 }
+

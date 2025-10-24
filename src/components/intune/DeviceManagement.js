@@ -153,21 +153,21 @@ const DeviceManagement = () => {
     switch (complianceState) {
       case 'compliant':
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-800">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-800 dark:bg-success-900/30 dark:text-success-400">
             <CheckCircleIcon className="h-3 w-3 mr-1" />
             Compliant
           </span>
         );
       case 'noncompliant':
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger-100 text-danger-800">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger-100 text-danger-800 dark:bg-danger-900/30 dark:text-danger-400">
             <ExclamationTriangleIcon className="h-3 w-3 mr-1" />
             Non-compliant
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-100 text-warning-800">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-100 text-warning-800 dark:bg-warning-900/30 dark:text-warning-400">
             Unknown
           </span>
         );
@@ -182,9 +182,9 @@ const DeviceManagement = () => {
   if (!hasPermission('deviceManagement')) {
     return (
       <div className="text-center py-12">
-        <ComputerDesktopIcon className="mx-auto h-12 w-12 text-gray-400" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">Access Denied</h3>
-        <p className="mt-1 text-sm text-gray-500">
+        <ComputerDesktopIcon className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600" />
+        <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Access Denied</h3>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           You do not have permission to manage devices.
         </p>
       </div>
@@ -194,8 +194,8 @@ const DeviceManagement = () => {
   return (
     <div className="animate-in">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Device Management</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Device Management</h1>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
           Manage and monitor Intune-managed devices in your organization
         </p>
       </div>
@@ -251,7 +251,7 @@ const DeviceManagement = () => {
       </div>
 
       {/* Results Summary */}
-      <div className="mb-4 text-sm text-gray-700">
+      <div className="mb-4 text-sm text-gray-700 dark:text-gray-300">
         Showing {devices.length} of {totalDevices} devices
       </div>
 
@@ -264,8 +264,8 @@ const DeviceManagement = () => {
             </div>
           ) : devices.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left">
                       <input
@@ -275,29 +275,29 @@ const DeviceManagement = () => {
                         onChange={handleSelectAll}
                       />
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Device
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       User
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       OS
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Status
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Last Sync
                     </th>
-                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                   {devices.map((device) => (
-                    <tr key={device.id} className="hover:bg-gray-50">
+                    <tr key={device.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <input
                           type="checkbox"
@@ -309,35 +309,35 @@ const DeviceManagement = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
-                              <ComputerDesktopIcon className="h-6 w-6 text-primary-600" />
+                            <div className="h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                              <ComputerDesktopIcon className="h-6 w-6 text-primary-600 dark:text-primary-400" />
                             </div>
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                               {device.deviceName}
                             </div>
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
                               {device.manufacturer} {device.model}
                             </div>
                             {device.serialNumber && (
-                              <div className="text-xs text-gray-400">
+                              <div className="text-xs text-gray-400 dark:text-gray-500">
                                 S/N: {device.serialNumber}
                               </div>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {device.userPrincipalName || '—'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {device.operatingSystem} {device.osVersion}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getComplianceStatusBadge(device.complianceState)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {formatDate(device.lastSyncDateTime)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -365,9 +365,9 @@ const DeviceManagement = () => {
             </div>
           ) : (
             <div className="text-center py-12">
-              <ComputerDesktopIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No devices found</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <ComputerDesktopIcon className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No devices found</h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 Try adjusting your search criteria
               </p>
             </div>

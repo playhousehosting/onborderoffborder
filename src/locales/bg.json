@@ -20,6 +20,7 @@
     "lightMode": "Светъл Режим"
   },
   "nav": {
+    "appTitle": "Портал за Жизнения Цикъл на Служителите",
     "dashboard": "Табло",
     "userSearch": "Търсене на Потребители",
     "onboarding": "Въвеждане",
@@ -28,6 +29,63 @@
     "deviceManagement": "Управление на Устройства",
     "faq": "Често Задавани Въпроси",
     "settings": "Настройки"
+  },
+  "dashboard": {
+    "welcomeBack": "Добре дошли обратно!",
+    "totalUsers": "Общо Потребители",
+    "activeUsers": "Активни Потребители",
+    "activeDevices": "Активни Устройства",
+    "quickActions": "Бързи Действия",
+    "recentActivity": "Последна Активност",
+    "noRecentActivity": "Няма скорошна активност за показване"
+  },
+  "users": {
+    "searchUsers": "Търсене на Потребители",
+    "displayName": "Показвано Име",
+    "email": "Имейл",
+    "department": "Отдел",
+    "jobTitle": "длъжност",
+    "status": "Състояние",
+    "actions": "Действия"
+  },
+  "onboarding": {
+    "title": "Въвеждане на Служител",
+    "startOnboarding": "Започни Въвеждане",
+    "selectUser": "Избери Потребител",
+    "basicInfo": "Основна Информация",
+    "assignGroups": "Задай Групи",
+    "provisionEmail": "Осигури Имейл",
+    "assignDevices": "Задай Устройства",
+    "review": "Преглед",
+    "complete": "Завърши"
+  },
+  "offboarding": {
+    "title": "Освобождаване на Служител",
+    "startOffboarding": "Започни Освобождаване",
+    "selectUser": "Избери Потребител",
+    "revokeAccess": "Отнеми Достъп",
+    "backupData": "Архивирай Данни",
+    "reassignAssets": "Преразпредели Активи",
+    "review": "Преглед",
+    "complete": "Завърши"
+  },
+  "devices": {
+    "title": "Управление на Устройства",
+    "deviceName": "Име на Устройство",
+    "deviceType": "Тип Устройство",
+    "owner": "Собственик",
+    "compliance": "Съответствие",
+    "lastSync": "Последна Синхронизация",
+    "actions": "Действия"
+  },
+  "settings": {
+    "title": "Настройки",
+    "general": "Общи",
+    "notifications": "Известия",
+    "security": "Сигурност",
+    "preferences": "Предпочитания",
+    "saveSettings": "Запази Настройки",
+    "resetToDefaults": "Възстанови По Подразбиране"
   },
   "faq": {
     "title": "Често Задавани Въпроси",
@@ -48,10 +106,18 @@
     "sessionExpired": "Вашата сесия изтече",
     "pleaseSignInAgain": "Моля, влезте отново, за да продължите"
   },
-  "dashboard": {
-    "welcome": "Добре дошли",
-    "quickActions": "Бързи Действия",
-    "recentActivity": "Последна Активност",
-    "statistics": "Статистика"
+  "errors": {
+    "generic": "Възникна грешка",
+    "notFound": "Не е намерено",
+    "unauthorized": "Неоторизиран",
+    "serverError": "Сървърна грешка",
+    "networkError": "Мрежова грешка"
+  },
+  "notifications": {
+    "success": "Успех",
+    "error": "Грешка",
+    "warning": "Предупреждение",
+    "info": "Информация",
+    "confirmAction": "Сигурни ли сте, че искате да извършите това действие?"
   }
 }

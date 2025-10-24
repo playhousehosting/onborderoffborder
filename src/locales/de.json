@@ -20,6 +20,7 @@
     "lightMode": "Hellmodus"
   },
   "nav": {
+    "appTitle": "Mitarbeiter-Lifecycle-Portal",
     "dashboard": "Dashboard",
     "userSearch": "Benutzersuche",
     "onboarding": "Einarbeitung",
@@ -28,6 +29,63 @@
     "deviceManagement": "Geräteverwaltung",
     "faq": "FAQ",
     "settings": "Einstellungen"
+  },
+  "dashboard": {
+    "welcomeBack": "Willkommen zurück!",
+    "totalUsers": "Gesamte Benutzer",
+    "activeUsers": "Aktive Benutzer",
+    "activeDevices": "Aktive Geräte",
+    "quickActions": "Schnellaktionen",
+    "recentActivity": "Letzte Aktivität",
+    "noRecentActivity": "Keine aktuellen Aktivitäten zum Anzeigen"
+  },
+  "users": {
+    "searchUsers": "Benutzer Suchen",
+    "displayName": "Anzeigename",
+    "email": "E-Mail",
+    "department": "Abteilung",
+    "jobTitle": "Berufsbezeichnung",
+    "status": "Status",
+    "actions": "Aktionen"
+  },
+  "onboarding": {
+    "title": "Mitarbeiter-Einarbeitung",
+    "startOnboarding": "Einarbeitung Starten",
+    "selectUser": "Benutzer Auswählen",
+    "basicInfo": "Grundinformationen",
+    "assignGroups": "Gruppen Zuweisen",
+    "provisionEmail": "E-Mail Bereitstellen",
+    "assignDevices": "Geräte Zuweisen",
+    "review": "Überprüfen",
+    "complete": "Abschließen"
+  },
+  "offboarding": {
+    "title": "Mitarbeiter-Austritt",
+    "startOffboarding": "Austritt Starten",
+    "selectUser": "Benutzer Auswählen",
+    "revokeAccess": "Zugriff Widerrufen",
+    "backupData": "Daten Sichern",
+    "reassignAssets": "Assets Neu Zuweisen",
+    "review": "Überprüfen",
+    "complete": "Abschließen"
+  },
+  "devices": {
+    "title": "Geräteverwaltung",
+    "deviceName": "Gerätename",
+    "deviceType": "Gerätetyp",
+    "owner": "Besitzer",
+    "compliance": "Compliance",
+    "lastSync": "Letzte Synchronisation",
+    "actions": "Aktionen"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "general": "Allgemein",
+    "notifications": "Benachrichtigungen",
+    "security": "Sicherheit",
+    "preferences": "Präferenzen",
+    "saveSettings": "Einstellungen Speichern",
+    "resetToDefaults": "Auf Standardwerte Zurücksetzen"
   },
   "faq": {
     "title": "Häufig Gestellte Fragen",
@@ -48,10 +106,18 @@
     "sessionExpired": "Ihre Sitzung ist abgelaufen",
     "pleaseSignInAgain": "Bitte melden Sie sich erneut an, um fortzufahren"
   },
-  "dashboard": {
-    "welcome": "Willkommen",
-    "quickActions": "Schnellaktionen",
-    "recentActivity": "Letzte Aktivität",
-    "statistics": "Statistiken"
+  "errors": {
+    "generic": "Ein Fehler ist aufgetreten",
+    "notFound": "Nicht gefunden",
+    "unauthorized": "Nicht autorisiert",
+    "serverError": "Serverfehler",
+    "networkError": "Netzwerkfehler"
+  },
+  "notifications": {
+    "success": "Erfolg",
+    "error": "Fehler",
+    "warning": "Warnung",
+    "info": "Information",
+    "confirmAction": "Sind Sie sicher, dass Sie diese Aktion ausführen möchten?"
   }
 }

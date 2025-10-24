@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   QuestionMarkCircleIcon,
   ChevronDownIcon,
@@ -18,6 +19,7 @@ import {
 
 const FAQ = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [openCategory, setOpenCategory] = useState(null);
   const [openQuestion, setOpenQuestion] = useState(null);
 
@@ -354,27 +356,27 @@ const FAQ = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         {/* Back to Dashboard Button */}
         <div className="mb-6">
           <button
             onClick={() => navigate('/dashboard')}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             <ArrowLeftIcon className="h-5 w-5 mr-2" />
-            Back to Dashboard
+            {t('common.backToDashboard')}
           </button>
         </div>
 
         {/* Header */}
         <div className="text-center mb-12">
-          <QuestionMarkCircleIcon className="mx-auto h-16 w-16 text-blue-600 mb-4" />
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Frequently Asked Questions
+          <QuestionMarkCircleIcon className="mx-auto h-16 w-16 text-blue-600 dark:text-blue-400 mb-4" />
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+            {t('faq.title')}
           </h1>
-          <p className="text-xl text-gray-600">
-            Everything you need to know about the Employee Lifecycle Portal
+          <p className="text-xl text-gray-600 dark:text-gray-400">
+            {t('faq.subtitle')}
           </p>
         </div>
 
@@ -387,25 +389,25 @@ const FAQ = () => {
             <div key={category.category} className="mb-6">
               <button
                 onClick={() => toggleCategory(category.category)}
-                className="w-full bg-white rounded-lg shadow-md p-6 flex items-center justify-between hover:shadow-lg transition-all duration-200 hover:scale-[1.01]"
+                className="w-full bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 flex items-center justify-between hover:shadow-lg transition-all duration-200 hover:scale-[1.01]"
               >
                 <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-blue-100 rounded-lg">
-                    <CategoryIcon className="h-8 w-8 text-blue-600" />
+                  <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                    <CategoryIcon className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div className="text-left">
-                    <h2 className="text-2xl font-bold text-gray-900">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                       {category.category}
                     </h2>
-                    <span className="text-sm text-gray-500">
-                      {category.questions.length} question{category.questions.length !== 1 ? 's' : ''}
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      {category.questions.length} {t('faq.questions')}
                     </span>
                   </div>
                 </div>
                 {isCategoryOpen ? (
-                  <ChevronUpIcon className="h-6 w-6 text-gray-500" />
+                  <ChevronUpIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
                 ) : (
-                  <ChevronDownIcon className="h-6 w-6 text-gray-500" />
+                  <ChevronDownIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
                 )}
               </button>
 
@@ -417,15 +419,15 @@ const FAQ = () => {
                     return (
                       <div
                         key={q.id}
-                        className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200"
+                        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow duration-200"
                       >
                         <button
                           onClick={() => toggleQuestion(q.id)}
-                          className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-blue-50 transition-colors duration-150"
+                          className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-150"
                         >
-                          <h3 className="text-lg font-semibold text-gray-900 pr-8 flex items-start">
-                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-sm font-bold mr-3 flex-shrink-0 mt-0.5">
-                              Q
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 pr-8 flex items-start">
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-sm font-bold mr-3 flex-shrink-0 mt-0.5">
+                              {t('faq.question')}
                             </span>
                             <span className="flex-1">{q.question}</span>
                           </h3>
@@ -453,12 +455,12 @@ const FAQ = () => {
         })}
 
         {/* Still Have Questions Section */}
-        <div className="mt-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg shadow-lg p-8 text-center">
+        <div className="mt-12 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700 rounded-lg shadow-lg p-8 text-center">
           <h2 className="text-2xl font-bold text-white mb-4">
-            Still have questions?
+            {t('faq.stillHaveQuestions')}
           </h2>
           <p className="text-blue-100 mb-6">
-            We're here to help. Check out our additional resources or reach out to the community.
+            {t('faq.stillHaveQuestionsDesc')}
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <a
@@ -467,7 +469,7 @@ const FAQ = () => {
               rel="noopener noreferrer"
               className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 transition-colors duration-150"
             >
-              View Documentation
+              {t('faq.viewDocumentation')}
             </a>
             <a
               href="https://github.com/playhousehosting/onborderoffborder/issues"
@@ -475,7 +477,7 @@ const FAQ = () => {
               rel="noopener noreferrer"
               className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 transition-colors duration-150"
             >
-              Report an Issue
+              {t('faq.reportIssue')}
             </a>
             <a
               href="https://github.com/playhousehosting/onborderoffborder/discussions"
@@ -483,7 +485,7 @@ const FAQ = () => {
               rel="noopener noreferrer"
               className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 transition-colors duration-150"
             >
-              Join Discussion
+              {t('faq.joinDiscussion')}
             </a>
           </div>
         </div>

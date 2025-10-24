@@ -20,6 +20,7 @@
     "lightMode": "الوضع الفاتح"
   },
   "nav": {
+    "appTitle": "بوابة دورة حياة الموظف",
     "dashboard": "لوحة التحكم",
     "userSearch": "البحث عن المستخدمين",
     "onboarding": "التعيين",
@@ -28,6 +29,63 @@
     "deviceManagement": "إدارة الأجهزة",
     "faq": "الأسئلة الشائعة",
     "settings": "الإعدادات"
+  },
+  "dashboard": {
+    "welcomeBack": "مرحباً بعودتك!",
+    "totalUsers": "إجمالي المستخدمين",
+    "activeUsers": "المستخدمون النشطون",
+    "activeDevices": "الأجهزة النشطة",
+    "quickActions": "الإجراءات السريعة",
+    "recentActivity": "النشاط الأخير",
+    "noRecentActivity": "لا يوجد نشاط حديث للعرض"
+  },
+  "users": {
+    "searchUsers": "البحث عن المستخدمين",
+    "displayName": "اسم العرض",
+    "email": "البريد الإلكتروني",
+    "department": "القسم",
+    "jobTitle": "المسمى الوظيفي",
+    "status": "الحالة",
+    "actions": "الإجراءات"
+  },
+  "onboarding": {
+    "title": "تعيين موظف",
+    "startOnboarding": "بدء التعيين",
+    "selectUser": "تحديد المستخدم",
+    "basicInfo": "معلومات أساسية",
+    "assignGroups": "تعيين المجموعات",
+    "provisionEmail": "توفير البريد الإلكتروني",
+    "assignDevices": "تعيين الأجهزة",
+    "review": "مراجعة",
+    "complete": "إكمال"
+  },
+  "offboarding": {
+    "title": "إنهاء خدمة الموظف",
+    "startOffboarding": "بدء إنهاء الخدمة",
+    "selectUser": "تحديد المستخدم",
+    "revokeAccess": "إلغاء الوصول",
+    "backupData": "نسخ البيانات احتياطياً",
+    "reassignAssets": "إعادة تعيين الأصول",
+    "review": "مراجعة",
+    "complete": "إكمال"
+  },
+  "devices": {
+    "title": "إدارة الأجهزة",
+    "deviceName": "اسم الجهاز",
+    "deviceType": "نوع الجهاز",
+    "owner": "المالك",
+    "compliance": "الامتثال",
+    "lastSync": "آخر مزامنة",
+    "actions": "الإجراءات"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "general": "عام",
+    "notifications": "الإشعارات",
+    "security": "الأمان",
+    "preferences": "التفضيلات",
+    "saveSettings": "حفظ الإعدادات",
+    "resetToDefaults": "إعادة التعيين إلى الافتراضي"
   },
   "faq": {
     "title": "الأسئلة الشائعة",
@@ -48,10 +106,18 @@
     "sessionExpired": "انتهت صلاحية جلستك",
     "pleaseSignInAgain": "يرجى تسجيل الدخول مرة أخرى للمتابعة"
   },
-  "dashboard": {
-    "welcome": "مرحبا",
-    "quickActions": "الإجراءات السريعة",
-    "recentActivity": "النشاط الأخير",
-    "statistics": "الإحصائيات"
+  "errors": {
+    "generic": "حدث خطأ",
+    "notFound": "غير موجود",
+    "unauthorized": "غير مصرح",
+    "serverError": "خطأ في الخادم",
+    "networkError": "خطأ في الشبكة"
+  },
+  "notifications": {
+    "success": "نجاح",
+    "error": "خطأ",
+    "warning": "تحذير",
+    "info": "معلومات",
+    "confirmAction": "هل أنت متأكد من أنك تريد تنفيذ هذا الإجراء؟"
   }
 }

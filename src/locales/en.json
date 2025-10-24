@@ -17,7 +17,16 @@
     "language": "Language",
     "theme": "Theme",
     "darkMode": "Dark Mode",
-    "lightMode": "Light Mode"
+    "lightMode": "Light Mode",
+    "close": "Close",
+    "submit": "Submit",
+    "next": "Next",
+    "previous": "Previous",
+    "finish": "Finish",
+    "selectAll": "Select All",
+    "clearAll": "Clear All",
+    "noResults": "No results found",
+    "actions": "Actions"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -27,7 +36,84 @@
     "scheduledOffboarding": "Scheduled Offboarding",
     "deviceManagement": "Device Management",
     "faq": "FAQ",
-    "settings": "Settings"
+    "settings": "Settings",
+    "appTitle": "Employee Life Cycle Portal"
+  },
+  "dashboard": {
+    "welcome": "Welcome",
+    "welcomeBack": "Welcome back",
+    "quickActions": "Quick Actions",
+    "recentActivity": "Recent Activity",
+    "statistics": "Statistics",
+    "totalUsers": "Total Users",
+    "activeDevices": "Active Devices",
+    "pendingOffboarding": "Pending Offboarding",
+    "completedThisMonth": "Completed This Month"
+  },
+  "users": {
+    "userSearch": "User Search",
+    "searchPlaceholder": "Search by name or email...",
+    "displayName": "Display Name",
+    "email": "Email",
+    "department": "Department",
+    "jobTitle": "Job Title",
+    "status": "Status",
+    "lastSignIn": "Last Sign In",
+    "viewDetails": "View Details",
+    "noUsersFound": "No users found"
+  },
+  "onboarding": {
+    "title": "Employee Onboarding",
+    "newEmployee": "New Employee",
+    "selectUser": "Select User",
+    "basicInfo": "Basic Information",
+    "accountSetup": "Account Setup",
+    "deviceAssignment": "Device Assignment",
+    "accessRights": "Access Rights",
+    "review": "Review",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "startDate": "Start Date",
+    "assignLicense": "Assign License",
+    "assignDevice": "Assign Device",
+    "grantAccess": "Grant Access",
+    "completeOnboarding": "Complete Onboarding"
+  },
+  "offboarding": {
+    "title": "Employee Offboarding",
+    "selectEmployee": "Select Employee",
+    "offboardingDate": "Offboarding Date",
+    "lastDay": "Last Day",
+    "revokeAccess": "Revoke Access",
+    "backupData": "Backup Data",
+    "transferOwnership": "Transfer Ownership",
+    "returnDevices": "Return Devices",
+    "disableAccount": "Disable Account",
+    "completeOffboarding": "Complete Offboarding",
+    "scheduledFor": "Scheduled for",
+    "viewScheduled": "View Scheduled Offboarding"
+  },
+  "devices": {
+    "title": "Device Management",
+    "deviceName": "Device Name",
+    "deviceType": "Device Type",
+    "owner": "Owner",
+    "lastSeen": "Last Seen",
+    "compliance": "Compliance Status",
+    "compliant": "Compliant",
+    "nonCompliant": "Non-Compliant",
+    "managedBy": "Managed By",
+    "enrollmentDate": "Enrollment Date"
+  },
+  "settings": {
+    "title": "Settings",
+    "general": "General",
+    "account": "Account",
+    "notifications": "Notifications",
+    "preferences": "Preferences",
+    "security": "Security",
+    "saveSettings": "Save Settings",
+    "resetToDefault": "Reset to Default"
   },
   "faq": {
     "title": "Frequently Asked Questions",
@@ -46,12 +132,23 @@
     "signInRequired": "Sign in required",
     "pleaseSignIn": "Please sign in to access the portal",
     "sessionExpired": "Your session has expired",
-    "pleaseSignInAgain": "Please sign in again to continue"
+    "pleaseSignInAgain": "Please sign in again to continue",
+    "signingIn": "Signing in...",
+    "signOut": "Sign Out"
   },
-  "dashboard": {
-    "welcome": "Welcome",
-    "quickActions": "Quick Actions",
-    "recentActivity": "Recent Activity",
-    "statistics": "Statistics"
+  "errors": {
+    "generic": "An error occurred. Please try again.",
+    "networkError": "Network error. Please check your connection.",
+    "unauthorized": "You are not authorized to perform this action.",
+    "notFound": "The requested resource was not found.",
+    "serverError": "Server error. Please try again later.",
+    "validationError": "Please check your input and try again."
+  },
+  "notifications": {
+    "success": "Operation completed successfully",
+    "saved": "Changes saved successfully",
+    "deleted": "Deleted successfully",
+    "updated": "Updated successfully",
+    "error": "An error occurred"
   }
 }

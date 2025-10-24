@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { MicrosoftIcon, ShieldCheckIcon } from '../common/Icons';
 import { isDemoMode } from '../../config/authConfig';
 import toast from 'react-hot-toast';
@@ -15,6 +16,7 @@ import {
 
 const Login = () => {
   const { login, loading, error } = useAuth();
+  const { t } = useTranslation();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [authMode, setAuthMode] = useState(localStorage.getItem('preferredAuthMode') || 'app-only');
   const [config, setConfig] = useState({
@@ -415,68 +417,68 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           {/* Left side - Welcome content */}
           <div className="text-center lg:text-left">
             <div className="flex justify-center lg:justify-start mb-6">
-              <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl p-4 shadow-lg">
+              <div className="bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 rounded-2xl p-4 shadow-lg">
                 <ShieldCheckIcon className="h-12 w-12 text-white" />
               </div>
             </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
               Employee Lifecycle Portal
             </h1>
-            <p className="text-xl text-gray-600 mb-6">
+            <p className="text-xl text-gray-600 dark:text-gray-300 mb-6">
               Streamline your employee onboarding and offboarding processes with powerful Microsoft 365 integration.
             </p>
             
             <div className="space-y-4">
               <div className="flex items-center justify-center lg:justify-start">
-                <div className="bg-green-100 rounded-lg p-2 mr-3">
-                  <UserGroupIcon className="h-6 w-6 text-green-600" />
+                <div className="bg-green-100 dark:bg-green-900/30 rounded-lg p-2 mr-3">
+                  <UserGroupIcon className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
-                <span className="text-gray-700">Effortless user management</span>
+                <span className="text-gray-700 dark:text-gray-300">Effortless user management</span>
               </div>
               <div className="flex items-center justify-center lg:justify-start">
-                <div className="bg-blue-100 rounded-lg p-2 mr-3">
-                  <ComputerDesktopIcon className="h-6 w-6 text-blue-600" />
+                <div className="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-2 mr-3">
+                  <ComputerDesktopIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 </div>
-                <span className="text-gray-700">Intune device integration</span>
+                <span className="text-gray-700 dark:text-gray-300">Intune device integration</span>
               </div>
               <div className="flex items-center justify-center lg:justify-start">
-                <div className="bg-purple-100 rounded-lg p-2 mr-3">
-                  <EnvelopeIcon className="h-6 w-6 text-purple-600" />
+                <div className="bg-purple-100 dark:bg-purple-900/30 rounded-lg p-2 mr-3">
+                  <EnvelopeIcon className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                 </div>
-                <span className="text-gray-700">Automated email workflows</span>
+                <span className="text-gray-700 dark:text-gray-300">Automated email workflows</span>
               </div>
               <div className="flex items-center justify-center lg:justify-start">
-                <div className="bg-amber-100 rounded-lg p-2 mr-3">
-                  <SparklesIcon className="h-6 w-6 text-amber-600" />
+                <div className="bg-amber-100 dark:bg-amber-900/30 rounded-lg p-2 mr-3">
+                  <SparklesIcon className="h-6 w-6 text-amber-600 dark:text-amber-400" />
                 </div>
-                <span className="text-gray-700">Secure data handling</span>
+                <span className="text-gray-700 dark:text-gray-300">Secure data handling</span>
               </div>
             </div>
           </div>
           
           {/* Right side - Login form */}
           <div className="max-w-md mx-auto w-full">
-            <div className="bg-white rounded-2xl shadow-xl p-8">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
               <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome Back! 👋</h2>
-                <p className="text-gray-600">Sign in to access your dashboard</p>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Welcome Back! 👋</h2>
+                <p className="text-gray-600 dark:text-gray-400">{t('auth.pleaseSignIn')}</p>
               </div>
               
               {demoMode && (
-                <div className="mb-6 p-4 border border-amber-200 rounded-lg bg-amber-50">
+                <div className="mb-6 p-4 border border-amber-200 dark:border-amber-700 rounded-lg bg-amber-50 dark:bg-amber-900/20">
                   <div className="flex items-start">
                     <div className="flex-shrink-0">
                       <InformationCircleIcon className="h-5 w-5 text-amber-400" />
                     </div>
                     <div className="ml-3">
-                      <h3 className="text-sm font-medium text-amber-800">Demo Mode Active</h3>
-                      <div className="mt-1 text-sm text-amber-700">
+                      <h3 className="text-sm font-medium text-amber-800 dark:text-amber-300">Demo Mode Active</h3>
+                      <div className="mt-1 text-sm text-amber-700 dark:text-amber-400">
                         The application is running in demo mode. Click "Configure Azure AD" below to set up your own credentials.
                       </div>
                     </div>
@@ -485,14 +487,14 @@ const Login = () => {
               )}
               
               {!isConfigured && !demoMode && (
-                <div className="mb-6 p-4 border border-blue-200 rounded-lg bg-blue-50">
+                <div className="mb-6 p-4 border border-blue-200 dark:border-blue-700 rounded-lg bg-blue-50 dark:bg-blue-900/20">
                   <div className="flex items-start">
                     <div className="flex-shrink-0">
                       <InformationCircleIcon className="h-5 w-5 text-blue-400" />
                     </div>
                     <div className="ml-3">
-                      <h3 className="text-sm font-medium text-blue-800">Azure AD Not Configured</h3>
-                      <div className="mt-1 text-sm text-blue-700">
+                      <h3 className="text-sm font-medium text-blue-800 dark:text-blue-300">Azure AD Not Configured</h3>
+                      <div className="mt-1 text-sm text-blue-700 dark:text-blue-400">
                         Configure your Azure AD credentials to enable Microsoft authentication, or try Demo Mode to explore the application.
                       </div>
                     </div>
@@ -501,7 +503,7 @@ const Login = () => {
               )}
               
               {error && (
-                <div className="mb-6 p-4 border border-red-200 rounded-lg bg-red-50">
+                <div className="mb-6 p-4 border border-red-200 dark:border-red-700 rounded-lg bg-red-50 dark:bg-red-900/20">
                   <div className="flex items-start">
                     <div className="flex-shrink-0">
                       <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -509,8 +511,8 @@ const Login = () => {
                       </svg>
                     </div>
                     <div className="ml-3">
-                      <h3 className="text-sm font-medium text-red-800">Sign in error</h3>
-                      <div className="mt-1 text-sm text-red-700">{error}</div>
+                      <h3 className="text-sm font-medium text-red-800 dark:text-red-300">Sign in error</h3>
+                      <div className="mt-1 text-sm text-red-700 dark:text-red-400">{error}</div>
                     </div>
                   </div>
                 </div>
@@ -518,11 +520,11 @@ const Login = () => {
               
               <div className="space-y-6">
                 {/* Azure AD Configuration - Always Visible */}
-                <div className="space-y-4 border-2 border-primary-200 rounded-lg p-5 bg-gradient-to-br from-white to-primary-50">
+                <div className="space-y-4 border-2 border-primary-200 dark:border-primary-700 rounded-lg p-5 bg-gradient-to-br from-white to-primary-50 dark:from-gray-800 dark:to-gray-800">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-base font-bold text-gray-900">Azure AD Credentials</h3>
+                    <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Azure AD Credentials</h3>
                     {isConfigured && (
-                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded flex items-center">
+                      <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded flex items-center">
                         <CheckCircleIcon className="h-3 w-3 mr-1" />
                         Configured
                       </span>
@@ -530,7 +532,7 @@ const Login = () => {
                   </div>
                   
                   <div>
-                    <label htmlFor="tenantId" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="tenantId" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Tenant ID <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -539,13 +541,13 @@ const Login = () => {
                       name="tenantId"
                       value={config.tenantId}
                       onChange={handleConfigChange}
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="clientId" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="clientId" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Application (Client) ID <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -554,14 +556,14 @@ const Login = () => {
                       name="clientId"
                       value={config.clientId}
                       onChange={handleConfigChange}
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="clientSecret" className="block text-sm font-medium text-gray-700 mb-1">
-                      Client Secret <span className="text-gray-500 text-xs">(Optional - required for App-Only mode)</span>
+                    <label htmlFor="clientSecret" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Client Secret <span className="text-gray-500 dark:text-gray-400 text-xs">(Optional - required for App-Only mode)</span>
                     </label>
                     <input
                       type="password"
@@ -569,10 +571,10 @@ const Login = () => {
                       name="clientSecret"
                       value={config.clientSecret}
                       onChange={handleConfigChange}
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       placeholder="Enter client secret (optional)"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       💡 Provide secret for automated/background authentication, leave blank for interactive login
                     </p>
                   </div>
@@ -580,7 +582,7 @@ const Login = () => {
                   <button
                     onClick={handleSaveConfigAndLogin}
                     disabled={isSaving || !config.clientId || !config.tenantId}
-                    className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-md text-sm font-semibold text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.01]"
+                    className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-md text-sm font-semibold text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 dark:from-primary-700 dark:to-primary-800 dark:hover:from-primary-800 dark:hover:to-primary-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.01]"
                   >
                     {isSaving ? (
                       <>
@@ -595,15 +597,15 @@ const Login = () => {
                     )}
                   </button>
                   
-                  <p className="text-xs text-gray-600 text-center">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
                     💡 Find these in Azure Portal → App Registrations → Your Application
                   </p>
                 </div>
                 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-3">
                   <div className="flex items-start">
-                    <InformationCircleIcon className="h-4 w-4 text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
-                    <div className="text-xs text-blue-700">
+                    <InformationCircleIcon className="h-4 w-4 text-blue-500 dark:text-blue-400 mt-0.5 mr-2 flex-shrink-0" />
+                    <div className="text-xs text-blue-700 dark:text-blue-300">
                       <strong>Interactive Sign-In:</strong> Uses multi-tenant app credentials from Vercel backend environment (AZURE_CLIENT_ID, AZURE_TENANT_ID)
                     </div>
                   </div>
@@ -611,10 +613,10 @@ const Login = () => {
                 
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-300"></div>
+                    <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">Or choose authentication mode</span>
+                    <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">Or choose authentication mode</span>
                   </div>
                 </div>
                 
@@ -624,41 +626,41 @@ const Login = () => {
                   <button
                     onClick={handleInteractiveLogin}
                     disabled={isLoggingIn || loading || !isConfigured}
-                    className="flex flex-col items-center justify-center p-4 border-2 border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-white"
+                    className="flex flex-col items-center justify-center p-4 border-2 border-blue-200 dark:border-blue-700 rounded-lg hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-gray-800"
                     title="OAuth2 Interactive Sign-In - Sign in with your Microsoft account"
                   >
-                    <MicrosoftIcon className="h-8 w-8 text-blue-600 mb-2" />
-                    <span className="text-xs font-semibold text-gray-700">OAuth2</span>
-                    <span className="text-xs text-gray-500 mt-1 text-center">Interactive</span>
+                    <MicrosoftIcon className="h-8 w-8 text-blue-600 dark:text-blue-400 mb-2" />
+                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">OAuth2</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">Interactive</span>
                   </button>
 
                   {/* App-Only Authentication */}
                   <button
                     onClick={handleAppOnlyLogin}
                     disabled={isLoggingIn || loading || !isConfigured || !config.clientSecret}
-                    className="flex flex-col items-center justify-center p-4 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-white"
+                    className="flex flex-col items-center justify-center p-4 border-2 border-purple-200 dark:border-purple-700 rounded-lg hover:border-purple-400 dark:hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-gray-800"
                     title="App-Only Authentication (requires client secret)"
                   >
-                    <ShieldCheckIcon className="h-8 w-8 text-purple-600 mb-2" />
-                    <span className="text-xs font-semibold text-gray-700">App-Only</span>
-                    <span className="text-xs text-gray-500 mt-1 text-center">Automated</span>
+                    <ShieldCheckIcon className="h-8 w-8 text-purple-600 dark:text-purple-400 mb-2" />
+                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">App-Only</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">Automated</span>
                   </button>
 
                   {/* Demo Mode */}
                   <button
                     onClick={handleDemoLogin}
-                    className="flex flex-col items-center justify-center p-4 border-2 border-amber-200 rounded-lg hover:border-amber-400 hover:bg-amber-50 transition-all bg-white"
+                    className="flex flex-col items-center justify-center p-4 border-2 border-amber-200 dark:border-amber-700 rounded-lg hover:border-amber-400 dark:hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-all bg-white dark:bg-gray-800"
                     title="Demo Mode - No credentials required"
                   >
-                    <SparklesIcon className="h-8 w-8 text-amber-600 mb-2" />
-                    <span className="text-xs font-semibold text-gray-700">Demo</span>
-                    <span className="text-xs text-gray-500 mt-1 text-center">Try it out</span>
+                    <SparklesIcon className="h-8 w-8 text-amber-600 dark:text-amber-400 mb-2" />
+                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Demo</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">Try it out</span>
                   </button>
                 </div>
                 
                 {/* Info about selected mode */}
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                  <div className="text-xs text-gray-600 space-y-1">
+                <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                  <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                     <p><strong>OAuth2:</strong> Sign in with your Microsoft account (delegated permissions)</p>
                     <p><strong>App-Only:</strong> Uses client secret for automated operations (requires secret above)</p>
                     <p><strong>Demo:</strong> Explore the app with mock data (no credentials needed)</p>
@@ -666,45 +668,45 @@ const Login = () => {
                 </div>
 
                 
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Required Permissions</h3>
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Required Permissions</h3>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="flex items-center">
-                      <CheckCircleIcon className="h-3 w-3 text-green-500 mr-1" />
-                      <span className="text-gray-600">User Management</span>
+                      <CheckCircleIcon className="h-3 w-3 text-green-500 dark:text-green-400 mr-1" />
+                      <span className="text-gray-600 dark:text-gray-400">User Management</span>
                     </div>
                     <div className="flex items-center">
-                      <CheckCircleIcon className="h-3 w-3 text-green-500 mr-1" />
-                      <span className="text-gray-600">Group Management</span>
+                      <CheckCircleIcon className="h-3 w-3 text-green-500 dark:text-green-400 mr-1" />
+                      <span className="text-gray-600 dark:text-gray-400">Group Management</span>
                     </div>
                     <div className="flex items-center">
-                      <CheckCircleIcon className="h-3 w-3 text-green-500 mr-1" />
-                      <span className="text-gray-600">Device Management</span>
+                      <CheckCircleIcon className="h-3 w-3 text-green-500 dark:text-green-400 mr-1" />
+                      <span className="text-gray-600 dark:text-gray-400">Device Management</span>
                     </div>
                     <div className="flex items-center">
-                      <CheckCircleIcon className="h-3 w-3 text-green-500 mr-1" />
-                      <span className="text-gray-600">Mailbox Settings</span>
+                      <CheckCircleIcon className="h-3 w-3 text-green-500 dark:text-green-400 mr-1" />
+                      <span className="text-gray-600 dark:text-gray-400">Mailbox Settings</span>
                     </div>
                     <div className="flex items-center">
-                      <CheckCircleIcon className="h-3 w-3 text-green-500 mr-1" />
-                      <span className="text-gray-600">SharePoint Access</span>
+                      <CheckCircleIcon className="h-3 w-3 text-green-500 dark:text-green-400 mr-1" />
+                      <span className="text-gray-600 dark:text-gray-400">SharePoint Access</span>
                     </div>
                     <div className="flex items-center">
-                      <CheckCircleIcon className="h-3 w-3 text-green-500 mr-1" />
-                      <span className="text-gray-600">Teams Management</span>
+                      <CheckCircleIcon className="h-3 w-3 text-green-500 dark:text-green-400 mr-1" />
+                      <span className="text-gray-600 dark:text-gray-400">Teams Management</span>
                     </div>
                   </div>
                 </div>
                 
                 {demoMode ? (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-4">
                     <div className="flex items-start">
                       <div className="flex-shrink-0">
                         <InformationCircleIcon className="h-5 w-5 text-amber-400" />
                       </div>
                       <div className="ml-3">
-                        <h3 className="text-sm font-medium text-amber-800">Setup Instructions</h3>
-                        <div className="mt-1 text-sm text-amber-700">
+                        <h3 className="text-sm font-medium text-amber-800 dark:text-amber-300">Setup Instructions</h3>
+                        <div className="mt-1 text-sm text-amber-700 dark:text-amber-400">
                           <p className="mb-2">To enable full authentication:</p>
                           <ol className="list-decimal list-inside space-y-1">
                             <li>Create an Azure AD app registration</li>
@@ -716,7 +718,7 @@ const Login = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
                     <div className="flex items-start">
                       <div className="flex-shrink-0">
                         <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
@@ -724,8 +726,8 @@ const Login = () => {
                         </svg>
                       </div>
                       <div className="ml-3">
-                        <h3 className="text-sm font-medium text-blue-800">First time sign in?</h3>
-                        <div className="mt-1 text-sm text-blue-700">
+                        <h3 className="text-sm font-medium text-blue-800 dark:text-blue-300">First time sign in?</h3>
+                        <div className="mt-1 text-sm text-blue-700 dark:text-blue-400">
                           You may need to consent to required permissions. An administrator may need to approve these permissions for your organization.
                         </div>
                       </div>
@@ -735,12 +737,12 @@ const Login = () => {
               </div>
             </div>
             
-            <div className="text-center mt-6 text-xs text-gray-500">
+            <div className="text-center mt-6 text-xs text-gray-500 dark:text-gray-400">
               <p>© 2025 Employee Life Cycle Portal</p>
               <p className="mt-1">Powered by Microsoft Graph API</p>
               <p className="mt-1">Built by Kameron McCain</p>
               <p className="mt-2">
-                <a href="/faq" className="text-blue-600 hover:text-blue-700 font-medium">
+                <a href="/faq" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
                   View FAQ & Documentation
                 </a>
               </p>

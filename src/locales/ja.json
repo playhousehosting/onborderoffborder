@@ -20,6 +20,7 @@
     "lightMode": "ライトモード"
   },
   "nav": {
+    "appTitle": "従業員ライフサイクルポータル",
     "dashboard": "ダッシュボード",
     "userSearch": "ユーザー検索",
     "onboarding": "オンボーディング",
@@ -28,6 +29,63 @@
     "deviceManagement": "デバイス管理",
     "faq": "よくある質問",
     "settings": "設定"
+  },
+  "dashboard": {
+    "welcomeBack": "お帰りなさい！",
+    "totalUsers": "ユーザー総数",
+    "activeUsers": "アクティブユーザー",
+    "activeDevices": "アクティブデバイス",
+    "quickActions": "クイックアクション",
+    "recentActivity": "最近のアクティビティ",
+    "noRecentActivity": "表示する最近のアクティビティはありません"
+  },
+  "users": {
+    "searchUsers": "ユーザーを検索",
+    "displayName": "表示名",
+    "email": "メール",
+    "department": "部門",
+    "jobTitle": "役職",
+    "status": "ステータス",
+    "actions": "アクション"
+  },
+  "onboarding": {
+    "title": "従業員のオンボーディング",
+    "startOnboarding": "オンボーディングを開始",
+    "selectUser": "ユーザーを選択",
+    "basicInfo": "基本情報",
+    "assignGroups": "グループを割り当て",
+    "provisionEmail": "メールをプロビジョニング",
+    "assignDevices": "デバイスを割り当て",
+    "review": "確認",
+    "complete": "完了"
+  },
+  "offboarding": {
+    "title": "従業員のオフボーディング",
+    "startOffboarding": "オフボーディングを開始",
+    "selectUser": "ユーザーを選択",
+    "revokeAccess": "アクセスを取り消し",
+    "backupData": "データをバックアップ",
+    "reassignAssets": "資産を再割り当て",
+    "review": "確認",
+    "complete": "完了"
+  },
+  "devices": {
+    "title": "デバイス管理",
+    "deviceName": "デバイス名",
+    "deviceType": "デバイスタイプ",
+    "owner": "所有者",
+    "compliance": "コンプライアンス",
+    "lastSync": "最終同期",
+    "actions": "アクション"
+  },
+  "settings": {
+    "title": "設定",
+    "general": "一般",
+    "notifications": "通知",
+    "security": "セキュリティ",
+    "preferences": "環境設定",
+    "saveSettings": "設定を保存",
+    "resetToDefaults": "デフォルトにリセット"
   },
   "faq": {
     "title": "よくある質問",
@@ -48,10 +106,18 @@
     "sessionExpired": "セッションが期限切れです",
     "pleaseSignInAgain": "続行するには再度サインインしてください"
   },
-  "dashboard": {
-    "welcome": "ようこそ",
-    "quickActions": "クイックアクション",
-    "recentActivity": "最近のアクティビティ",
-    "statistics": "統計"
+  "errors": {
+    "generic": "エラーが発生しました",
+    "notFound": "見つかりません",
+    "unauthorized": "認証されていません",
+    "serverError": "サーバーエラー",
+    "networkError": "ネットワークエラー"
+  },
+  "notifications": {
+    "success": "成功",
+    "error": "エラー",
+    "warning": "警告",
+    "info": "情報",
+    "confirmAction": "この操作を実行してもよろしいですか？"
   }
 }

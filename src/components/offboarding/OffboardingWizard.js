@@ -465,7 +465,7 @@ const OffboardingWizard = () => {
       case 'user-selection':
         return (
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Select User to Offboard</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Select User to Offboard</h3>
             
             {selectedUser ? (
               <div className="card">
@@ -473,13 +473,13 @@ const OffboardingWizard = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-12 w-12">
-                        <div className="h-12 w-12 rounded-full bg-primary-100 flex items-center justify-center">
-                          <UserIcon className="h-8 w-8 text-primary-600" />
+                        <div className="h-12 w-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                          <UserIcon className="h-8 w-8 text-primary-600 dark:text-primary-400" />
                         </div>
                       </div>
                       <div className="ml-4">
-                        <h4 className="text-lg font-medium text-gray-900">{selectedUser.displayName}</h4>
-                        <p className="text-sm text-gray-500">{selectedUser.mail || selectedUser.userPrincipalName}</p>
+                        <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100">{selectedUser.displayName}</h4>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{selectedUser.mail || selectedUser.userPrincipalName}</p>
                       </div>
                     </div>
                     <button
@@ -546,21 +546,21 @@ const OffboardingWizard = () => {
       case 'options':
         return (
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Configure Offboarding Options</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Configure Offboarding Options</h3>
             
             {/* Templates Section */}
             <div className="mb-6">
-              <h4 className="text-md font-medium text-gray-900 mb-3">Quick Templates</h4>
+              <h4 className="text-md font-medium text-gray-900 dark:text-gray-100 mb-3">Quick Templates</h4>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {offboardingTemplates.map((template) => (
                   <button
                     key={template.id}
                     onClick={() => applyTemplate(template.id)}
-                    className="text-left p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-primary-300 transition-colors"
+                    className="text-left p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-primary-300 dark:hover:border-primary-600 transition-colors"
                   >
                     <div className="flex items-start">
                       <div className="flex-shrink-0">
-                        <template.icon className="h-6 w-6 text-primary-500" />
+                        <template.icon className="h-6 w-6 text-primary-500 dark:text-primary-400" />
                       </div>
                       <div className="ml-3">
                         <h5 className="text-sm font-medium text-gray-900">{template.name}</h5>
@@ -816,16 +816,16 @@ const OffboardingWizard = () => {
       case 'confirmation':
         return (
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Offboarding Details</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Confirm Offboarding Details</h3>
             
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-4 mb-6">
               <div className="flex">
                 <ExclamationTriangleIcon className="h-5 w-5 text-yellow-400" />
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-yellow-800">
+                  <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
                     Warning: This action cannot be undone
                   </h3>
-                  <div className="mt-2 text-sm text-yellow-700">
+                  <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-400">
                     You are about to offboard {selectedUser.displayName}. This will permanently change their account settings and access.
                   </div>
                 </div>
@@ -834,18 +834,18 @@ const OffboardingWizard = () => {
             
             <div className="card mb-6">
               <div className="card-header">
-                <h4 className="text-md font-medium text-gray-900">User Information</h4>
+                <h4 className="text-md font-medium text-gray-900 dark:text-gray-100">User Information</h4>
               </div>
               <div className="card-body">
                 <div className="flex items-center">
                   <div className="flex-shrink-0 h-12 w-12">
-                    <div className="h-12 w-12 rounded-full bg-primary-100 flex items-center justify-center">
-                      <UserIcon className="h-8 w-8 text-primary-600" />
+                    <div className="h-12 w-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                      <UserIcon className="h-8 w-8 text-primary-600 dark:text-primary-400" />
                     </div>
                   </div>
                   <div className="ml-4">
-                    <p className="text-lg font-medium text-gray-900">{selectedUser.displayName}</p>
-                    <p className="text-sm text-gray-500">{selectedUser.mail || selectedUser.userPrincipalName}</p>
+                    <p className="text-lg font-medium text-gray-900 dark:text-gray-100">{selectedUser.displayName}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{selectedUser.mail || selectedUser.userPrincipalName}</p>
                   </div>
                 </div>
               </div>
@@ -853,7 +853,7 @@ const OffboardingWizard = () => {
             
             <div className="card">
               <div className="card-header">
-                <h4 className="text-md font-medium text-gray-900">Selected Actions</h4>
+                <h4 className="text-md font-medium text-gray-900 dark:text-gray-100">Selected Actions</h4>
               </div>
               <div className="card-body">
                 <div className="space-y-2">
@@ -958,7 +958,7 @@ const OffboardingWizard = () => {
       case 'results':
         return (
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Offboarding Results</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Offboarding Results</h3>
             
             <div className="card">
               <div className="card-body">
@@ -968,8 +968,8 @@ const OffboardingWizard = () => {
                       key={index}
                       className={`p-4 rounded-lg border ${
                         result.status === 'success'
-                          ? 'bg-success-50 border-success-200'
-                          : 'bg-danger-50 border-danger-200'
+                          ? 'bg-success-50 dark:bg-success-900/20 border-success-200 dark:border-success-800'
+                          : 'bg-danger-50 dark:bg-danger-900/20 border-danger-200 dark:border-danger-800'
                       }`}
                     >
                       <div className="flex items-start">
@@ -1020,8 +1020,8 @@ const OffboardingWizard = () => {
   return (
     <div className="animate-in">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Employee Offboarding</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Employee Offboarding</h1>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
           Guide users through the offboarding process with customizable options
         </p>
       </div>
@@ -1043,7 +1043,7 @@ const OffboardingWizard = () => {
                       ? 'bg-success-600 border-success-600'
                       : currentStep === stepIdx
                       ? 'bg-primary-600 border-primary-600'
-                      : 'border-gray-300'
+                      : 'border-gray-300 dark:border-gray-600'
                   }`}
                   >
                     {currentStep > stepIdx ? (
@@ -1051,13 +1051,13 @@ const OffboardingWizard = () => {
                     ) : (
                       <step.icon
                         className={`w-6 h-6 ${
-                          currentStep === stepIdx ? 'text-primary-600' : 'text-gray-400'
+                          currentStep === stepIdx ? 'text-white' : 'text-gray-400 dark:text-gray-500'
                         }`}
                       />
                     )}
                   </div>
                   <span className={`ml-4 text-sm font-medium ${
-                    currentStep === stepIdx ? 'text-primary-600' : 'text-gray-500'
+                    currentStep === stepIdx ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400'
                   }`}>
                     {step.name}
                   </span>
@@ -1065,7 +1065,7 @@ const OffboardingWizard = () => {
                 {stepIdx !== steps.length - 1 && (
                   <div
                     className={`flex-1 h-0.5 mx-4 ${
-                      currentStep > stepIdx ? 'bg-success-600' : 'bg-gray-300'
+                      currentStep > stepIdx ? 'bg-success-600' : 'bg-gray-300 dark:bg-gray-600'
                     }`}
                   />
                 )}

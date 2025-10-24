@@ -20,6 +20,7 @@
     "lightMode": "Modo Claro"
   },
   "nav": {
+    "appTitle": "Portal do Ciclo de Vida do Funcionário",
     "dashboard": "Painel",
     "userSearch": "Pesquisa de Usuários",
     "onboarding": "Integração",
@@ -28,6 +29,63 @@
     "deviceManagement": "Gerenciamento de Dispositivos",
     "faq": "Perguntas Frequentes",
     "settings": "Configurações"
+  },
+  "dashboard": {
+    "welcomeBack": "Bem-vindo de volta!",
+    "totalUsers": "Total de Usuários",
+    "activeUsers": "Usuários Ativos",
+    "activeDevices": "Dispositivos Ativos",
+    "quickActions": "Ações Rápidas",
+    "recentActivity": "Atividade Recente",
+    "noRecentActivity": "Nenhuma atividade recente para exibir"
+  },
+  "users": {
+    "searchUsers": "Pesquisar Usuários",
+    "displayName": "Nome de Exibição",
+    "email": "E-mail",
+    "department": "Departamento",
+    "jobTitle": "Cargo",
+    "status": "Status",
+    "actions": "Ações"
+  },
+  "onboarding": {
+    "title": "Integração de Funcionário",
+    "startOnboarding": "Iniciar Integração",
+    "selectUser": "Selecionar Usuário",
+    "basicInfo": "Informações Básicas",
+    "assignGroups": "Atribuir Grupos",
+    "provisionEmail": "Provisionar E-mail",
+    "assignDevices": "Atribuir Dispositivos",
+    "review": "Revisar",
+    "complete": "Concluir"
+  },
+  "offboarding": {
+    "title": "Desligamento de Funcionário",
+    "startOffboarding": "Iniciar Desligamento",
+    "selectUser": "Selecionar Usuário",
+    "revokeAccess": "Revogar Acesso",
+    "backupData": "Fazer Backup de Dados",
+    "reassignAssets": "Reatribuir Recursos",
+    "review": "Revisar",
+    "complete": "Concluir"
+  },
+  "devices": {
+    "title": "Gerenciamento de Dispositivos",
+    "deviceName": "Nome do Dispositivo",
+    "deviceType": "Tipo de Dispositivo",
+    "owner": "Proprietário",
+    "compliance": "Conformidade",
+    "lastSync": "Última Sincronização",
+    "actions": "Ações"
+  },
+  "settings": {
+    "title": "Configurações",
+    "general": "Geral",
+    "notifications": "Notificações",
+    "security": "Segurança",
+    "preferences": "Preferências",
+    "saveSettings": "Salvar Configurações",
+    "resetToDefaults": "Restaurar Padrões"
   },
   "faq": {
     "title": "Perguntas Frequentes",
@@ -48,10 +106,18 @@
     "sessionExpired": "Sua sessão expirou",
     "pleaseSignInAgain": "Por favor, faça login novamente para continuar"
   },
-  "dashboard": {
-    "welcome": "Bem-vindo",
-    "quickActions": "Ações Rápidas",
-    "recentActivity": "Atividade Recente",
-    "statistics": "Estatísticas"
+  "errors": {
+    "generic": "Ocorreu um erro",
+    "notFound": "Não encontrado",
+    "unauthorized": "Não autorizado",
+    "serverError": "Erro do servidor",
+    "networkError": "Erro de rede"
+  },
+  "notifications": {
+    "success": "Sucesso",
+    "error": "Erro",
+    "warning": "Aviso",
+    "info": "Informação",
+    "confirmAction": "Tem certeza de que deseja executar esta ação?"
   }
 }
