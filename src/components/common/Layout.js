@@ -52,7 +52,7 @@ const Layout = ({ children }) => {
       permission: 'userManagement'
     },
     {
-      name: 'Lifecycle Workflows',
+      name: t('nav.workflows'),
       href: '/workflows',
       icon: ArrowPathIcon,
       current: location.pathname === '/workflows',

@@ -21,12 +21,13 @@
   },
   "nav": {
     "appTitle": "Portail du Cycle de Vie des Employés",
-    "dashboard": "Tableau de Bord",
-    "userSearch": "Recherche d'Utilisateurs",
+    "dashboard": "Tableau de bord",
+    "userSearch": "Recherche d'utilisateurs",
     "onboarding": "Intégration",
     "offboarding": "Départ",
     "scheduledOffboarding": "Départs Programmés",
-    "deviceManagement": "Gestion des Appareils",
+    "workflows": "Flux de Travail du Cycle de Vie",
+    "deviceManagement": "Gestion des appareils",
     "faq": "FAQ",
     "settings": "Paramètres"
   },
