@@ -226,6 +226,9 @@ function App() {
                   <Route path="/configure" element={<ConfigurationForm />} />
                   <Route path="/faq" element={<FAQ />} />
                   
+                  {/* Demo route - direct entry bypassing config checks */}
+                  <Route path="/demo" element={<Navigate to="/login" replace state={{ isDemoEntry: true }} />} />
+                  
                   {/* Default route - show login if configured, otherwise configure screen */}
                   <Route path="/" element={<Navigate to={shouldShowConfigScreen() ? "/configure" : "/login"} replace />} />
                   
