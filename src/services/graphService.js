@@ -700,7 +700,20 @@ export class GraphService {
   }
   
   async getUserGroups(userId) {
-    return this.makeRequest(`/users/${userId}/memberOf?$select=displayName,id,groupTypes`);
+    try {
+      const response = await this.makeRequest(`/users/${userId}/memberOf?$select=id,displayName,groupTypes`);
+      // Filter to only security groups (exclude Office 365 groups which are handled separately)
+      const groups = (response.value || []).filter(item => 
+        item['@odata.type'] && item['@odata.type'].includes('group')
+      );
+      return {
+        value: groups,
+        total: groups.length
+      };
+    } catch (error) {
+      console.error('Error fetching user groups:', error);
+      throw error;
+    }
   }
 
   async addUserToGroup(groupId, userId) {
@@ -749,18 +762,39 @@ export class GraphService {
   }
 
   async convertToSharedMailbox(userId) {
-    return this.makeRequest(`/users/${userId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        mailNickname: userId,
-        "recipientType": "SharedMailbox"
-      }),
-    });
+    // First, get the user's mailNickname
+    try {
+      const user = await this.makeRequest(`/users/${userId}?$select=id,mailNickname,mail`);
+      if (!user || !user.mailNickname) {
+        throw new Error('Unable to retrieve user mailNickname - user may not have an email address');
+      }
+      
+      // Convert to shared mailbox
+      return this.makeRequest(`/users/${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          mailNickname: user.mailNickname,
+          recipientType: "SharedMailbox"
+        }),
+      });
+    } catch (error) {
+      console.error('Error converting to shared mailbox:', error);
+      throw new Error(`Failed to convert mailbox: ${error.message}`);
+    }
   }
 
   // Teams Management Methods
   async getUserTeams(userId) {
-    return this.makeRequest(`/users/${userId}/joinedTeams?$select=displayName,id,description`);
+    try {
+      const response = await this.makeRequest(`/users/${userId}/joinedTeams?$select=id,displayName,description`);
+      return {
+        value: response.value || [],
+        total: (response.value || []).length
+      };
+    } catch (error) {
+      console.error('Error fetching user teams:', error);
+      throw error;
+    }
   }
 
   async removeUserFromTeam(teamId, userId) {
@@ -877,6 +911,36 @@ export class GraphService {
         removeLicenses: [skuId],
       }),
     });
+  }
+
+  async removeAllLicenses(userId) {
+    try {
+      const licenses = await this.getUserLicenses(userId);
+      const licenseData = (licenses.value || []);
+      
+      if (licenseData.length === 0) {
+        return { success: true, removedCount: 0 };
+      }
+
+      let removedCount = 0;
+      const skuIds = licenseData.map(license => license.skuId);
+
+      if (skuIds.length > 0) {
+        await this.makeRequest(`/users/${userId}/assignLicense`, {
+          method: 'POST',
+          body: JSON.stringify({
+            addLicenses: [],
+            removeLicenses: skuIds,
+          }),
+        });
+        removedCount = skuIds.length;
+      }
+
+      return { success: true, removedCount };
+    } catch (error) {
+      console.error('Error removing all licenses:', error);
+      throw new Error(`Failed to remove licenses: ${error.message}`);
+    }
   }
 
   // Audit and Reporting

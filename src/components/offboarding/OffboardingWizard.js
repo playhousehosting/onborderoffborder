@@ -18,6 +18,31 @@ import {
   ClockIcon,
 } from '@heroicons/react/24/outline';
 
+// Generate random password (12 characters)
+const generateRandomPassword = () => {
+  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+  const numbers = '0123456789';
+  const symbols = '!@#$%^&*-_=+';
+  
+  const allChars = uppercase + lowercase + numbers + symbols;
+  let password = '';
+  
+  // Ensure at least one of each type
+  password += uppercase[Math.floor(Math.random() * uppercase.length)];
+  password += lowercase[Math.floor(Math.random() * lowercase.length)];
+  password += numbers[Math.floor(Math.random() * numbers.length)];
+  password += symbols[Math.floor(Math.random() * symbols.length)];
+  
+  // Fill the rest randomly
+  for (let i = password.length; i < 12; i++) {
+    password += allChars[Math.floor(Math.random() * allChars.length)];
+  }
+  
+  // Shuffle the password
+  return password.split('').sort(() => Math.random() - 0.5).join('');
+};
+
 const OffboardingWizard = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
@@ -33,6 +58,8 @@ const OffboardingWizard = () => {
   // Offboarding options
   const [offboardingOptions, setOffboardingOptions] = useState({
     disableAccount: true,
+    resetPassword: true,
+    revokeLicenses: true,
     convertMailbox: false,
     setEmailForwarding: false,
     forwardingAddress: '',
@@ -46,7 +73,6 @@ const OffboardingWizard = () => {
     wipeDevices: true,
     retireDevices: false,
     removeApps: true,
-    revokeLicenses: false,
   });
 
   // Offboarding templates
@@ -58,6 +84,8 @@ const OffboardingWizard = () => {
       icon: UserMinusIcon,
       options: {
         disableAccount: true,
+        resetPassword: true,
+        revokeLicenses: true,
         convertMailbox: false,
         setEmailForwarding: false,
         forwardingAddress: '',
@@ -71,7 +99,6 @@ const OffboardingWizard = () => {
         wipeDevices: false,
         retireDevices: true,
         removeApps: true,
-        revokeLicenses: true,
       }
     },
     {
@@ -81,6 +108,8 @@ const OffboardingWizard = () => {
       icon: ShieldCheckIcon,
       options: {
         disableAccount: true,
+        resetPassword: true,
+        revokeLicenses: true,
         convertMailbox: true,
         setEmailForwarding: true,
         forwardingAddress: '',
@@ -94,7 +123,6 @@ const OffboardingWizard = () => {
         wipeDevices: false,
         retireDevices: true,
         removeApps: false,
-        revokeLicenses: false,
       }
     },
     {
@@ -104,6 +132,8 @@ const OffboardingWizard = () => {
       icon: ClockIcon,
       options: {
         disableAccount: true,
+        resetPassword: true,
+        revokeLicenses: true,
         convertMailbox: false,
         setEmailForwarding: false,
         forwardingAddress: '',
@@ -117,7 +147,6 @@ const OffboardingWizard = () => {
         wipeDevices: true,
         retireDevices: false,
         removeApps: true,
-        revokeLicenses: true,
       }
     },
     {
@@ -275,7 +304,44 @@ const OffboardingWizard = () => {
         }
       }
 
-      // 2. Convert mailbox
+      // 2. Reset password
+      if (offboardingOptions.resetPassword) {
+        try {
+          const newPassword = generateRandomPassword();
+          await graphService.setUserPassword(selectedUser.id, newPassword, false);
+          results.push({
+            action: 'Reset Password',
+            status: 'success',
+            message: `Password has been reset to a random 12-character password. Store securely if needed.`,
+          });
+        } catch (error) {
+          results.push({
+            action: 'Reset Password',
+            status: 'error',
+            message: error.message,
+          });
+        }
+      }
+
+      // 3. Revoke licenses
+      if (offboardingOptions.revokeLicenses) {
+        try {
+          const licenseResult = await graphService.removeAllLicenses(selectedUser.id);
+          results.push({
+            action: 'Revoke Licenses',
+            status: 'success',
+            message: `Removed ${licenseResult.removedCount} license(s)`,
+          });
+        } catch (error) {
+          results.push({
+            action: 'Revoke Licenses',
+            status: 'error',
+            message: error.message,
+          });
+        }
+      }
+
+      // 4. Convert mailbox
       if (offboardingOptions.convertMailbox) {
         try {
           await graphService.convertToSharedMailbox(selectedUser.id);
@@ -293,7 +359,7 @@ const OffboardingWizard = () => {
         }
       }
 
-      // 3. Set email forwarding
+      // 5. Set email forwarding
       if (offboardingOptions.setEmailForwarding) {
         try {
           await graphService.setMailForwarding(
@@ -315,7 +381,7 @@ const OffboardingWizard = () => {
         }
       }
 
-      // 4. Set auto-reply
+      // 6. Set auto-reply
       if (offboardingOptions.setAutoReply) {
         try {
           await graphService.setAutoReply(
@@ -339,7 +405,7 @@ const OffboardingWizard = () => {
         }
       }
 
-      // 5. Backup data
+      // 7. Backup data
       if (offboardingOptions.backupData) {
         try {
           const backupResult = await graphService.backupUserData(selectedUser.id);
@@ -358,93 +424,139 @@ const OffboardingWizard = () => {
         }
       }
 
-      // 6. Remove from groups
+      // 8. Remove from groups
       if (offboardingOptions.removeFromGroups) {
         try {
-          const groups = await graphService.getUserGroups(selectedUser.id);
+          const groupsData = await graphService.getUserGroups(selectedUser.id);
+          const groups = groupsData.value || [];
           let removedCount = 0;
+          let failedCount = 0;
           
-          for (const group of groups.value || []) {
-            try {
-              await graphService.removeUserFromGroup(group.id, selectedUser.id);
-              removedCount++;
-            } catch (error) {
-              console.warn(`Failed to remove from group ${group.displayName}:`, error);
+          if (groups.length === 0) {
+            results.push({
+              action: 'Remove from Groups',
+              status: 'success',
+              message: 'User is not a member of any groups',
+            });
+          } else {
+            for (const group of groups) {
+              try {
+                await graphService.removeUserFromGroup(group.id, selectedUser.id);
+                removedCount++;
+              } catch (error) {
+                failedCount++;
+                console.warn(`Failed to remove from group ${group.displayName}:`, error);
+              }
             }
+            
+            const message = failedCount > 0 
+              ? `Removed from ${removedCount} groups (${failedCount} failed)`
+              : `Removed from ${removedCount} groups`;
+            
+            results.push({
+              action: 'Remove from Groups',
+              status: failedCount === groups.length ? 'error' : 'success',
+              message: message,
+            });
           }
-          
-          results.push({
-            action: 'Remove from Groups',
-            status: 'success',
-            message: `Removed from ${removedCount} groups`,
-          });
         } catch (error) {
           results.push({
             action: 'Remove from Groups',
             status: 'error',
-            message: error.message,
+            message: `Failed to retrieve groups: ${error.message}`,
           });
         }
       }
 
-      // 7. Remove from Teams
+      // 9. Remove from Teams
       if (offboardingOptions.removeFromTeams) {
         try {
-          const teams = await graphService.getUserTeams(selectedUser.id);
+          const teamsData = await graphService.getUserTeams(selectedUser.id);
+          const teams = teamsData.value || [];
           let removedCount = 0;
+          let failedCount = 0;
           
-          for (const team of teams.value || []) {
-            try {
-              await graphService.removeUserFromTeam(team.id, selectedUser.id);
-              removedCount++;
-            } catch (error) {
-              console.warn(`Failed to remove from team ${team.displayName}:`, error);
+          if (teams.length === 0) {
+            results.push({
+              action: 'Remove from Teams',
+              status: 'success',
+              message: 'User is not a member of any teams',
+            });
+          } else {
+            for (const team of teams) {
+              try {
+                await graphService.removeUserFromTeam(team.id, selectedUser.id);
+                removedCount++;
+              } catch (error) {
+                failedCount++;
+                console.warn(`Failed to remove from team ${team.displayName}:`, error);
+              }
             }
+            
+            const message = failedCount > 0 
+              ? `Removed from ${removedCount} teams (${failedCount} failed)`
+              : `Removed from ${removedCount} teams`;
+            
+            results.push({
+              action: 'Remove from Teams',
+              status: failedCount === teams.length ? 'error' : 'success',
+              message: message,
+            });
           }
-          
-          results.push({
-            action: 'Remove from Teams',
-            status: 'success',
-            message: `Removed from ${removedCount} teams`,
-          });
         } catch (error) {
           results.push({
             action: 'Remove from Teams',
             status: 'error',
-            message: error.message,
+            message: `Failed to retrieve teams: ${error.message}`,
           });
         }
       }
 
-      // 8. Handle devices
+      // 10. Handle devices
       if (hasPermission('deviceManagement') && (offboardingOptions.wipeDevices || offboardingOptions.retireDevices)) {
         try {
-          const devices = await graphService.getUserDevices(selectedUser.userPrincipalName);
+          const devicesData = await graphService.getUserDevices(selectedUser.userPrincipalName);
+          const devices = devicesData.value || [];
           let processedDevices = 0;
+          let failedDevices = 0;
           
-          for (const device of devices.value || []) {
-            try {
-              if (offboardingOptions.wipeDevices) {
-                await graphService.wipeDevice(device.id, false, false);
-              } else if (offboardingOptions.retireDevices) {
-                await graphService.retireDevice(device.id);
+          if (devices.length === 0) {
+            results.push({
+              action: 'Device Management',
+              status: 'success',
+              message: 'User has no enrolled devices',
+            });
+          } else {
+            for (const device of devices) {
+              try {
+                if (offboardingOptions.wipeDevices) {
+                  await graphService.wipeDevice(device.id, false, false);
+                } else if (offboardingOptions.retireDevices) {
+                  await graphService.retireDevice(device.id);
+                }
+                processedDevices++;
+              } catch (error) {
+                failedDevices++;
+                console.warn(`Failed to process device ${device.deviceName}:`, error);
               }
-              processedDevices++;
-            } catch (error) {
-              console.warn(`Failed to process device ${device.deviceName}:`, error);
             }
+            
+            const action = offboardingOptions.wipeDevices ? 'Wiped' : 'Retired';
+            const message = failedDevices > 0
+              ? `${action} ${processedDevices} devices (${failedDevices} failed)`
+              : `${action} ${processedDevices} devices`;
+            
+            results.push({
+              action: 'Device Management',
+              status: failedDevices === devices.length ? 'error' : 'success',
+              message: message,
+            });
           }
-          
-          results.push({
-            action: 'Device Management',
-            status: 'success',
-            message: `${offboardingOptions.wipeDevices ? 'Wiped' : 'Retired'} ${processedDevices} devices`,
-          });
         } catch (error) {
           results.push({
             action: 'Device Management',
             status: 'error',
-            message: error.message,
+            message: `Failed to retrieve devices: ${error.message}`,
           });
         }
       }
@@ -956,13 +1068,47 @@ const OffboardingWizard = () => {
         );
 
       case 'results':
+        const successCount = executionResults.filter(r => r.status === 'success').length;
+        const errorCount = executionResults.filter(r => r.status === 'error').length;
+        const allSuccessful = errorCount === 0;
+        
         return (
           <div>
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Offboarding Results</h3>
             
+            {/* Summary Card */}
+            <div className={`card mb-6 border-l-4 ${
+              allSuccessful 
+                ? 'border-l-success-500 bg-success-50 dark:bg-success-900/20' 
+                : 'border-l-warning-500 bg-warning-50 dark:bg-warning-900/20'
+            }`}>
+              <div className="card-body">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`text-sm font-medium ${
+                      allSuccessful 
+                        ? 'text-success-900 dark:text-success-200' 
+                        : 'text-warning-900 dark:text-warning-200'
+                    }`}>
+                      {allSuccessful ? '✓ Offboarding Completed Successfully' : '⚠ Offboarding Completed with Issues'}
+                    </p>
+                    <p className="text-xs mt-1 text-gray-600 dark:text-gray-400">
+                      {successCount} successful, {errorCount} errors
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{successCount}/{executionResults.length}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Tasks Completed</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Detailed Results */}
             <div className="card">
               <div className="card-body">
-                <div className="space-y-4">
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">Task Details</h4>
+                <div className="space-y-3">
                   {executionResults.map((result, index) => (
                     <div
                       key={index}
@@ -972,21 +1118,44 @@ const OffboardingWizard = () => {
                           : 'bg-danger-50 dark:bg-danger-900/20 border-danger-200 dark:border-danger-800'
                       }`}
                     >
-                      <div className="flex items-start">
-                        <div className="flex-shrink-0">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 mt-0.5">
                           {result.status === 'success' ? (
-                            <CheckCircleIcon className="h-5 w-5 text-success-400" />
+                            <div className="flex items-center justify-center w-5 h-5 bg-success-100 dark:bg-success-900/40 rounded-full">
+                              <CheckCircleIcon className="h-4 w-4 text-success-600 dark:text-success-400" />
+                            </div>
                           ) : (
-                            <ExclamationTriangleIcon className="h-5 w-5 text-danger-400" />
+                            <div className="flex items-center justify-center w-5 h-5 bg-danger-100 dark:bg-danger-900/40 rounded-full">
+                              <ExclamationTriangleIcon className="h-4 w-4 text-danger-600 dark:text-danger-400" />
+                            </div>
                           )}
                         </div>
-                        <div className="ml-3">
-                          <h4 className="text-sm font-medium text-gray-900">{result.action}</h4>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <h5 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{result.action}</h5>
+                            <span className={`text-xs font-medium px-2 py-1 rounded ${
+                              result.status === 'success'
+                                ? 'bg-success-100 text-success-800 dark:bg-success-900/40 dark:text-success-300'
+                                : 'bg-danger-100 text-danger-800 dark:bg-danger-900/40 dark:text-danger-300'
+                            }`}>
+                              {result.status === 'success' ? 'Success' : 'Error'}
+                            </span>
+                          </div>
                           <p className={`mt-1 text-sm ${
-                            result.status === 'success' ? 'text-success-700' : 'text-danger-700'
+                            result.status === 'success' 
+                              ? 'text-success-700 dark:text-success-300' 
+                              : 'text-danger-700 dark:text-danger-300'
                           }`}>
                             {result.message}
                           </p>
+                          {result.details && (
+                            <details className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                              <summary className="cursor-pointer font-medium hover:text-gray-900 dark:hover:text-gray-300">Show details</summary>
+                              <pre className="mt-1 p-2 bg-gray-900/50 text-gray-100 rounded text-xs overflow-auto">
+                                {JSON.stringify(result.details, null, 2)}
+                              </pre>
+                            </details>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -995,10 +1164,10 @@ const OffboardingWizard = () => {
                 
                 <div className="mt-6 flex justify-end space-x-3">
                   <button
-                    onClick={() => navigate('/users')}
+                    onClick={() => window.location.reload()}
                     className="btn btn-secondary"
                   >
-                    Back to Users
+                    Start Another Offboarding
                   </button>
                   <button
                     onClick={() => navigate('/dashboard')}

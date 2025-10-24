@@ -60,50 +60,60 @@ const Dashboard = () => {
             }
           }
           
+          // Fetch real audit logs from Graph API
+          let auditActivity = [];
+          try {
+            // Get directory audit logs (user creation, password changes, etc.)
+            const auditLogs = await graphService.makeRequest('/auditLogs/directoryAudits?$top=50&$orderby=createdDateTime desc');
+            
+            if (auditLogs.value && auditLogs.value.length > 0) {
+              auditActivity = auditLogs.value.slice(0, 10).map((log, idx) => {
+                let type = 'device';
+                let action = log.result;
+                
+                // Determine activity type based on operation name
+                if (log.operationName) {
+                  if (log.operationName.includes('Create') || log.operationName.includes('User Add')) {
+                    type = 'onboarding';
+                    action = 'Account created';
+                  } else if (log.operationName.includes('Delete') || log.operationName.includes('Disable')) {
+                    type = 'offboarding';
+                    action = 'Account disabled';
+                  } else if (log.operationName.includes('Password')) {
+                    action = 'Password changed';
+                  } else if (log.operationName.includes('Update')) {
+                    action = 'Account updated';
+                  }
+                }
+                
+                return {
+                  id: idx + 1,
+                  type: type,
+                  user: log.targetResources?.[0]?.displayName || log.userPrincipalName || 'Unknown User',
+                  action: action,
+                  timestamp: new Date(log.createdDateTime),
+                  status: log.result === 'Success' ? 'completed' : 'failed',
+                };
+              });
+            }
+          } catch (auditError) {
+            console.warn('Could not fetch audit logs, using fallback:', auditError);
+          }
+          
+          // Calculate real onboarding/offboarding counts
+          const recentOnboarding = auditActivity.filter(a => a.type === 'onboarding' && a.status === 'completed').length;
+          const recentOffboarding = auditActivity.filter(a => a.type === 'offboarding' && a.status === 'completed').length;
+          
           setStats({
             totalUsers,
             activeUsers,
             disabledUsers,
             totalDevices,
-            recentOnboarding: Math.floor(Math.random() * 5), // Mock data for demo
-            recentOffboarding: Math.floor(Math.random() * 3), // Mock data for demo
+            recentOnboarding,
+            recentOffboarding,
           });
           
-          // Mock recent activity data for demo
-          setRecentActivity([
-            {
-              id: 1,
-              type: 'offboarding',
-              user: 'John Doe',
-              action: 'Account disabled',
-              timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-              status: 'completed',
-            },
-            {
-              id: 2,
-              type: 'onboarding',
-              user: 'Jane Smith',
-              action: 'Account created',
-              timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
-              status: 'completed',
-            },
-            {
-              id: 3,
-              type: 'device',
-              user: 'Bob Johnson',
-              action: 'Device wiped',
-              timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
-              status: 'completed',
-            },
-            {
-              id: 4,
-              type: 'offboarding',
-              user: 'Alice Brown',
-              action: 'Mailbox converted',
-              timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000),
-              status: 'in-progress',
-            },
-          ]);
+          setRecentActivity(auditActivity);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
