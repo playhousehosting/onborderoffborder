@@ -1,4 +1,4 @@
-import graphService from './graphService';
+import { graphService } from './graphService';
 
 /**
  * Lifecycle Workflows Service
