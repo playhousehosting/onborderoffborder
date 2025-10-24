@@ -18,6 +18,7 @@ import OffboardingWizard from './components/offboarding/OffboardingWizard';
 import TransferWizard from './components/transfer/TransferWizard';
 import UserDetail from './components/users/UserDetail';
 import DeviceManagement from './components/intune/DeviceManagement';
+import IntuneManagement from './components/intune/IntuneManagement';
 import ScheduledOffboarding from './components/offboarding/ScheduledOffboarding';
 import WorkflowManagement from './components/workflows/WorkflowManagement';
 import Settings from './components/settings/Settings';
@@ -319,6 +320,16 @@ function App() {
                     <ProtectedRoute>
                       <Layout>
                         <DeviceManagement />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/intune"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <IntuneManagement />
                       </Layout>
                     </ProtectedRoute>
                   }

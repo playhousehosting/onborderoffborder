@@ -60,9 +60,9 @@ const Layout = ({ children }) => {
     },
     {
       name: t('nav.deviceManagement'),
-      href: '/devices',
+      href: '/intune',
       icon: ComputerDesktopIcon,
-      current: location.pathname === '/devices',
+      current: location.pathname === '/intune',
       permission: 'deviceManagement'
     },
     { name: t('nav.faq'), href: '/faq', icon: QuestionMarkCircleIcon, current: location.pathname === '/faq' },

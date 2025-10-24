@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { graphService } from '../../services/graphService';
 import { useAuth } from '../../contexts/AuthContext';
+import UserDetailModal from './UserDetailModal';
 import toast from 'react-hot-toast';
 import {
   MagnifyingGlassIcon,
@@ -10,6 +11,8 @@ import {
   ComputerDesktopIcon,
   EnvelopeIcon,
   UserIcon,
+  EyeIcon,
+  FunnelIcon,
 } from '@heroicons/react/24/outline';
 
 const UserSearch = () => {
@@ -20,10 +23,16 @@ const UserSearch = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [filters, setFilters] = useState({
     accountEnabled: 'all',
     department: 'all',
+    jobTitle: 'all',
   });
+  const [availableDepartments, setAvailableDepartments] = useState([]);
+  const [availableJobTitles, setAvailableJobTitles] = useState([]);
+  const [showFilters, setShowFilters] = useState(false);
   const usersPerPage = 25;
 
   // Fetch all users once on mount
@@ -41,8 +50,15 @@ const UserSearch = () => {
       setLoading(true);
       console.log('📊 Fetching all users for search...');
       const response = await graphService.getAllUsers('', 999); // Fetch 999 per page
-      setAllUsers(response.value || []);
-      console.log(`✅ Loaded ${response.value?.length || 0} users`);
+      const fetchedUsers = response.value || [];
+      setAllUsers(fetchedUsers);
+      console.log(`✅ Loaded ${fetchedUsers.length} users`);
+
+      // Extract unique departments and job titles for filters
+      const departments = [...new Set(fetchedUsers.map(u => u.department).filter(Boolean))];
+      const jobTitles = [...new Set(fetchedUsers.map(u => u.jobTitle).filter(Boolean))];
+      setAvailableDepartments(departments.sort());
+      setAvailableJobTitles(jobTitles.sort());
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Failed to fetch users');
@@ -75,6 +91,11 @@ const UserSearch = () => {
       filtered = filtered.filter(user => user.department === filters.department);
     }
 
+    // Apply job title filter
+    if (filters.jobTitle !== 'all') {
+      filtered = filtered.filter(user => user.jobTitle === filters.jobTitle);
+    }
+
     setTotalUsers(filtered.length);
 
     // Paginate
@@ -94,7 +115,36 @@ const UserSearch = () => {
     setCurrentPage(1);
   };
 
+  const clearFilters = () => {
+    setFilters({
+      accountEnabled: 'all',
+      department: 'all',
+      jobTitle: 'all',
+    });
+    setSearchTerm('');
+    setCurrentPage(1);
+  };
+
+  const handleViewUserDetails = async (user) => {
+    setSelectedUser(user);
+    setShowDetailModal(true);
+  };
+
+  const handleUserUpdated = () => {
+    // Refresh user list
+    fetchAllUsers();
+  };
+
   const totalPages = Math.ceil(totalUsers / usersPerPage);
+
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (filters.accountEnabled !== 'all') count++;
+    if (filters.department !== 'all') count++;
+    if (filters.jobTitle !== 'all') count++;
+    if (searchTerm) count++;
+    return count;
+  };
 
   const getStatusBadge = (user) => {
     if (user.accountEnabled) {
@@ -142,16 +192,20 @@ const UserSearch = () => {
               </div>
               
               <div className="flex gap-2">
-                <select
-                  className="form-input"
-                  value={filters.accountEnabled}
-                  onChange={(e) => handleFilterChange('accountEnabled', e.target.value)}
+                <button
+                  type="button"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`btn ${showFilters ? 'btn-primary' : 'btn-secondary'} relative`}
                 >
-                  <option value="all">All Status</option>
-                  <option value="enabled">Active</option>
-                  <option value="disabled">Disabled</option>
-                </select>
-                
+                  <FunnelIcon className="h-5 w-5 mr-2" />
+                  Filters
+                  {getActiveFilterCount() > 0 && (
+                    <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center bg-danger-500 text-white text-xs rounded-full">
+                      {getActiveFilterCount()}
+                    </span>
+                  )}
+                </button>
+
                 <button
                   type="submit"
                   className="btn btn-primary"
@@ -161,6 +215,72 @@ const UserSearch = () => {
                 </button>
               </div>
             </div>
+
+            {/* Advanced Filters */}
+            {showFilters && (
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Account Status
+                    </label>
+                    <select
+                      className="form-input"
+                      value={filters.accountEnabled}
+                      onChange={(e) => handleFilterChange('accountEnabled', e.target.value)}
+                    >
+                      <option value="all">All Status</option>
+                      <option value="enabled">Active Only</option>
+                      <option value="disabled">Disabled Only</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Department
+                    </label>
+                    <select
+                      className="form-input"
+                      value={filters.department}
+                      onChange={(e) => handleFilterChange('department', e.target.value)}
+                    >
+                      <option value="all">All Departments</option>
+                      {availableDepartments.map(dept => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Job Title
+                    </label>
+                    <select
+                      className="form-input"
+                      value={filters.jobTitle}
+                      onChange={(e) => handleFilterChange('jobTitle', e.target.value)}
+                    >
+                      <option value="all">All Titles</option>
+                      {availableJobTitles.map(title => (
+                        <option key={title} value={title}>{title}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {getActiveFilterCount() > 0 && (
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300"
+                    >
+                      Clear all filters
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </form>
         </div>
       </div>
@@ -230,12 +350,13 @@ const UserSearch = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
-                          <Link
-                            to={`/users/${user.id}`}
-                            className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300"
+                          <button
+                            onClick={() => handleViewUserDetails(user)}
+                            className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 flex items-center"
                           >
-                            View
-                          </Link>
+                            <EyeIcon className="h-4 w-4 mr-1" />
+                            Details
+                          </button>
                           
                           {hasPermission('userManagement') && (
                             <>
@@ -302,6 +423,18 @@ const UserSearch = () => {
             </button>
           </div>
         </div>
+      )}
+
+      {/* User Detail Modal */}
+      {showDetailModal && selectedUser && (
+        <UserDetailModal
+          user={selectedUser}
+          onClose={() => {
+            setShowDetailModal(false);
+            setSelectedUser(null);
+          }}
+          onUserUpdated={handleUserUpdated}
+        />
       )}
     </div>
   );

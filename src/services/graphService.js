@@ -1226,6 +1226,327 @@ export class GraphService {
     const filter = `activityDateTime ge ${startDate} and activityDateTime le ${endDate}`;
     return this.makeRequest(`/auditLogs/directoryAudits?$filter=${filter}&$top=50`);
   }
+
+  /**
+   * Get user sign-in logs (requires Azure AD Premium P1/P2)
+   * @param {string} userId - User ID or userPrincipalName
+   * @param {number} days - Number of days to look back (default 7)
+   * @returns {Promise} Sign-in logs
+   */
+  async getUserSignInLogs(userId, days = 7) {
+    if (isDemoMode()) {
+      // Return mock sign-in data
+      const now = new Date();
+      return {
+        value: [
+          {
+            id: '1',
+            createdDateTime: new Date(now - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+            userPrincipalName: 'demo.user@demo.com',
+            userId: userId,
+            appDisplayName: 'Microsoft Teams',
+            appId: 'cc15fd57-2c6c-4117-a88c-83b1d56b4bbe',
+            ipAddress: '192.168.1.100',
+            clientAppUsed: 'Browser',
+            deviceDetail: {
+              displayName: 'Windows 10',
+              operatingSystem: 'Windows 10',
+              browser: 'Edge',
+              isCompliant: true,
+              isManaged: true
+            },
+            location: {
+              city: 'Seattle',
+              state: 'Washington',
+              countryOrRegion: 'US',
+              geoCoordinates: { latitude: 47.6062, longitude: -122.3321 }
+            },
+            status: { errorCode: 0, failureReason: null, additionalDetails: 'Success' },
+            authenticationDetails: [
+              { authenticationMethod: 'Password', succeeded: true }
+            ],
+            authenticationRequirement: 'singleFactorAuthentication'
+          },
+          {
+            id: '2',
+            createdDateTime: new Date(now - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
+            userPrincipalName: 'demo.user@demo.com',
+            userId: userId,
+            appDisplayName: 'Microsoft 365 Portal',
+            appId: '4765445b-32c6-49b0-83e6-1d93765276ca',
+            ipAddress: '10.0.0.50',
+            clientAppUsed: 'Mobile Apps and Desktop clients',
+            deviceDetail: {
+              displayName: 'iPhone 14',
+              operatingSystem: 'iOS 17',
+              browser: 'Mobile Safari',
+              isCompliant: true,
+              isManaged: true
+            },
+            location: {
+              city: 'Redmond',
+              state: 'Washington',
+              countryOrRegion: 'US',
+              geoCoordinates: { latitude: 47.6740, longitude: -122.1215 }
+            },
+            status: { errorCode: 0, failureReason: null, additionalDetails: 'Success' },
+            authenticationDetails: [
+              { authenticationMethod: 'Previously satisfied', succeeded: true }
+            ],
+            authenticationRequirement: 'singleFactorAuthentication'
+          },
+          {
+            id: '3',
+            createdDateTime: new Date(now - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
+            userPrincipalName: 'demo.user@demo.com',
+            userId: userId,
+            appDisplayName: 'SharePoint Online',
+            appId: '00000003-0000-0ff1-ce00-000000000000',
+            ipAddress: '192.168.1.100',
+            clientAppUsed: 'Browser',
+            deviceDetail: {
+              displayName: 'Windows 10',
+              operatingSystem: 'Windows 10',
+              browser: 'Chrome',
+              isCompliant: true,
+              isManaged: false
+            },
+            location: {
+              city: 'Seattle',
+              state: 'Washington',
+              countryOrRegion: 'US',
+              geoCoordinates: { latitude: 47.6062, longitude: -122.3321 }
+            },
+            status: { errorCode: 0, failureReason: null, additionalDetails: 'Success' },
+            authenticationDetails: [
+              { authenticationMethod: 'Password', succeeded: true },
+              { authenticationMethod: 'SMS', succeeded: true }
+            ],
+            authenticationRequirement: 'multiFactorAuthentication'
+          }
+        ]
+      };
+    }
+
+    const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    const filter = `userId eq '${userId}' and createdDateTime ge ${startDate}`;
+    return this.makeRequest(
+      `/auditLogs/signIns?$filter=${filter}&$top=50&$orderby=createdDateTime desc`
+    );
+  }
+
+  /**
+   * Get user's registered authentication methods
+   * @param {string} userId - User ID
+   * @returns {Promise} Authentication methods
+   */
+  async getUserAuthenticationMethods(userId) {
+    if (isDemoMode()) {
+      return {
+        value: [
+          {
+            '@odata.type': '#microsoft.graph.passwordAuthenticationMethod',
+            id: 'password-1',
+            password: null,
+            createdDateTime: '2024-01-01T00:00:00Z'
+          },
+          {
+            '@odata.type': '#microsoft.graph.phoneAuthenticationMethod',
+            id: 'phone-1',
+            phoneNumber: '+1 555-0100',
+            phoneType: 'mobile',
+            smsSignInState: 'ready'
+          },
+          {
+            '@odata.type': '#microsoft.graph.microsoftAuthenticatorAuthenticationMethod',
+            id: 'authenticator-1',
+            displayName: 'iPhone 14',
+            deviceTag: 'iOS',
+            phoneAppVersion: '6.7.0',
+            createdDateTime: '2024-03-15T00:00:00Z'
+          },
+          {
+            '@odata.type': '#microsoft.graph.emailAuthenticationMethod',
+            id: 'email-1',
+            emailAddress: 'backup@example.com'
+          }
+        ]
+      };
+    }
+
+    return this.makeRequest(`/users/${userId}/authentication/methods`);
+  }
+
+  /**
+   * Reset user password
+   * @param {string} userId - User ID
+   * @param {string} newPassword - New password (optional, will be auto-generated if not provided)
+   * @returns {Promise} Password reset response
+   */
+  async resetUserPassword(userId, newPassword = null) {
+    if (isDemoMode()) {
+      return {
+        '@odata.context': 'https://graph.microsoft.com/v1.0/$metadata#users/$entity',
+        newPassword: newPassword || 'TempPass123!@#',
+        resetSuccess: true
+      };
+    }
+
+    // First get the password method ID
+    const methods = await this.getUserAuthenticationMethods(userId);
+    const passwordMethod = methods.value?.find(m => 
+      m['@odata.type'] === '#microsoft.graph.passwordAuthenticationMethod'
+    );
+
+    if (!passwordMethod) {
+      throw new Error('Password authentication method not found');
+    }
+
+    const body = newPassword ? { newPassword } : {};
+
+    return this.makeRequest(
+      `/users/${userId}/authentication/passwordMethods/${passwordMethod.id}/resetPassword`,
+      {
+        method: 'POST',
+        body: JSON.stringify(body)
+      }
+    );
+  }
+
+  /**
+   * Delete user authentication method
+   * @param {string} userId - User ID
+   * @param {string} methodId - Authentication method ID
+   * @param {string} methodType - Type of method (phone, email, fido2, etc.)
+   * @returns {Promise} Deletion response
+   */
+  async deleteUserAuthenticationMethod(userId, methodId, methodType) {
+    if (isDemoMode()) {
+      return { success: true };
+    }
+
+    const methodTypeMap = {
+      'phone': 'phoneMethods',
+      'email': 'emailMethods',
+      'fido2': 'fido2Methods',
+      'microsoftAuthenticator': 'microsoftAuthenticatorMethods',
+      'temporaryAccessPass': 'temporaryAccessPassMethods',
+      'softwareOath': 'softwareOathMethods'
+    };
+
+    const endpoint = methodTypeMap[methodType] || 'methods';
+
+    return this.makeRequest(
+      `/users/${userId}/authentication/${endpoint}/${methodId}`,
+      { method: 'DELETE' }
+    );
+  }
+
+  /**
+   * Get user's Teams presence
+   * @param {string} userId - User ID
+   * @returns {Promise} Presence information
+   */
+  async getUserPresence(userId) {
+    if (isDemoMode()) {
+      const presenceStates = ['Available', 'Busy', 'Away', 'BeRightBack', 'DoNotDisturb'];
+      const randomState = presenceStates[Math.floor(Math.random() * presenceStates.length)];
+      return {
+        id: userId,
+        availability: randomState,
+        activity: randomState === 'Busy' ? 'InACall' : 'Available'
+      };
+    }
+
+    return this.makeRequest(`/users/${userId}/presence`);
+  }
+
+  /**
+   * Get user's registered devices
+   * @param {string} userId - User ID
+   * @returns {Promise} Registered devices
+   */
+  async getUserRegisteredDevices(userId) {
+    if (isDemoMode()) {
+      return {
+        value: [
+          {
+            id: 'device-1',
+            displayName: 'DESKTOP-WIN10',
+            operatingSystem: 'Windows',
+            operatingSystemVersion: '10.0.19044',
+            trustType: 'AzureAd',
+            isCompliant: true,
+            isManaged: true,
+            approximateLastSignInDateTime: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString()
+          },
+          {
+            id: 'device-2',
+            displayName: 'iPhone 14',
+            operatingSystem: 'iOS',
+            operatingSystemVersion: '17.0',
+            trustType: 'AzureAd',
+            isCompliant: true,
+            isManaged: true,
+            approximateLastSignInDateTime: new Date(Date.now() - 1000 * 60 * 30).toISOString()
+          }
+        ]
+      };
+    }
+
+    return this.makeRequest(`/users/${userId}/registeredDevices`);
+  }
+
+  /**
+   * Get user's manager
+   * @param {string} userId - User ID
+   * @returns {Promise} Manager information
+   */
+  async getUserManager(userId) {
+    if (isDemoMode()) {
+      return {
+        id: 'manager-1',
+        displayName: 'Sarah Johnson',
+        mail: 'sarah.johnson@demo.com',
+        jobTitle: 'Engineering Manager',
+        userPrincipalName: 'sarah.johnson@demo.com'
+      };
+    }
+
+    return this.makeRequest(`/users/${userId}/manager`);
+  }
+
+  /**
+   * Disable user account
+   * @param {string} userId - User ID
+   * @returns {Promise} Update response
+   */
+  async disableUserAccount(userId) {
+    if (isDemoMode()) {
+      return { success: true, accountEnabled: false };
+    }
+
+    return this.makeRequest(`/users/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ accountEnabled: false })
+    });
+  }
+
+  /**
+   * Enable user account
+   * @param {string} userId - User ID
+   * @returns {Promise} Update response
+   */
+  async enableUserAccount(userId) {
+    if (isDemoMode()) {
+      return { success: true, accountEnabled: true };
+    }
+
+    return this.makeRequest(`/users/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ accountEnabled: true })
+    });
+  }
 }
 
 // Create a singleton instance
