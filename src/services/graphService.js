@@ -487,17 +487,15 @@ export class GraphService {
     return this.updateUser(userId, { accountEnabled: true });
   }
 
-  async resetUserPassword(userId, newPassword) {
-    return this.makeRequest(`/users/${userId}/changePassword`, {
-      method: 'POST',
-      body: JSON.stringify({
-        currentPassword: '',
-        newPassword: newPassword,
-      }),
-    });
-  }
-
-  async setUserPassword(userId, newPassword, forceChangePasswordNextSignIn = true) {
+  /**
+   * Reset user password (for admin-initiated password reset during offboarding)
+   * Uses PATCH /users/{id} with passwordProfile per Microsoft Graph API best practices
+   * @param {string} userId - User ID
+   * @param {string} newPassword - New password
+   * @param {boolean} forceChangePasswordNextSignIn - Force password change on next sign-in
+   * @returns {Promise} Response
+   */
+  async resetUserPassword(userId, newPassword, forceChangePasswordNextSignIn = false) {
     // In demo mode, just return success
     if (isDemoMode()) {
       return Promise.resolve({ success: true });
@@ -512,6 +510,11 @@ export class GraphService {
         },
       }),
     });
+  }
+
+  async setUserPassword(userId, newPassword, forceChangePasswordNextSignIn = true) {
+    // Alias for resetUserPassword with default forceChange = true
+    return this.resetUserPassword(userId, newPassword, forceChangePasswordNextSignIn);
   }
 
   async sendWelcomeEmail(userId, welcomeMessage, managerEmail) {
@@ -761,25 +764,31 @@ export class GraphService {
     });
   }
 
+  /**
+   * Convert to shared mailbox
+   * NOTE: This operation is NOT supported by Microsoft Graph API
+   * It requires Exchange Online PowerShell: Set-Mailbox -Identity {email} -Type Shared
+   * This method returns an error with instructions for the administrator
+   * @param {string} userId - User ID
+   * @returns {Promise} Error response with instructions
+   */
   async convertToSharedMailbox(userId) {
-    // First, get the user's mailNickname
+    // Get user email for reference
     try {
-      const user = await this.makeRequest(`/users/${userId}?$select=id,mailNickname,mail`);
-      if (!user || !user.mailNickname) {
-        throw new Error('Unable to retrieve user mailNickname - user may not have an email address');
-      }
+      const user = await this.makeRequest(`/users/${userId}?$select=id,userPrincipalName,mail`);
+      const email = user.mail || user.userPrincipalName;
       
-      // Convert to shared mailbox
-      return this.makeRequest(`/users/${userId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          mailNickname: user.mailNickname,
-          recipientType: "SharedMailbox"
-        }),
-      });
+      // Return error with instructions since Graph API doesn't support this
+      throw new Error(
+        `Converting to shared mailbox is not supported via Microsoft Graph API. ` +
+        `Please use Exchange Online PowerShell:\n` +
+        `Connect-ExchangeOnline\n` +
+        `Set-Mailbox -Identity "${email}" -Type Shared\n` +
+        `Or use Exchange Admin Center: https://admin.exchange.microsoft.com`
+      );
     } catch (error) {
-      console.error('Error converting to shared mailbox:', error);
-      throw new Error(`Failed to convert mailbox: ${error.message}`);
+      console.error('Error with shared mailbox conversion:', error);
+      throw error;
     }
   }
 
@@ -889,10 +898,23 @@ export class GraphService {
   }
 
   // License Management
+  /**
+   * Get user license details
+   * @param {string} userId - User ID
+   * @returns {Promise} License details
+   */
   async getUserLicenses(userId) {
     return this.makeRequest(`/users/${userId}/licenseDetails`);
   }
 
+  /**
+   * Assign license to user
+   * Per Microsoft Graph API documentation: POST /users/{id}/assignLicense
+   * @param {string} userId - User ID
+   * @param {string} skuId - SKU ID to assign
+   * @param {Array<string>} removeLicenses - Array of SKU IDs to remove
+   * @returns {Promise} Response
+   */
   async assignLicense(userId, skuId, removeLicenses = []) {
     return this.makeRequest(`/users/${userId}/assignLicense`, {
       method: 'POST',
@@ -903,6 +925,37 @@ export class GraphService {
     });
   }
 
+  /**
+   * Assign multiple licenses to user (for onboarding)
+   * Per Microsoft Graph API documentation: POST /users/{id}/assignLicense
+   * @param {string} userId - User ID
+   * @param {Array<string>} skuIds - Array of SKU IDs to assign
+   * @returns {Promise} Response
+   */
+  async assignLicenses(userId, skuIds) {
+    if (!skuIds || skuIds.length === 0) {
+      return Promise.resolve({ success: true, assignedCount: 0 });
+    }
+
+    // Convert SKU ID array to addLicenses format
+    const addLicenses = skuIds.map(skuId => ({ skuId }));
+
+    return this.makeRequest(`/users/${userId}/assignLicense`, {
+      method: 'POST',
+      body: JSON.stringify({
+        addLicenses,
+        removeLicenses: [],
+      }),
+    });
+  }
+
+  /**
+   * Remove a single license from user
+   * Per Microsoft Graph API documentation: POST /users/{id}/assignLicense
+   * @param {string} userId - User ID
+   * @param {string} skuId - SKU ID to remove
+   * @returns {Promise} Response
+   */
   async removeLicense(userId, skuId) {
     return this.makeRequest(`/users/${userId}/assignLicense`, {
       method: 'POST',
@@ -913,34 +966,59 @@ export class GraphService {
     });
   }
 
+  /**
+   * Remove all licenses from user
+   * Per Microsoft Graph API documentation: POST /users/{id}/assignLicense
+   * Uses correct format: removeLicenses is an array of SKU ID strings
+   * @param {string} userId - User ID
+   * @returns {Promise} Response with removedCount
+   */
   async removeAllLicenses(userId) {
     try {
-      const licenses = await this.getUserLicenses(userId);
-      const licenseData = (licenses.value || []);
+      // Get current licenses - need to get assignedLicenses from user object, not licenseDetails
+      const user = await this.makeRequest(`/users/${userId}?$select=id,assignedLicenses`);
+      const assignedLicenses = user.assignedLicenses || [];
       
-      if (licenseData.length === 0) {
+      if (assignedLicenses.length === 0) {
         return { success: true, removedCount: 0 };
       }
 
-      let removedCount = 0;
-      const skuIds = licenseData.map(license => license.skuId);
+      // Extract SKU IDs - removeLicenses expects array of strings
+      const skuIds = assignedLicenses.map(license => license.skuId);
 
-      if (skuIds.length > 0) {
-        await this.makeRequest(`/users/${userId}/assignLicense`, {
-          method: 'POST',
-          body: JSON.stringify({
-            addLicenses: [],
-            removeLicenses: skuIds,
-          }),
-        });
-        removedCount = skuIds.length;
-      }
+      // Remove all licenses in a single API call
+      await this.makeRequest(`/users/${userId}/assignLicense`, {
+        method: 'POST',
+        body: JSON.stringify({
+          addLicenses: [],
+          removeLicenses: skuIds,
+        }),
+      });
 
-      return { success: true, removedCount };
+      return { success: true, removedCount: skuIds.length };
     } catch (error) {
       console.error('Error removing all licenses:', error);
       throw new Error(`Failed to remove licenses: ${error.message}`);
     }
+  }
+
+  /**
+   * Revoke all user sign-in sessions
+   * Per Microsoft Graph API documentation: POST /users/{id}/revokeSignInSessions
+   * This invalidates all refresh tokens and session tokens for the user
+   * Essential for security during offboarding
+   * @param {string} userId - User ID
+   * @returns {Promise} Response
+   */
+  async revokeUserSessions(userId) {
+    // In demo mode, just return success
+    if (isDemoMode()) {
+      return Promise.resolve({ success: true, value: true });
+    }
+
+    return this.makeRequest(`/users/${userId}/revokeSignInSessions`, {
+      method: 'POST',
+    });
   }
 
   // Audit and Reporting

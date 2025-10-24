@@ -290,19 +290,19 @@ const OffboardingWizard = () => {
     setIsExecuting(true);
     const results = [];
     
-    // Calculate total steps based on selected options
+    // Calculate total steps based on selected options (add 1 for revoke sessions)
     const totalSteps = Object.entries(offboardingOptions).filter(([key, value]) => {
       // Count only boolean options that are true, or device options if either is selected
       if (key === 'wipeDevices' || key === 'retireDevices') {
         return offboardingOptions.wipeDevices || offboardingOptions.retireDevices;
       }
       return typeof value === 'boolean' && value;
-    }).length;
+    }).length + 1; // +1 for revoke sessions (always executed after disable)
     
     setExecutionProgress({ currentTask: 'Starting offboarding...', currentStep: 0, totalSteps });
 
     try {
-      // 1. Disable account
+      // 1. Disable account (CRITICAL: Do this first per Microsoft best practices)
       if (offboardingOptions.disableAccount) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Disabling account...', currentStep: prev.currentStep + 1 }));
         try {
@@ -327,12 +327,29 @@ const OffboardingWizard = () => {
         });
       }
 
-      // 2. Reset password
+      // 2. Revoke all sign-in sessions (CRITICAL: Always do this after disabling account)
+      setExecutionProgress(prev => ({ ...prev, currentTask: 'Revoking all active sessions...', currentStep: prev.currentStep + 1 }));
+      try {
+        await graphService.revokeUserSessions(selectedUser.id);
+        results.push({
+          action: 'Revoke Sessions',
+          status: 'success',
+          message: 'All active sessions and refresh tokens have been revoked',
+        });
+      } catch (error) {
+        results.push({
+          action: 'Revoke Sessions',
+          status: 'error',
+          message: error.message,
+        });
+      }
+
+      // 3. Reset password
       if (offboardingOptions.resetPassword) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Resetting password...', currentStep: prev.currentStep + 1 }));
         try {
           const newPassword = generateRandomPassword();
-          await graphService.setUserPassword(selectedUser.id, newPassword, false);
+          await graphService.resetUserPassword(selectedUser.id, newPassword, false);
           results.push({
             action: 'Reset Password',
             status: 'success',
