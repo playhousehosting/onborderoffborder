@@ -1,6 +1,6 @@
 {
   "name": "employee-offboarding-portal",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Employee Offboarding Portal with Microsoft Graph and Intune integration",
   "private": true,
   "dependencies": {
