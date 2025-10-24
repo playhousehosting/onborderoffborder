@@ -103,6 +103,17 @@ const DeviceManagement = () => {
     }
   };
 
+  const handleSyncDevice = async (deviceId) => {
+    try {
+      await graphService.syncDevice(deviceId);
+      toast.success('Device sync initiated successfully');
+      fetchDevices();
+    } catch (error) {
+      console.error('Error syncing device:', error);
+      toast.error('Failed to sync device');
+    }
+  };
+
   const handleBulkRetire = async () => {
     if (selectedDevices.length === 0) {
       toast.error('Please select devices to retire');
@@ -342,6 +353,13 @@ const DeviceManagement = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
+                          <button
+                            onClick={() => handleSyncDevice(device.id)}
+                            className="text-primary-600 hover:text-primary-900"
+                            title="Sync Device"
+                          >
+                            Sync
+                          </button>
                           <button
                             onClick={() => handleRetireDevice(device.id)}
                             className="text-warning-600 hover:text-warning-900"

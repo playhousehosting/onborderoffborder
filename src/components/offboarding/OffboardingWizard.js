@@ -73,6 +73,8 @@ const OffboardingWizard = () => {
     backupData: false,
     removeFromGroups: true,
     removeFromTeams: true,
+    removeFromApps: true,
+    removeAuthMethods: true,
     transferFiles: false,
     newFileOwner: '',
     wipeDevices: false,
@@ -99,6 +101,8 @@ const OffboardingWizard = () => {
         backupData: true,
         removeFromGroups: true,
         removeFromTeams: true,
+        removeFromApps: true,
+        removeAuthMethods: true,
         transferFiles: false,
         newFileOwner: '',
         wipeDevices: false,
@@ -123,6 +127,8 @@ const OffboardingWizard = () => {
         backupData: true,
         removeFromGroups: false,
         removeFromTeams: false,
+        removeFromApps: false,
+        removeAuthMethods: false,
         transferFiles: true,
         newFileOwner: '',
         wipeDevices: false,
@@ -147,6 +153,8 @@ const OffboardingWizard = () => {
         backupData: false,
         removeFromGroups: true,
         removeFromTeams: true,
+        removeFromApps: true,
+        removeAuthMethods: true,
         transferFiles: false,
         newFileOwner: '',
         wipeDevices: true,
@@ -169,6 +177,8 @@ const OffboardingWizard = () => {
         backupData: false,
         removeFromGroups: true,
         removeFromTeams: true,
+        removeFromApps: true,
+        removeAuthMethods: true,
         transferFiles: true,
         newFileOwner: '',
         wipeDevices: true,
@@ -608,7 +618,109 @@ const OffboardingWizard = () => {
         });
       }
 
-      // 10. Handle devices
+      // 10. Remove from Enterprise Applications
+      if (hasPermission('application') && offboardingOptions.removeFromApps) {
+        setExecutionProgress(prev => ({ ...prev, currentTask: 'Removing from enterprise applications...', currentStep: prev.currentStep + 1 }));
+        try {
+          const appsData = await graphService.getUserAppRoleAssignments(selectedUser.id);
+          const apps = appsData.value || [];
+          let removedCount = 0;
+          let failedCount = 0;
+
+          if (apps.length === 0) {
+            results.push({
+              action: 'Remove from Enterprise Applications',
+              status: 'success',
+              message: 'User has no enterprise application assignments',
+            });
+          } else {
+            for (const app of apps) {
+              try {
+                await graphService.removeUserFromEnterpriseApp(selectedUser.id, app.id);
+                removedCount++;
+              } catch (error) {
+                failedCount++;
+                console.warn(`Failed to remove from ${app.appDisplayName}:`, error);
+              }
+            }
+
+            const message = failedCount > 0
+              ? `Removed from ${removedCount} apps (${failedCount} failed)`
+              : `Removed from ${removedCount} apps`;
+
+            results.push({
+              action: 'Remove from Enterprise Applications',
+              status: failedCount === apps.length ? 'error' : 'success',
+              message: message,
+            });
+          }
+        } catch (error) {
+          results.push({
+            action: 'Remove from Enterprise Applications',
+            status: 'error',
+            message: `Failed to retrieve applications: ${error.message}`,
+          });
+        }
+      } else {
+        results.push({
+          action: 'Remove from Enterprise Applications',
+          status: 'skipped',
+          message: 'Not selected',
+        });
+      }
+
+      // 11. Remove Authentication Methods
+      if (hasPermission('userAuthenticationMethod') && offboardingOptions.removeAuthMethods) {
+        setExecutionProgress(prev => ({ ...prev, currentTask: 'Removing authentication methods...', currentStep: prev.currentStep + 1 }));
+        try {
+          const authMethodsData = await graphService.getUserAuthenticationMethods(selectedUser.id);
+          const authMethods = authMethodsData.value || [];
+          let removedCount = 0;
+          let failedCount = 0;
+
+          if (authMethods.length === 0) {
+            results.push({
+              action: 'Remove Authentication Methods',
+              status: 'success',
+              message: 'User has no authentication methods to remove',
+            });
+          } else {
+            for (const method of authMethods) {
+              try {
+                await graphService.removeAuthenticationMethod(selectedUser.id, method.id, method.methodType);
+                removedCount++;
+              } catch (error) {
+                failedCount++;
+                console.warn(`Failed to remove ${method.displayName}:`, error);
+              }
+            }
+
+            const message = failedCount > 0
+              ? `Removed ${removedCount} authentication methods (${failedCount} failed)`
+              : `Removed ${removedCount} authentication methods`;
+
+            results.push({
+              action: 'Remove Authentication Methods',
+              status: failedCount === authMethods.length ? 'error' : 'success',
+              message: message,
+            });
+          }
+        } catch (error) {
+          results.push({
+            action: 'Remove Authentication Methods',
+            status: 'error',
+            message: `Failed to retrieve authentication methods: ${error.message}`,
+          });
+        }
+      } else {
+        results.push({
+          action: 'Remove Authentication Methods',
+          status: 'skipped',
+          message: 'Not selected',
+        });
+      }
+
+      // 12. Handle devices
       if (hasPermission('deviceManagement') && (offboardingOptions.wipeDevices || offboardingOptions.retireDevices)) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Managing devices...', currentStep: prev.currentStep + 1 }));
         try {
@@ -973,6 +1085,32 @@ const OffboardingWizard = () => {
                     />
                     <label htmlFor="removeFromTeams" className="ml-2 text-sm text-gray-700">
                       Remove from all Teams
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="removeFromApps"
+                      className="form-checkbox"
+                      checked={offboardingOptions.removeFromApps}
+                      onChange={(e) => handleOptionChange('removeFromApps', e.target.checked)}
+                    />
+                    <label htmlFor="removeFromApps" className="ml-2 text-sm text-gray-700">
+                      Remove from all enterprise applications
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="removeAuthMethods"
+                      className="form-checkbox"
+                      checked={offboardingOptions.removeAuthMethods}
+                      onChange={(e) => handleOptionChange('removeAuthMethods', e.target.checked)}
+                    />
+                    <label htmlFor="removeAuthMethods" className="ml-2 text-sm text-gray-700">
+                      Remove all authentication methods (MFA, phone, email)
                     </label>
                   </div>
                 </div>

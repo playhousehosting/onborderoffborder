@@ -704,11 +704,17 @@ export class GraphService {
   
   async getUserGroups(userId) {
     try {
-      const response = await this.makeRequest(`/users/${userId}/memberOf?$select=id,displayName,groupTypes`);
-      // Filter to only security groups (exclude Office 365 groups which are handled separately)
-      const groups = (response.value || []).filter(item => 
-        item['@odata.type'] && item['@odata.type'].includes('group')
-      );
+      const response = await this.makeRequest(`/users/${userId}/memberOf?$select=id,displayName,groupTypes,membershipRule`);
+      // Filter to only non-dynamic groups (dynamic groups cannot be managed via Graph API)
+      // Dynamic groups have "DynamicMembership" in groupTypes array
+      const groups = (response.value || []).filter(item => {
+        if (!item['@odata.type'] || !item['@odata.type'].includes('group')) {
+          return false;
+        }
+        // Exclude dynamic groups (groupTypes contains "DynamicMembership")
+        const groupTypes = item.groupTypes || [];
+        return !groupTypes.includes('DynamicMembership');
+      });
       return {
         value: groups,
         total: groups.length
@@ -795,10 +801,33 @@ export class GraphService {
   // Teams Management Methods
   async getUserTeams(userId) {
     try {
+      // Get all teams (Microsoft 365 groups with Teams enabled)
       const response = await this.makeRequest(`/users/${userId}/joinedTeams?$select=id,displayName,description`);
+      const allTeams = response.value || [];
+      
+      // Filter out teams that are backed by dynamic groups
+      // Need to check each team's underlying group for dynamic membership
+      const nonDynamicTeams = [];
+      for (const team of allTeams) {
+        try {
+          // Get group details to check if it's dynamic
+          const groupInfo = await this.makeRequest(`/groups/${team.id}?$select=id,displayName,groupTypes`);
+          const groupTypes = groupInfo.groupTypes || [];
+          
+          // Only include teams that are NOT dynamic groups
+          if (!groupTypes.includes('DynamicMembership')) {
+            nonDynamicTeams.push(team);
+          }
+        } catch (error) {
+          console.warn(`Could not check dynamic status for team ${team.displayName}:`, error);
+          // If we can't check, include it (better to try and fail than skip)
+          nonDynamicTeams.push(team);
+        }
+      }
+      
       return {
-        value: response.value || [],
-        total: (response.value || []).length
+        value: nonDynamicTeams,
+        total: nonDynamicTeams.length
       };
     } catch (error) {
       console.error('Error fetching user teams:', error);
@@ -808,6 +837,167 @@ export class GraphService {
 
   async removeUserFromTeam(teamId, userId) {
     return this.makeRequest(`/groups/${teamId}/members/${userId}/$ref`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Enterprise Application Methods
+  async getUserAppRoleAssignments(userId) {
+    try {
+      const result = await this.makeRequest(`/users/${userId}/appRoleAssignments`);
+      
+      if (!result || !result.value) {
+        return { value: [], total: 0 };
+      }
+
+      // Fetch service principal details for each assignment to get app names
+      const enrichedAssignments = await Promise.all(
+        result.value.map(async (assignment) => {
+          try {
+            const servicePrincipal = await this.makeRequest(
+              `/servicePrincipals/${assignment.resourceId}?$select=id,displayName,appId`
+            );
+            return {
+              ...assignment,
+              appDisplayName: servicePrincipal.displayName,
+              appId: servicePrincipal.appId
+            };
+          } catch (error) {
+            console.warn(`Could not fetch details for service principal ${assignment.resourceId}:`, error);
+            return {
+              ...assignment,
+              appDisplayName: 'Unknown Application',
+              appId: assignment.resourceId
+            };
+          }
+        })
+      );
+
+      return {
+        value: enrichedAssignments,
+        total: enrichedAssignments.length
+      };
+    } catch (error) {
+      console.error('Error fetching user app role assignments:', error);
+      throw error;
+    }
+  }
+
+  async removeUserFromEnterpriseApp(userId, appRoleAssignmentId) {
+    return this.makeRequest(`/users/${userId}/appRoleAssignments/${appRoleAssignmentId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Authentication Methods
+  async getUserAuthenticationMethods(userId) {
+    try {
+      const methods = [];
+
+      // Get phone authentication methods
+      try {
+        const phoneMethodsData = await this.makeRequest(`/users/${userId}/authentication/phoneMethods`);
+        if (phoneMethodsData && phoneMethodsData.value) {
+          methods.push(...phoneMethodsData.value.map(method => ({
+            ...method,
+            methodType: 'phone',
+            displayName: `Phone: ${method.phoneNumber || 'Unknown'}`
+          })));
+        }
+      } catch (error) {
+        console.warn('Could not fetch phone methods:', error);
+      }
+
+      // Get email authentication methods
+      try {
+        const emailMethodsData = await this.makeRequest(`/users/${userId}/authentication/emailMethods`);
+        if (emailMethodsData && emailMethodsData.value) {
+          methods.push(...emailMethodsData.value.map(method => ({
+            ...method,
+            methodType: 'email',
+            displayName: `Email: ${method.emailAddress || 'Unknown'}`
+          })));
+        }
+      } catch (error) {
+        console.warn('Could not fetch email methods:', error);
+      }
+
+      // Get FIDO2 authentication methods
+      try {
+        const fido2MethodsData = await this.makeRequest(`/users/${userId}/authentication/fido2Methods`);
+        if (fido2MethodsData && fido2MethodsData.value) {
+          methods.push(...fido2MethodsData.value.map(method => ({
+            ...method,
+            methodType: 'fido2',
+            displayName: `FIDO2 Key: ${method.displayName || method.model || 'Unknown'}`
+          })));
+        }
+      } catch (error) {
+        console.warn('Could not fetch FIDO2 methods:', error);
+      }
+
+      // Get Microsoft Authenticator methods
+      try {
+        const msAuthMethodsData = await this.makeRequest(`/users/${userId}/authentication/microsoftAuthenticatorMethods`);
+        if (msAuthMethodsData && msAuthMethodsData.value) {
+          methods.push(...msAuthMethodsData.value.map(method => ({
+            ...method,
+            methodType: 'microsoftAuthenticator',
+            displayName: `Microsoft Authenticator: ${method.displayName || method.phoneAppVersion || 'Unknown'}`
+          })));
+        }
+      } catch (error) {
+        console.warn('Could not fetch Microsoft Authenticator methods:', error);
+      }
+
+      // Get Windows Hello for Business methods
+      try {
+        const windowsHelloMethodsData = await this.makeRequest(`/users/${userId}/authentication/windowsHelloForBusinessMethods`);
+        if (windowsHelloMethodsData && windowsHelloMethodsData.value) {
+          methods.push(...windowsHelloMethodsData.value.map(method => ({
+            ...method,
+            methodType: 'windowsHelloForBusiness',
+            displayName: `Windows Hello: ${method.displayName || 'Unknown'}`
+          })));
+        }
+      } catch (error) {
+        console.warn('Could not fetch Windows Hello methods:', error);
+      }
+
+      return {
+        value: methods,
+        total: methods.length
+      };
+    } catch (error) {
+      console.error('Error fetching user authentication methods:', error);
+      throw error;
+    }
+  }
+
+  async removeAuthenticationMethod(userId, methodId, methodType) {
+    let endpoint;
+    
+    switch (methodType) {
+      case 'phone':
+        endpoint = `/users/${userId}/authentication/phoneMethods/${methodId}`;
+        break;
+      case 'email':
+        endpoint = `/users/${userId}/authentication/emailMethods/${methodId}`;
+        break;
+      case 'fido2':
+        endpoint = `/users/${userId}/authentication/fido2Methods/${methodId}`;
+        break;
+      case 'microsoftAuthenticator':
+        endpoint = `/users/${userId}/authentication/microsoftAuthenticatorMethods/${methodId}`;
+        break;
+      case 'windowsHelloForBusiness':
+        endpoint = `/users/${userId}/authentication/windowsHelloForBusinessMethods/${methodId}`;
+        break;
+      default:
+        throw new Error(`Unsupported authentication method type: ${methodType}`);
+    }
+
+    return this.makeRequest(endpoint, {
       method: 'DELETE',
     });
   }
@@ -830,6 +1020,12 @@ export class GraphService {
         keepEnrollmentData: keepEnrollmentData || false,
         keepUserData: keepUserData || false,
       }),
+    });
+  }
+
+  async syncDevice(deviceId) {
+    return this.makeRequest(`/deviceManagement/managedDevices/${deviceId}/syncDevice`, {
+      method: 'POST',
     });
   }
 

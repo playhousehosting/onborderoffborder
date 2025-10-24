@@ -41,11 +41,33 @@ A comprehensive full-stack web application for managing the complete employee li
 - **License Revocation**: Reclaim licenses for cost optimization
 - **Scheduled Offboarding**: Plan future offboarding with notifications
 
-### Device Management (Intune)
-- **Device Inventory**: View all managed devices across the organization
-- **Device Actions**: Wipe, retire, restart, or sync devices
-- **Compliance Status**: Monitor device compliance and security policies
-- **Bulk Operations**: Process multiple devices simultaneously
+### Intune Management (Comprehensive Platform)
+- **📱 Device Management**: 
+  - Complete device inventory with real-time statistics
+  - Device actions (sync, reboot, lock, retire, wipe)
+  - Compliance monitoring with color-coded status badges
+  - Advanced search and filtering
+- **📦 Application Management**:
+  - WinGet repository integration with 10+ curated apps
+  - One-click deployment to Intune
+  - Automated .intunewin packaging workflow
+  - Apps: PowerToys, VS Code, Chrome, Firefox, Teams, Zoom, and more
+  - Installation status tracking
+- **📋 Policy Management**:
+  - 10+ pre-built templates (BitLocker, Firewall, Defender, Wi-Fi, VPN, Edge, OneDrive)
+  - Settings catalog with thousands of configurable settings
+  - Template categories: Security, Network, Applications, Updates, Device Config
+  - One-click policy creation and assignment
+- **✅ Compliance Management**:
+  - Real-time compliance state monitoring
+  - Compliance policies overview
+  - Non-compliant device tracking
+- **📊 Reports & Analytics**:
+  - Device compliance reports
+  - App installation reports
+  - Policy assignment status
+
+📖 See [INTUNE_MANAGEMENT_GUIDE.md](./INTUNE_MANAGEMENT_GUIDE.md) for comprehensive Intune documentation.
 
 ### Lifecycle Workflows (Enterprise Automation)
 - **Joiner Workflows**: Automate pre-hire and first-day tasks
@@ -144,8 +166,9 @@ cd onborderoffborder
 - `Group.Read.All` - Read all groups
 - `Group.ReadWrite.All` - Read and write all groups
 - `GroupMember.ReadWrite.All` - Add/remove members from groups
-- `DeviceManagementManagedDevices.ReadWrite.All` - Manage Intune devices
-- `DeviceManagementConfiguration.ReadWrite.All` - Read and write device configuration
+- `DeviceManagementManagedDevices.ReadWrite.All` - Manage Intune devices and perform remote actions
+- `DeviceManagementConfiguration.ReadWrite.All` - Read and write Intune device configuration and policies
+- `DeviceManagementApps.ReadWrite.All` - Read and write Intune apps (Win32, Store, LOB applications)
 - `Mail.ReadWrite` - Read and write mail in all mailboxes
 - `MailboxSettings.ReadWrite` - Read and write mailbox settings
 - `Directory.Read.All` - Read directory data
@@ -341,22 +364,88 @@ The dashboard provides:
    - View/manage groups
    - Initiate offboarding
 
-### Device Management (Intune)
+### Intune Management (Comprehensive Platform)
 
-1. Navigate to **Device Management**
-2. View all devices with:
-   - Device name and type
-   - Operating system
-   - Compliance status
+#### 📱 Devices Tab
+1. Navigate to **Intune Management**
+2. View device statistics dashboard:
+   - Total managed devices
+   - Compliant devices
+   - Non-compliant devices
+   - Corporate vs. personal devices
+3. Search and filter devices by name, user, or OS
+4. View device details:
+   - Device name, user, OS version
+   - Compliance state (✅ ❌ ⏳ ℹ️ ❓)
    - Last sync time
-   - Assigned user
-3. Search and filter devices
-4. Select devices for bulk operations:
-   - **Retire**: Remove company data gracefully
-   - **Wipe**: Factory reset device
-   - **Sync**: Force device check-in
-   - **Restart**: Remote device restart
-5. Monitor action status in real-time
+5. Perform remote actions:
+   - **🔄 Sync**: Force device check-in
+   - **🔄 Reboot**: Restart device remotely
+   - **🔒 Lock**: Remote lock device
+   - **📤 Retire**: Remove company data (keeps personal)
+   - **🗑️ Wipe**: Factory reset (erases all data)
+
+#### 📦 Applications Tab
+1. **Installed Apps View**:
+   - View all deployed applications
+   - Check installation status
+   - Manage app assignments
+2. **📦 WinGet Browser**:
+   - Search Microsoft WinGet repository
+   - Browse 10+ curated popular apps:
+     - ⚡ Microsoft PowerToys
+     - 💻 Visual Studio Code
+     - 🌐 Google Chrome
+     - 🦊 Mozilla Firefox
+     - 📄 Adobe Acrobat Reader
+     - 🎥 Zoom
+     - 👥 Microsoft Teams
+     - 📝 Notepad++
+     - 📦 7-Zip
+     - 🔀 Git
+   - Click **🚀 Deploy to Intune** for one-click deployment
+   - Automated .intunewin packaging and upload
+   - Real-time deployment progress
+
+#### 📋 Policies Tab
+1. **My Policies View**:
+   - View all configuration policies
+   - Check policy assignments
+   - Monitor deployment status
+2. **📋 Policy Templates**:
+   - Browse 10+ pre-built templates:
+     - 🔒 BitLocker Full Disk Encryption
+     - 🛡️ Enterprise Firewall Configuration
+     - 🦠 Microsoft Defender Advanced Protection
+     - 📶 Enterprise Wi-Fi (WPA2-Enterprise)
+     - 🔐 VPN Profile (IKEv2)
+     - 🌐 Microsoft Edge Enterprise
+     - ☁️ OneDrive Known Folder Move
+     - 🔄 Windows Update Ring
+     - 📱 Kiosk Mode (Single App)
+     - 🔐 Strong Password Policy
+   - Template categories:
+     - 🔒 Security (BitLocker, Firewall, Defender)
+     - 📡 Network (Wi-Fi, VPN)
+     - 📱 Applications (Edge, OneDrive)
+     - 🔄 Updates (Windows Update)
+     - 🖥️ Device Configuration (Kiosk, restrictions)
+   - Select template → Enter policy name → Create policy
+   - Assign to groups with one click
+
+#### ✅ Compliance Tab
+- View all compliance policies
+- Monitor device compliance states
+- Track non-compliant devices
+- Review remediation actions
+
+#### 📊 Reports Tab
+- Device compliance reports
+- App installation reports
+- Policy assignment status
+- Custom report builder (coming soon)
+
+📖 For detailed Intune Management documentation, see [INTUNE_MANAGEMENT_GUIDE.md](./INTUNE_MANAGEMENT_GUIDE.md)
 
 ### Scheduled Offboarding
 
@@ -382,7 +471,8 @@ employee-offboarding-portal/
 │   │   ├── authService.js           # Azure AD authentication service
 │   │   └── graphService.js          # Microsoft Graph API wrapper
 │   ├── utils/
-│   │   └── encryption.js            # AES-256-GCM encryption utilities
+│   │   ├── encryption.js            # AES-256-GCM encryption utilities
+│   │   └── departmentMappings.js    # Department-to-group mappings
 │   ├── server.js                    # Express app entry point
 │   ├── setup.js                     # Database initialization
 │   ├── package.json                 # Backend dependencies
@@ -418,7 +508,10 @@ employee-offboarding-portal/
 │   │   ├── transfer/
 │   │   │   └── TransferWizard.js    # Employee transfer/promotion
 │   │   ├── intune/
-│   │   │   └── DeviceManagement.js  # Intune device operations
+│   │   │   ├── DeviceManagement.js  # (Legacy - deprecated)
+│   │   │   └── IntuneManagement.js  # Comprehensive Intune platform
+│   │   ├── workflows/
+│   │   │   └── WorkflowManagement.js # Lifecycle workflows UI
 │   │   └── settings/
 │   │       └── Settings.js          # App settings
 │   ├── config/
@@ -429,7 +522,11 @@ employee-offboarding-portal/
 │   ├── services/
 │   │   ├── authService.js           # Frontend auth service
 │   │   ├── backendApiService.js     # Backend API client
-│   │   └── graphService.js          # Frontend Graph API service
+│   │   ├── graphService.js          # Frontend Graph API service
+│   │   ├── intuneService.js         # Intune API wrapper (40+ functions)
+│   │   ├── wingetService.js         # WinGet integration & packaging
+│   │   ├── settingsCatalogService.js # Policy templates & settings catalog
+│   │   └── lifecycleWorkflowsService.js # Lifecycle workflows automation
 │   ├── App.js                       # Main app component
 │   ├── index.css                    # Global styles
 │   └── index.js                     # React entry point
@@ -453,6 +550,12 @@ employee-offboarding-portal/
 | `backend/routes/auth.js` | App-only token acquisition endpoint |
 | `backend/routes/graph.js` | Proxy for Graph API operations |
 | `src/services/graphService.js` | Client-side Graph operations with pagination |
+| `src/services/intuneService.js` | Complete Intune API wrapper with 40+ functions |
+| `src/services/wingetService.js` | WinGet repository integration and app packaging |
+| `src/services/settingsCatalogService.js` | Policy templates and settings catalog |
+| `src/services/lifecycleWorkflowsService.js` | Lifecycle workflows with 26 Microsoft tasks |
+| `src/components/intune/IntuneManagement.js` | Comprehensive 5-tab Intune platform |
+| `src/components/workflows/WorkflowManagement.js` | Lifecycle workflows UI with templates |
 | `src/components/onboarding/OnboardingWizard.js` | New user creation flow |
 | `src/components/offboarding/OffboardingWizard.js` | User offboarding flow |
 | `vercel.json` | Routes frontend to React, `/api/*` to backend |
