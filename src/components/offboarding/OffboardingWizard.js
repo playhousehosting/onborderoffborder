@@ -54,6 +54,11 @@ const OffboardingWizard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [executionProgress, setExecutionProgress] = useState({
+    currentTask: '',
+    currentStep: 0,
+    totalSteps: 0,
+  });
   
   // Offboarding options
   const [offboardingOptions, setOffboardingOptions] = useState({
@@ -70,9 +75,9 @@ const OffboardingWizard = () => {
     removeFromTeams: true,
     transferFiles: false,
     newFileOwner: '',
-    wipeDevices: true,
+    wipeDevices: false,
     retireDevices: false,
-    removeApps: true,
+    removeApps: false,
   });
 
   // Offboarding templates
@@ -284,10 +289,22 @@ const OffboardingWizard = () => {
 
     setIsExecuting(true);
     const results = [];
+    
+    // Calculate total steps based on selected options
+    const totalSteps = Object.entries(offboardingOptions).filter(([key, value]) => {
+      // Count only boolean options that are true, or device options if either is selected
+      if (key === 'wipeDevices' || key === 'retireDevices') {
+        return offboardingOptions.wipeDevices || offboardingOptions.retireDevices;
+      }
+      return typeof value === 'boolean' && value;
+    }).length;
+    
+    setExecutionProgress({ currentTask: 'Starting offboarding...', currentStep: 0, totalSteps });
 
     try {
       // 1. Disable account
       if (offboardingOptions.disableAccount) {
+        setExecutionProgress(prev => ({ ...prev, currentTask: 'Disabling account...', currentStep: prev.currentStep + 1 }));
         try {
           await graphService.disableUser(selectedUser.id);
           results.push({
@@ -302,10 +319,17 @@ const OffboardingWizard = () => {
             message: error.message,
           });
         }
+      } else {
+        results.push({
+          action: 'Disable Account',
+          status: 'skipped',
+          message: 'Not selected',
+        });
       }
 
       // 2. Reset password
       if (offboardingOptions.resetPassword) {
+        setExecutionProgress(prev => ({ ...prev, currentTask: 'Resetting password...', currentStep: prev.currentStep + 1 }));
         try {
           const newPassword = generateRandomPassword();
           await graphService.setUserPassword(selectedUser.id, newPassword, false);
@@ -321,10 +345,17 @@ const OffboardingWizard = () => {
             message: error.message,
           });
         }
+      } else {
+        results.push({
+          action: 'Reset Password',
+          status: 'skipped',
+          message: 'Not selected',
+        });
       }
 
       // 3. Revoke licenses
       if (offboardingOptions.revokeLicenses) {
+        setExecutionProgress(prev => ({ ...prev, currentTask: 'Revoking licenses...', currentStep: prev.currentStep + 1 }));
         try {
           const licenseResult = await graphService.removeAllLicenses(selectedUser.id);
           results.push({
@@ -339,10 +370,17 @@ const OffboardingWizard = () => {
             message: error.message,
           });
         }
+      } else {
+        results.push({
+          action: 'Revoke Licenses',
+          status: 'skipped',
+          message: 'Not selected',
+        });
       }
 
       // 4. Convert mailbox
       if (offboardingOptions.convertMailbox) {
+        setExecutionProgress(prev => ({ ...prev, currentTask: 'Converting mailbox to shared...', currentStep: prev.currentStep + 1 }));
         try {
           await graphService.convertToSharedMailbox(selectedUser.id);
           results.push({
@@ -357,10 +395,17 @@ const OffboardingWizard = () => {
             message: error.message,
           });
         }
+      } else {
+        results.push({
+          action: 'Convert Mailbox',
+          status: 'skipped',
+          message: 'Not selected',
+        });
       }
 
       // 5. Set email forwarding
       if (offboardingOptions.setEmailForwarding) {
+        setExecutionProgress(prev => ({ ...prev, currentTask: 'Setting up email forwarding...', currentStep: prev.currentStep + 1 }));
         try {
           await graphService.setMailForwarding(
             selectedUser.id,
@@ -379,10 +424,17 @@ const OffboardingWizard = () => {
             message: error.message,
           });
         }
+      } else {
+        results.push({
+          action: 'Email Forwarding',
+          status: 'skipped',
+          message: 'Not selected',
+        });
       }
 
       // 6. Set auto-reply
       if (offboardingOptions.setAutoReply) {
+        setExecutionProgress(prev => ({ ...prev, currentTask: 'Setting auto-reply message...', currentStep: prev.currentStep + 1 }));
         try {
           await graphService.setAutoReply(
             selectedUser.id,
@@ -403,10 +455,17 @@ const OffboardingWizard = () => {
             message: error.message,
           });
         }
+      } else {
+        results.push({
+          action: 'Auto-Reply',
+          status: 'skipped',
+          message: 'Not selected',
+        });
       }
 
       // 7. Backup data
       if (offboardingOptions.backupData) {
+        setExecutionProgress(prev => ({ ...prev, currentTask: 'Backing up user data...', currentStep: prev.currentStep + 1 }));
         try {
           const backupResult = await graphService.backupUserData(selectedUser.id);
           results.push({
@@ -422,10 +481,17 @@ const OffboardingWizard = () => {
             message: error.message,
           });
         }
+      } else {
+        results.push({
+          action: 'Data Backup',
+          status: 'skipped',
+          message: 'Not selected',
+        });
       }
 
       // 8. Remove from groups
       if (offboardingOptions.removeFromGroups) {
+        setExecutionProgress(prev => ({ ...prev, currentTask: 'Removing from groups...', currentStep: prev.currentStep + 1 }));
         try {
           const groupsData = await graphService.getUserGroups(selectedUser.id);
           const groups = groupsData.value || [];
@@ -466,10 +532,17 @@ const OffboardingWizard = () => {
             message: `Failed to retrieve groups: ${error.message}`,
           });
         }
+      } else {
+        results.push({
+          action: 'Remove from Groups',
+          status: 'skipped',
+          message: 'Not selected',
+        });
       }
 
       // 9. Remove from Teams
       if (offboardingOptions.removeFromTeams) {
+        setExecutionProgress(prev => ({ ...prev, currentTask: 'Removing from Teams...', currentStep: prev.currentStep + 1 }));
         try {
           const teamsData = await graphService.getUserTeams(selectedUser.id);
           const teams = teamsData.value || [];
@@ -510,10 +583,17 @@ const OffboardingWizard = () => {
             message: `Failed to retrieve teams: ${error.message}`,
           });
         }
+      } else {
+        results.push({
+          action: 'Remove from Teams',
+          status: 'skipped',
+          message: 'Not selected',
+        });
       }
 
       // 10. Handle devices
       if (hasPermission('deviceManagement') && (offboardingOptions.wipeDevices || offboardingOptions.retireDevices)) {
+        setExecutionProgress(prev => ({ ...prev, currentTask: 'Managing devices...', currentStep: prev.currentStep + 1 }));
         try {
           const devicesData = await graphService.getUserDevices(selectedUser.userPrincipalName);
           const devices = devicesData.value || [];
@@ -559,7 +639,15 @@ const OffboardingWizard = () => {
             message: `Failed to retrieve devices: ${error.message}`,
           });
         }
+      } else {
+        results.push({
+          action: 'Device Management',
+          status: 'skipped',
+          message: 'Not selected',
+        });
       }
+
+      setExecutionProgress({ currentTask: 'Completed!', currentStep: totalSteps, totalSteps });
 
       setExecutionResults(results);
       setCurrentStep(3); // Move to results step
@@ -1064,13 +1152,37 @@ const OffboardingWizard = () => {
                 )}
               </button>
             </div>
+            
+            {/* Progress Display */}
+            {isExecuting && executionProgress.totalSteps > 0 && (
+              <div className="mt-6 card">
+                <div className="card-body">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {executionProgress.currentTask}
+                    </span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      {executionProgress.currentStep} / {executionProgress.totalSteps}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div 
+                      className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${(executionProgress.currentStep / executionProgress.totalSteps) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         );
 
       case 'results':
         const successCount = executionResults.filter(r => r.status === 'success').length;
         const errorCount = executionResults.filter(r => r.status === 'error').length;
-        const allSuccessful = errorCount === 0;
+        const skippedCount = executionResults.filter(r => r.status === 'skipped').length;
+        const allSuccessful = errorCount === 0 && skippedCount === 0;
+        const partialSuccess = successCount > 0 && errorCount > 0;
         
         return (
           <div>
@@ -1080,7 +1192,11 @@ const OffboardingWizard = () => {
             <div className={`card mb-6 border-l-4 ${
               allSuccessful 
                 ? 'border-l-success-500 bg-success-50 dark:bg-success-900/20' 
-                : 'border-l-warning-500 bg-warning-50 dark:bg-warning-900/20'
+                : partialSuccess
+                ? 'border-l-warning-500 bg-warning-50 dark:bg-warning-900/20'
+                : errorCount > 0
+                ? 'border-l-danger-500 bg-danger-50 dark:bg-danger-900/20'
+                : 'border-l-gray-500 bg-gray-50 dark:bg-gray-900/20'
             }`}>
               <div className="card-body">
                 <div className="flex items-center justify-between">
@@ -1088,16 +1204,27 @@ const OffboardingWizard = () => {
                     <p className={`text-sm font-medium ${
                       allSuccessful 
                         ? 'text-success-900 dark:text-success-200' 
-                        : 'text-warning-900 dark:text-warning-200'
+                        : partialSuccess
+                        ? 'text-warning-900 dark:text-warning-200'
+                        : errorCount > 0
+                        ? 'text-danger-900 dark:text-danger-200'
+                        : 'text-gray-900 dark:text-gray-200'
                     }`}>
-                      {allSuccessful ? '✓ Offboarding Completed Successfully' : '⚠ Offboarding Completed with Issues'}
+                      {allSuccessful 
+                        ? '✓ Offboarding Completed Successfully' 
+                        : partialSuccess
+                        ? '⚠ Offboarding Completed with Issues'
+                        : errorCount > 0
+                        ? '✗ Offboarding Completed with Errors'
+                        : 'Offboarding Summary'
+                      }
                     </p>
                     <p className="text-xs mt-1 text-gray-600 dark:text-gray-400">
-                      {successCount} successful, {errorCount} errors
+                      {successCount} successful{errorCount > 0 ? `, ${errorCount} errors` : ''}{skippedCount > 0 ? `, ${skippedCount} skipped` : ''}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{successCount}/{executionResults.length}</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{successCount}/{executionResults.length - skippedCount}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">Tasks Completed</p>
                   </div>
                 </div>
@@ -1115,7 +1242,9 @@ const OffboardingWizard = () => {
                       className={`p-4 rounded-lg border ${
                         result.status === 'success'
                           ? 'bg-success-50 dark:bg-success-900/20 border-success-200 dark:border-success-800'
-                          : 'bg-danger-50 dark:bg-danger-900/20 border-danger-200 dark:border-danger-800'
+                          : result.status === 'error'
+                          ? 'bg-danger-50 dark:bg-danger-900/20 border-danger-200 dark:border-danger-800'
+                          : 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700'
                       }`}
                     >
                       <div className="flex items-start gap-3">
@@ -1124,9 +1253,13 @@ const OffboardingWizard = () => {
                             <div className="flex items-center justify-center w-5 h-5 bg-success-100 dark:bg-success-900/40 rounded-full">
                               <CheckCircleIcon className="h-4 w-4 text-success-600 dark:text-success-400" />
                             </div>
-                          ) : (
+                          ) : result.status === 'error' ? (
                             <div className="flex items-center justify-center w-5 h-5 bg-danger-100 dark:bg-danger-900/40 rounded-full">
                               <ExclamationTriangleIcon className="h-4 w-4 text-danger-600 dark:text-danger-400" />
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center w-5 h-5 bg-gray-100 dark:bg-gray-800 rounded-full">
+                              <span className="text-xs text-gray-500 dark:text-gray-400">—</span>
                             </div>
                           )}
                         </div>
@@ -1136,15 +1269,19 @@ const OffboardingWizard = () => {
                             <span className={`text-xs font-medium px-2 py-1 rounded ${
                               result.status === 'success'
                                 ? 'bg-success-100 text-success-800 dark:bg-success-900/40 dark:text-success-300'
-                                : 'bg-danger-100 text-danger-800 dark:bg-danger-900/40 dark:text-danger-300'
+                                : result.status === 'error'
+                                ? 'bg-danger-100 text-danger-800 dark:bg-danger-900/40 dark:text-danger-300'
+                                : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
                             }`}>
-                              {result.status === 'success' ? 'Success' : 'Error'}
+                              {result.status === 'success' ? 'Success' : result.status === 'error' ? 'Error' : 'Skipped'}
                             </span>
                           </div>
                           <p className={`mt-1 text-sm ${
                             result.status === 'success' 
                               ? 'text-success-700 dark:text-success-300' 
-                              : 'text-danger-700 dark:text-danger-300'
+                              : result.status === 'error'
+                              ? 'text-danger-700 dark:text-danger-300'
+                              : 'text-gray-600 dark:text-gray-400'
                           }`}>
                             {result.message}
                           </p>

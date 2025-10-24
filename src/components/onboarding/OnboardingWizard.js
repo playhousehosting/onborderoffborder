@@ -32,6 +32,11 @@ const OnboardingWizard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [executionProgress, setExecutionProgress] = useState({
+    currentTask: '',
+    currentStep: 0,
+    totalSteps: 0,
+  });
   
   // Copy groups from existing user
   const [copyGroupsFromUser, setCopyGroupsFromUser] = useState(false);
@@ -312,6 +317,17 @@ const OnboardingWizard = () => {
 
     setIsExecuting(true);
     const results = [];
+    
+    // Calculate total steps
+    let totalSteps = 1; // Update Information is always done
+    if (onboardingOptions.enableAccount) totalSteps++;
+    if (onboardingOptions.assignLicenses && onboardingOptions.selectedLicenses.length > 0) totalSteps++;
+    if (onboardingOptions.addToGroups && onboardingOptions.selectedGroups.length > 0) totalSteps++;
+    if (onboardingOptions.createMailbox) totalSteps++;
+    if (onboardingOptions.shareWelcomeKit) totalSteps++;
+    if (onboardingOptions.scheduleTraining && onboardingOptions.trainingDate) totalSteps++;
+    
+    setExecutionProgress({ currentTask: 'Starting onboarding...', currentStep: 0, totalSteps });
 
     try {
       // Step 0: Create user (if creating new user in on-prem AD or Azure AD)
@@ -384,6 +400,7 @@ const OnboardingWizard = () => {
       }
       // 1. Enable account and set password
       if (onboardingOptions.enableAccount) {
+        setExecutionProgress(prev => ({ ...prev, currentTask: 'Enabling account and setting password...', currentStep: prev.currentStep + 1 }));
         try {
           await graphService.enableUser(selectedUser.id);
           if (onboardingOptions.setPassword) {
@@ -408,6 +425,7 @@ const OnboardingWizard = () => {
       }
 
       // 2. Update user information
+      setExecutionProgress(prev => ({ ...prev, currentTask: 'Updating user information...', currentStep: prev.currentStep + 1 }));
       try {
         await graphService.updateUser(selectedUser.id, {
           department: onboardingOptions.department,
@@ -430,6 +448,7 @@ const OnboardingWizard = () => {
 
       // 3. Assign licenses
       if (onboardingOptions.assignLicenses && onboardingOptions.selectedLicenses.length > 0) {
+        setExecutionProgress(prev => ({ ...prev, currentTask: 'Assigning licenses...', currentStep: prev.currentStep + 1 }));
         try {
           await graphService.assignLicenses(selectedUser.id, onboardingOptions.selectedLicenses);
           results.push({
@@ -448,6 +467,7 @@ const OnboardingWizard = () => {
 
       // 4. Add to groups
       if (onboardingOptions.addToGroups && onboardingOptions.selectedGroups.length > 0) {
+        setExecutionProgress(prev => ({ ...prev, currentTask: 'Adding to groups...', currentStep: prev.currentStep + 1 }));
         try {
           let addedCount = 0;
           for (const groupId of onboardingOptions.selectedGroups) {
@@ -470,6 +490,7 @@ const OnboardingWizard = () => {
 
       // 5. Set up email
       if (onboardingOptions.createMailbox) {
+        setExecutionProgress(prev => ({ ...prev, currentTask: 'Setting up email...', currentStep: prev.currentStep + 1 }));
         try {
           if (onboardingOptions.emailAlias) {
             await graphService.setEmailAlias(selectedUser.id, onboardingOptions.emailAlias);
@@ -490,6 +511,7 @@ const OnboardingWizard = () => {
 
       // 6. Send welcome email
       if (onboardingOptions.shareWelcomeKit) {
+        setExecutionProgress(prev => ({ ...prev, currentTask: 'Sending welcome email...', currentStep: prev.currentStep + 1 }));
         try {
           await graphService.sendWelcomeEmail(
             selectedUser.id,
@@ -512,6 +534,7 @@ const OnboardingWizard = () => {
 
       // 7. Schedule training
       if (onboardingOptions.scheduleTraining && onboardingOptions.trainingDate) {
+        setExecutionProgress(prev => ({ ...prev, currentTask: 'Scheduling training...', currentStep: prev.currentStep + 1 }));
         try {
           await graphService.scheduleTraining(
             selectedUser.id,
@@ -532,6 +555,7 @@ const OnboardingWizard = () => {
         }
       }
 
+      setExecutionProgress({ currentTask: 'Completed!', currentStep: totalSteps, totalSteps });
       setExecutionResults(results);
       setCurrentStep(4); // Move to results step
       toast.success('Onboarding process completed');
@@ -1245,6 +1269,28 @@ const OnboardingWizard = () => {
                 )}
               </button>
             </div>
+            
+            {/* Progress Display */}
+            {isExecuting && executionProgress.totalSteps > 0 && (
+              <div className="mt-6 card">
+                <div className="card-body">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {executionProgress.currentTask}
+                    </span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      {executionProgress.currentStep} / {executionProgress.totalSteps}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div 
+                      className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${(executionProgress.currentStep / executionProgress.totalSteps) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         );
 
