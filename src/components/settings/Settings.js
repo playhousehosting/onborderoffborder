@@ -87,10 +87,11 @@ const Settings = () => {
     setIsLoadingGroups(true);
     try {
       const groups = await graphService.getAllGroups();
-      setAvailableGroups(groups);
+      setAvailableGroups(Array.isArray(groups) ? groups : []);
     } catch (error) {
       console.error('Error loading groups:', error);
       toast.error('Failed to load groups');
+      setAvailableGroups([]);
     } finally {
       setIsLoadingGroups(false);
     }
@@ -529,7 +530,7 @@ const Settings = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {departmentMappings.map((mapping, index) => (
+                  {Array.isArray(departmentMappings) && departmentMappings.map((mapping, index) => (
                     <div
                       key={index}
                       className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50"
@@ -564,7 +565,7 @@ const Settings = () => {
                               }}
                               className="input min-h-[150px]"
                             >
-                              {availableGroups.map(group => (
+                              {Array.isArray(availableGroups) && availableGroups.map(group => (
                                 <option key={group.id} value={group.id}>
                                   {group.displayName}
                                 </option>
@@ -576,7 +577,7 @@ const Settings = () => {
                           </div>
 
                           {/* Selected Groups Display */}
-                          {mapping.groupIds.length > 0 && (
+                          {mapping.groupIds && Array.isArray(mapping.groupIds) && mapping.groupIds.length > 0 && (
                             <div>
                               <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Selected Groups:</p>
                               <div className="flex flex-wrap gap-2">
