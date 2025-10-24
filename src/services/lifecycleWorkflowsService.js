@@ -40,7 +40,7 @@ export const TRIGGER_TYPES = {
  */
 export const listWorkflows = async () => {
   try {
-    const response = await graphService.makeGraphRequest(
+    const response = await graphService.makeRequest(
       '/identityGovernance/lifecycleWorkflows/workflows',
       'GET'
     );
@@ -56,7 +56,7 @@ export const listWorkflows = async () => {
  */
 export const getWorkflow = async (workflowId) => {
   try {
-    return await graphService.makeGraphRequest(
+    return await graphService.makeRequest(
       `/identityGovernance/lifecycleWorkflows/workflows/${workflowId}`,
       'GET'
     );
@@ -123,7 +123,7 @@ export const createJoinerWorkflow = async ({
       tasks: workflowTasks
     };
 
-    return await graphService.makeGraphRequest(
+    return await graphService.makeRequest(
       '/identityGovernance/lifecycleWorkflows/workflows',
       'POST',
       workflow
@@ -187,7 +187,7 @@ export const createMoverWorkflow = async ({
       tasks: workflowTasks
     };
 
-    return await graphService.makeGraphRequest(
+    return await graphService.makeRequest(
       '/identityGovernance/lifecycleWorkflows/workflows',
       'POST',
       workflow
@@ -278,7 +278,7 @@ export const createLeaverWorkflow = async ({
       tasks: workflowTasks
     };
 
-    return await graphService.makeGraphRequest(
+    return await graphService.makeRequest(
       '/identityGovernance/lifecycleWorkflows/workflows',
       'POST',
       workflow
@@ -294,7 +294,7 @@ export const createLeaverWorkflow = async ({
  */
 export const updateWorkflow = async (workflowId, updates) => {
   try {
-    return await graphService.makeGraphRequest(
+    return await graphService.makeRequest(
       `/identityGovernance/lifecycleWorkflows/workflows/${workflowId}`,
       'PATCH',
       updates
@@ -310,7 +310,7 @@ export const updateWorkflow = async (workflowId, updates) => {
  */
 export const deleteWorkflow = async (workflowId) => {
   try {
-    await graphService.makeGraphRequest(
+    await graphService.makeRequest(
       `/identityGovernance/lifecycleWorkflows/workflows/${workflowId}`,
       'DELETE'
     );
@@ -334,7 +334,7 @@ export const activateWorkflowForUser = async (workflowId, userId) => {
       ]
     };
 
-    return await graphService.makeGraphRequest(
+    return await graphService.makeRequest(
       `/identityGovernance/lifecycleWorkflows/workflows/${workflowId}/activate`,
       'POST',
       payload
@@ -350,7 +350,7 @@ export const activateWorkflowForUser = async (workflowId, userId) => {
  */
 export const getWorkflowExecutions = async (workflowId) => {
   try {
-    const response = await graphService.makeGraphRequest(
+    const response = await graphService.makeRequest(
       `/identityGovernance/lifecycleWorkflows/workflows/${workflowId}/runs`,
       'GET'
     );
@@ -366,7 +366,7 @@ export const getWorkflowExecutions = async (workflowId) => {
  */
 export const getWorkflowRunDetails = async (workflowId, runId) => {
   try {
-    return await graphService.makeGraphRequest(
+    return await graphService.makeRequest(
       `/identityGovernance/lifecycleWorkflows/workflows/${workflowId}/runs/${runId}`,
       'GET'
     );
@@ -381,7 +381,7 @@ export const getWorkflowRunDetails = async (workflowId, runId) => {
  */
 export const getWorkflowRunTaskResults = async (workflowId, runId) => {
   try {
-    const response = await graphService.makeGraphRequest(
+    const response = await graphService.makeRequest(
       `/identityGovernance/lifecycleWorkflows/workflows/${workflowId}/runs/${runId}/taskProcessingResults`,
       'GET'
     );
@@ -397,7 +397,7 @@ export const getWorkflowRunTaskResults = async (workflowId, runId) => {
  */
 export const listTaskDefinitions = async () => {
   try {
-    const response = await graphService.makeGraphRequest(
+    const response = await graphService.makeRequest(
       '/identityGovernance/lifecycleWorkflows/taskDefinitions',
       'GET'
     );
