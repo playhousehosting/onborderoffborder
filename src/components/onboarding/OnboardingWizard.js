@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { graphService } from '../../services/graphService';
 import { useAuth } from '../../contexts/AuthContext';
+import { getGroupsForDepartment, hasMappedGroups } from '../../utils/departmentMappings';
 import toast from 'react-hot-toast';
 import {
   UserPlusIcon,
@@ -236,10 +237,24 @@ const OnboardingWizard = () => {
   }, [searchTerm]);
 
   const handleOptionChange = (option, value) => {
-    setOnboardingOptions(prev => ({
-      ...prev,
-      [option]: value,
-    }));
+    setOnboardingOptions(prev => {
+      const updated = {
+        ...prev,
+        [option]: value,
+      };
+
+      // If department is changed, auto-select mapped groups
+      if (option === 'department' && value) {
+        const mappedGroupIds = getGroupsForDepartment(value);
+        if (mappedGroupIds.length > 0) {
+          updated.selectedGroups = [...new Set([...prev.selectedGroups, ...mappedGroupIds])];
+          updated.addToGroups = true;
+          toast.success(`Automatically selected ${mappedGroupIds.length} groups for ${value} department`);
+        }
+      }
+
+      return updated;
+    });
   };
 
   const validateStep = () => {

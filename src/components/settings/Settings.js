@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { graphService } from '../../services/graphService';
 import { isDemoMode } from '../../config/authConfig';
 import toast from 'react-hot-toast';
 import {
@@ -13,6 +14,8 @@ import {
   TrashIcon,
   CheckCircleIcon,
   XCircleIcon,
+  PlusIcon,
+  BuildingOfficeIcon,
 } from '@heroicons/react/24/outline';
 
 const Settings = () => {
@@ -33,6 +36,9 @@ const Settings = () => {
   const [isDemo, setIsDemo] = useState(false);
   const [showSecrets, setShowSecrets] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [departmentMappings, setDepartmentMappings] = useState([]);
+  const [availableGroups, setAvailableGroups] = useState([]);
+  const [isLoadingGroups, setIsLoadingGroups] = useState(false);
 
   useEffect(() => {
     // Load current configuration
@@ -57,10 +63,73 @@ const Settings = () => {
       } catch (e) {
         console.error('Error loading preferences:', e);
       }
+
+      // Load department mappings
+      try {
+        const savedMappings = JSON.parse(localStorage.getItem('departmentMappings') || '[]');
+        setDepartmentMappings(savedMappings);
+      } catch (e) {
+        console.error('Error loading department mappings:', e);
+      }
     };
 
     loadConfig();
   }, []);
+
+  // Load available groups when departments tab is active
+  useEffect(() => {
+    if (activeTab === 'departments' && availableGroups.length === 0) {
+      loadGroups();
+    }
+  }, [activeTab]);
+
+  const loadGroups = async () => {
+    setIsLoadingGroups(true);
+    try {
+      const groups = await graphService.getAllGroups();
+      setAvailableGroups(groups);
+    } catch (error) {
+      console.error('Error loading groups:', error);
+      toast.error('Failed to load groups');
+    } finally {
+      setIsLoadingGroups(false);
+    }
+  };
+
+  const addDepartmentMapping = () => {
+    setDepartmentMappings([...departmentMappings, { department: '', groupIds: [] }]);
+  };
+
+  const removeDepartmentMapping = (index) => {
+    const updated = departmentMappings.filter((_, i) => i !== index);
+    setDepartmentMappings(updated);
+    localStorage.setItem('departmentMappings', JSON.stringify(updated));
+    toast.success('Mapping removed');
+  };
+
+  const updateDepartmentMapping = (index, field, value) => {
+    const updated = [...departmentMappings];
+    updated[index] = { ...updated[index], [field]: value };
+    setDepartmentMappings(updated);
+  };
+
+  const saveDepartmentMappings = () => {
+    try {
+      // Validate mappings
+      const invalid = departmentMappings.some(m => !m.department || m.groupIds.length === 0);
+      if (invalid) {
+        toast.error('Each department must have a name and at least one group');
+        return;
+      }
+
+      localStorage.setItem('departmentMappings', JSON.stringify(departmentMappings));
+      toast.success('Department mappings saved successfully');
+    } catch (error) {
+      console.error('Error saving department mappings:', error);
+      toast.error('Failed to save department mappings');
+    }
+  };
+
 
   const handleConfigChange = (e) => {
     const { name, value } = e.target;
@@ -135,6 +204,7 @@ const Settings = () => {
 
   const tabs = [
     { id: 'azure', name: 'Azure AD', icon: KeyIcon },
+    { id: 'departments', name: 'Department Mappings', icon: UserGroupIcon },
     { id: 'preferences', name: 'Preferences', icon: CogIcon },
     { id: 'security', name: 'Security', icon: ShieldCheckIcon },
   ];
@@ -404,6 +474,158 @@ const Settings = () => {
                   />
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Department Mappings Tab */}
+        {activeTab === 'departments' && (
+          <div className="card">
+            <div className="card-header">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <BuildingOfficeIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Department to Group Mappings</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Map departments to Azure AD groups for automatic assignment during onboarding
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={addDepartmentMapping}
+                  className="btn-secondary flex items-center gap-2"
+                >
+                  <PlusIcon className="h-5 w-5" />
+                  Add Mapping
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {isLoadingGroups ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="flex flex-col items-center gap-3">
+                    <ArrowPathIcon className="h-8 w-8 text-blue-600 animate-spin" />
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Loading groups...</p>
+                  </div>
+                </div>
+              ) : departmentMappings.length === 0 ? (
+                <div className="text-center py-12">
+                  <BuildingOfficeIcon className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No department mappings</h3>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Get started by creating a department to group mapping
+                  </p>
+                  <div className="mt-6">
+                    <button
+                      onClick={addDepartmentMapping}
+                      className="btn-primary inline-flex items-center gap-2"
+                    >
+                      <PlusIcon className="h-5 w-5" />
+                      Add First Mapping
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {departmentMappings.map((mapping, index) => (
+                    <div
+                      key={index}
+                      className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="flex-1 space-y-4">
+                          {/* Department Name Input */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Department Name
+                            </label>
+                            <input
+                              type="text"
+                              value={mapping.department}
+                              onChange={(e) => updateDepartmentMapping(index, 'department', e.target.value)}
+                              placeholder="e.g., Engineering, Marketing, Sales"
+                              className="input"
+                            />
+                          </div>
+
+                          {/* Group Selection */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Assigned Groups ({mapping.groupIds.length} selected)
+                            </label>
+                            <select
+                              multiple
+                              value={mapping.groupIds}
+                              onChange={(e) => {
+                                const selected = Array.from(e.target.selectedOptions, option => option.value);
+                                updateDepartmentMapping(index, 'groupIds', selected);
+                              }}
+                              className="input min-h-[150px]"
+                            >
+                              {availableGroups.map(group => (
+                                <option key={group.id} value={group.id}>
+                                  {group.displayName}
+                                </option>
+                              ))}
+                            </select>
+                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                              Hold Ctrl/Cmd to select multiple groups
+                            </p>
+                          </div>
+
+                          {/* Selected Groups Display */}
+                          {mapping.groupIds.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Selected Groups:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {mapping.groupIds.map(groupId => {
+                                  const group = availableGroups.find(g => g.id === groupId);
+                                  return group ? (
+                                    <span
+                                      key={groupId}
+                                      className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                                    >
+                                      <UserGroupIcon className="h-3 w-3" />
+                                      {group.displayName}
+                                    </span>
+                                  ) : null;
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Remove Button */}
+                        <button
+                          onClick={() => removeDepartmentMapping(index)}
+                          className="flex-shrink-0 p-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          title="Remove mapping"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Save Button */}
+              {departmentMappings.length > 0 && !isLoadingGroups && (
+                <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Users will be automatically added to these groups during onboarding based on their department
+                  </p>
+                  <button
+                    onClick={saveDepartmentMappings}
+                    className="btn-primary flex items-center gap-2"
+                  >
+                    <CheckCircleIcon className="h-5 w-5" />
+                    Save Mappings
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
