@@ -179,6 +179,16 @@ const FAQ = () => {
           id: 'onboarding-templates',
           question: 'Are there templates for common roles?',
           answer: 'Yes, you can create and save onboarding templates for common roles (e.g., "Sales Representative", "Developer", "Manager"). Templates include pre-configured licenses, group memberships, SharePoint permissions, and Intune policies. When onboarding a new employee, select their role template and the portal applies all settings automatically, ensuring consistency across similar positions.'
+        },
+        {
+          id: 'department-mapping',
+          question: 'What is department-to-group mapping?',
+          answer: 'Department mapping allows you to configure which Azure AD groups should automatically be assigned when onboarding users to specific departments. For example, you can map "Engineering" to groups like "Engineering-Team", "VPN-Access", and "GitHub-Users". When you onboard a new engineer and select "Engineering" as their department, these groups are automatically pre-selected, saving time and ensuring consistency. Configure mappings in Settings → Department Mappings.'
+        },
+        {
+          id: 'auto-group-assignment',
+          question: 'How does automatic group assignment work?',
+          answer: 'When you select a department during onboarding, the portal checks if any group mappings exist for that department. If mappings are found, those groups are automatically added to the selected groups list. You\'ll see a notification indicating how many groups were auto-selected. You can still manually add or remove groups after the automatic selection. This feature streamlines onboarding by reducing repetitive group selection for standard department roles.'
         }
       ]
     },
@@ -236,6 +246,32 @@ const FAQ = () => {
           id: 'offboarding-schedule',
           question: 'Can I schedule offboarding for a future date?',
           answer: 'Yes! You can schedule offboarding to execute automatically on a future date (e.g., employee\'s last day). The portal will: Queue the offboarding request with specified date/time, Send reminder notifications before execution, Automatically run all offboarding steps at scheduled time, Email summary report when complete, Allow cancellation if employee stays. This is useful for planned departures where you want everything to happen precisely at end of business on the last day.'
+        }
+      ]
+    },
+    {
+      category: 'Lifecycle Workflows',
+      icon: ArrowLeftIcon,
+      questions: [
+        {
+          id: 'lifecycle-workflows-overview',
+          question: 'What are Lifecycle Workflows?',
+          answer: 'Lifecycle Workflows are enterprise automation tools that handle Joiner-Mover-Leaver scenarios. Joiner workflows automate pre-hire and first-day tasks like generating temporary access passes and requesting access packages. Mover workflows handle transfers between departments with automatic notifications to managers. Leaver workflows automate offboarding tasks like removing users from all groups, revoking licenses, and eventually deleting accounts. These workflows use Microsoft Graph Identity Governance APIs to ensure consistent, auditable processes.'
+        },
+        {
+          id: 'workflow-templates',
+          question: 'What workflow templates are available?',
+          answer: 'Pre-built templates include: **Joiner - Pre-hire:** Generate TAP, send welcome email, request access packages. **Joiner - First Day:** Assign initial groups, provision resources. **Mover - Department Transfer:** Update manager, notify stakeholders, adjust groups. **Leaver - Immediate:** Disable account, remove access immediately. **Leaver - Gradual:** Phase out access over time, convert mailbox. Each template can be customized with specific tasks, triggers, and scoping rules based on your organization\'s needs.'
+        },
+        {
+          id: 'workflow-execution',
+          question: 'How do I monitor workflow execution?',
+          answer: 'The Workflow Management page shows all workflows with their status (Active, Inactive), execution count, and last run time. Click any workflow to see detailed execution history including which users were processed, task completion status, and any errors encountered. You can activate/deactivate workflows, modify their configuration, and view execution logs. Real-time monitoring helps ensure automation runs smoothly and alerts you to any issues.'
+        },
+        {
+          id: 'workflow-scoping',
+          question: 'Can workflows target specific users or departments?',
+          answer: 'Yes! Workflows support rule-based scoping using filters like department, office location, employee type, or custom attributes. For example, you can create a leaver workflow that only applies to users in the "Engineering" department or a joiner workflow specific to "Remote" employees. This ensures workflows execute only for relevant users and allows different processes for different organizational groups.'
         }
       ]
     },

@@ -24,6 +24,7 @@ A comprehensive full-stack web application for managing the complete employee li
 - **New User Creation**: Enter first name, last name, email, and display name
 - **On-Premises AD Support**: Create users in on-prem Active Directory that sync to Azure AD
 - **Auto-Loading Dropdowns**: Multi-select for licenses and groups with automatic resource loading
+- **Department-to-Group Mapping**: Configure departments to automatically assign standard groups during onboarding
 - **Group Assignment**: Assign users to security groups and distribution lists
 - **License Assignment**: Allocate Microsoft 365 licenses during user creation
 - **Copy Groups Feature**: Clone group memberships from existing users (in development)
@@ -46,6 +47,21 @@ A comprehensive full-stack web application for managing the complete employee li
 - **Compliance Status**: Monitor device compliance and security policies
 - **Bulk Operations**: Process multiple devices simultaneously
 
+### Lifecycle Workflows (Enterprise Automation)
+- **Joiner Workflows**: Automate pre-hire and first-day tasks
+- **Mover Workflows**: Handle department transfers and role changes
+- **Leaver Workflows**: Automate offboarding tasks and access removal
+- **Workflow Templates**: Pre-built templates for common scenarios
+- **Rule-Based Scoping**: Target workflows by department, location, or custom attributes
+- **Execution Monitoring**: Track workflow runs and task completion
+
+### Settings & Configuration
+- **Azure AD Configuration**: Manage client credentials and tenant settings
+- **Department Mappings**: Map departments to groups for streamlined onboarding
+- **User Preferences**: Customize notifications, auto-refresh, and display options
+- **Security Settings**: Manage authentication modes and access controls
+- **Multi-Language Support**: Full internationalization with 9 languages
+
 ### Technical Excellence
 - ✅ **Automatic Retry Logic**: Handles throttling (429 errors) with exponential backoff
 - ✅ **Pagination Support**: Fetches all users/groups via `@odata.nextLink` cursor
@@ -59,8 +75,9 @@ A comprehensive full-stack web application for managing the complete employee li
 
 ### Frontend (React)
 - **Framework**: Create React App with React Router
-- **Styling**: Tailwind CSS with custom design system
+- **Styling**: Tailwind CSS with custom design system and dark mode support
 - **State Management**: React Context API for auth and global state
+- **Internationalization**: i18next with 9 language translations (EN, ES, FR, DE, ZH, JA, PT, AR, BG)
 - **Icons**: Heroicons for consistent iconography
 - **Notifications**: React Hot Toast for user feedback
 
