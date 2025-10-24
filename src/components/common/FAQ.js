@@ -417,7 +417,7 @@ const FAQ = () => {
         </div>
 
         {/* FAQ Categories */}
-        {faqCategories.map((category) => {
+        {Array.isArray(faqCategories) && faqCategories.map((category) => {
           const CategoryIcon = category.icon;
           const isCategoryOpen = openCategory === category.category;
 
@@ -447,7 +447,7 @@ const FAQ = () => {
                 )}
               </button>
 
-              {isCategoryOpen && (
+              {isCategoryOpen && category.questions && Array.isArray(category.questions) && (
                 <div className="mt-4 space-y-3">
                   {category.questions.map((q) => {
                     const isQuestionOpen = openQuestion === q.id;
