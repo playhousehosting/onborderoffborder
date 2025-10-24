@@ -453,42 +453,6 @@ const FAQ = () => {
             </div>
           );
         })}
-
-        {/* Still Have Questions Section */}
-        <div className="mt-12 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700 rounded-lg shadow-lg p-8 text-center">
-          <h2 className="text-2xl font-bold text-white mb-4">
-            {t('faq.stillHaveQuestions')}
-          </h2>
-          <p className="text-blue-100 mb-6">
-            {t('faq.stillHaveQuestionsDesc')}
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <a
-              href="https://github.com/playhousehosting/onborderoffborder"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 transition-colors duration-150"
-            >
-              {t('faq.viewDocumentation')}
-            </a>
-            <a
-              href="https://github.com/playhousehosting/onborderoffborder/issues"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 transition-colors duration-150"
-            >
-              {t('faq.reportIssue')}
-            </a>
-            <a
-              href="https://github.com/playhousehosting/onborderoffborder/discussions"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 transition-colors duration-150"
-            >
-              {t('faq.joinDiscussion')}
-            </a>
-          </div>
-        </div>
       </div>
     </div>
   );
