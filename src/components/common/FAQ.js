@@ -183,12 +183,12 @@ const FAQ = () => {
         {
           id: 'department-mapping',
           question: 'What is department-to-group mapping?',
-          answer: 'Department mapping allows you to configure which Azure AD groups should automatically be assigned when onboarding users to specific departments. For example, you can map "Engineering" to groups like "Engineering-Team", "VPN-Access", and "GitHub-Users". When you onboard a new engineer and select "Engineering" as their department, these groups are automatically pre-selected, saving time and ensuring consistency. Configure mappings in Settings → Department Mappings.'
+          answer: 'Department mapping allows you to configure which Azure AD groups should automatically be assigned when onboarding users to specific departments. For example, you can map "Engineering" to groups like "Engineering-Team", "VPN-Access", and "GitHub-Users". When you onboard a new engineer and select "Engineering" as their department, these groups are automatically pre-selected, saving time and ensuring consistency. Configure mappings in Workflows → Department Mappings tab.'
         },
         {
           id: 'auto-group-assignment',
           question: 'How does automatic group assignment work?',
-          answer: 'When you select a department during onboarding, the portal checks if any group mappings exist for that department. If mappings are found, those groups are automatically added to the selected groups list. You\'ll see a notification indicating how many groups were auto-selected. You can still manually add or remove groups after the automatic selection. This feature streamlines onboarding by reducing repetitive group selection for standard department roles.'
+          answer: 'When you select a department during onboarding, the portal checks if any group mappings exist for that department. If mappings are found, those groups are automatically added to the selected groups list. You\'ll see a notification indicating how many groups were auto-selected. You can still manually add or remove groups after the automatic selection. This feature streamlines onboarding by reducing repetitive group selection for standard department roles. Manage your department mappings in the Workflows section.'
         }
       ]
     },

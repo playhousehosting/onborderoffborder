@@ -54,10 +54,10 @@ A comprehensive full-stack web application for managing the complete employee li
 - **Workflow Templates**: Pre-built templates for common scenarios
 - **Rule-Based Scoping**: Target workflows by department, location, or custom attributes
 - **Execution Monitoring**: Track workflow runs and task completion
+- **Department Mappings**: Map departments to groups for streamlined onboarding automation
 
 ### Settings & Configuration
 - **Azure AD Configuration**: Manage client credentials and tenant settings
-- **Department Mappings**: Map departments to groups for streamlined onboarding
 - **User Preferences**: Customize notifications, auto-refresh, and display options
 - **Security Settings**: Manage authentication modes and access controls
 - **Multi-Language Support**: Full internationalization with 9 languages

@@ -10,12 +10,24 @@ import {
   ClockIcon,
   ArrowPathIcon,
   ChartBarIcon,
-  Cog6ToothIcon
+  Cog6ToothIcon,
+  BuildingOfficeIcon,
+  UserGroupIcon
 } from '@heroicons/react/24/outline';
 import lifecycleWorkflowsService, { WORKFLOW_CATEGORIES } from '../../services/lifecycleWorkflowsService';
+import graphService from '../../services/graphService';
+import { 
+  getDepartmentMappings, 
+  saveDepartmentMappings 
+} from '../../utils/departmentMappings';
 
 const WorkflowManagement = () => {
   const { t } = useTranslation();
+  
+  // Tab state
+  const [activeTab, setActiveTab] = useState('workflows'); // 'workflows' or 'mappings'
+  
+  // Workflow states
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -24,11 +36,40 @@ const WorkflowManagement = () => {
   const [selectedWorkflow, setSelectedWorkflow] = useState(null);
   const [showExecutionHistory, setShowExecutionHistory] = useState(false);
   const [executionHistory, setExecutionHistory] = useState([]);
+  
+  // Department Mappings states
+  const [departmentMappings, setDepartmentMappings] = useState([]);
+  const [availableGroups, setAvailableGroups] = useState([]);
+  const [isLoadingGroups, setIsLoadingGroups] = useState(false);
 
   // Load workflows on mount
   useEffect(() => {
     loadWorkflows();
-  }, []);
+    if (activeTab === 'mappings') {
+      loadDepartmentMappings();
+      loadGroups();
+    }
+  }, [activeTab]);
+  
+  // Load department mappings from localStorage
+  const loadDepartmentMappings = () => {
+    const mappings = getDepartmentMappings();
+    setDepartmentMappings(mappings);
+  };
+  
+  // Load Azure AD groups
+  const loadGroups = async () => {
+    setIsLoadingGroups(true);
+    try {
+      const groups = await graphService.getGroups();
+      setAvailableGroups(Array.isArray(groups) ? groups : []);
+    } catch (error) {
+      console.error('Error loading groups:', error);
+      setAvailableGroups([]);
+    } finally {
+      setIsLoadingGroups(false);
+    }
+  };
 
   const loadWorkflows = async () => {
     try {
@@ -64,6 +105,28 @@ const WorkflowManagement = () => {
     } catch (err) {
       setError(`Failed to toggle workflow: ${err.message}`);
     }
+  };
+  
+  // Department Mapping Functions
+  const addDepartmentMapping = () => {
+    setDepartmentMappings([...departmentMappings, { department: '', groupIds: [] }]);
+  };
+  
+  const updateDepartmentMapping = (index, field, value) => {
+    const updated = [...departmentMappings];
+    updated[index] = { ...updated[index], [field]: value };
+    setDepartmentMappings(updated);
+  };
+  
+  const removeDepartmentMapping = (index) => {
+    const updated = departmentMappings.filter((_, i) => i !== index);
+    setDepartmentMappings(updated);
+    saveDepartmentMappings(updated);
+  };
+  
+  const saveMappings = () => {
+    saveDepartmentMappings(departmentMappings);
+    alert('Department mappings saved successfully!');
   };
 
   const handleViewExecutionHistory = async (workflow) => {
@@ -105,26 +168,66 @@ const WorkflowManagement = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Lifecycle Workflows
-            </h1>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-              Automate employee onboarding, transfers, and offboarding with intelligent workflows
-            </p>
+      {/* Header with Tabs */}
+      <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                Workflow Automation
+              </h1>
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                Manage lifecycle workflows and department mappings
+              </p>
+            </div>
+            <div className="mt-4 md:mt-0">
+              {activeTab === 'workflows' ? (
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+                >
+                  <PlusIcon className="h-5 w-5 mr-2" />
+                  Create Workflow
+                </button>
+              ) : (
+                <button
+                  onClick={addDepartmentMapping}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+                >
+                  <PlusIcon className="h-5 w-5 mr-2" />
+                  Add Mapping
+                </button>
+              )}
+            </div>
           </div>
-          <div className="mt-4 md:mt-0">
+        </div>
+        
+        {/* Tab Navigation */}
+        <div className="border-b border-gray-200 dark:border-gray-700">
+          <nav className="-mb-px flex space-x-8 px-6" aria-label="Tabs">
             <button
-              onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+              onClick={() => setActiveTab('workflows')}
+              className={`${
+                activeTab === 'workflows'
+                  ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors`}
             >
-              <PlusIcon className="h-5 w-5 mr-2" />
-              Create Workflow
+              <Cog6ToothIcon className="h-5 w-5" />
+              Lifecycle Workflows
             </button>
-          </div>
+            <button
+              onClick={() => setActiveTab('mappings')}
+              className={`${
+                activeTab === 'mappings'
+                  ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors`}
+            >
+              <BuildingOfficeIcon className="h-5 w-5" />
+              Department Mappings
+            </button>
+          </nav>
         </div>
       </div>
 
@@ -141,9 +244,12 @@ const WorkflowManagement = () => {
         </div>
       )}
 
-      {/* Category Filters */}
-      <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-        <div className="flex flex-wrap gap-2">
+      {/* Workflows Tab Content */}
+      {activeTab === 'workflows' && (
+        <>
+          {/* Category Filters */}
+          <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setSelectedCategory('all')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -297,6 +403,138 @@ const WorkflowManagement = () => {
           </div>
         )}
       </div>
+      </>
+      )}
+
+      {/* Department Mappings Tab Content */}
+      {activeTab === 'mappings' && (
+        <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="p-6 space-y-6">
+            {isLoadingGroups ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="flex flex-col items-center gap-3">
+                  <ArrowPathIcon className="h-8 w-8 text-blue-600 animate-spin" />
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Loading groups...</p>
+                </div>
+              </div>
+            ) : departmentMappings.length === 0 ? (
+              <div className="text-center py-12">
+                <BuildingOfficeIcon className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No department mappings</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Get started by creating a department to group mapping
+                </p>
+                <div className="mt-6">
+                  <button
+                    onClick={addDepartmentMapping}
+                    className="btn-primary inline-flex items-center gap-2"
+                  >
+                    <PlusIcon className="h-5 w-5" />
+                    Add First Mapping
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {Array.isArray(departmentMappings) && departmentMappings.map((mapping, index) => (
+                  <div
+                    key={index}
+                    className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="flex-1 space-y-4">
+                        {/* Department Name Input */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Department Name
+                          </label>
+                          <input
+                            type="text"
+                            value={mapping.department}
+                            onChange={(e) => updateDepartmentMapping(index, 'department', e.target.value)}
+                            placeholder="e.g., Engineering, Marketing, Sales"
+                            className="input"
+                          />
+                        </div>
+
+                        {/* Group Selection */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Assigned Groups ({mapping.groupIds.length} selected)
+                          </label>
+                          <select
+                            multiple
+                            value={mapping.groupIds}
+                            onChange={(e) => {
+                              const selected = Array.from(e.target.selectedOptions, option => option.value);
+                              updateDepartmentMapping(index, 'groupIds', selected);
+                            }}
+                            className="input min-h-[150px]"
+                          >
+                            {Array.isArray(availableGroups) && availableGroups.map(group => (
+                              <option key={group.id} value={group.id}>
+                                {group.displayName}
+                              </option>
+                            ))}
+                          </select>
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            Hold Ctrl/Cmd to select multiple groups
+                          </p>
+                        </div>
+
+                        {/* Selected Groups Display */}
+                        {mapping.groupIds && Array.isArray(mapping.groupIds) && mapping.groupIds.length > 0 && (
+                          <div>
+                            <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Selected Groups:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {mapping.groupIds.map(groupId => {
+                                const group = availableGroups.find(g => g.id === groupId);
+                                return group ? (
+                                  <span
+                                    key={groupId}
+                                    className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                                  >
+                                    <UserGroupIcon className="h-3 w-3" />
+                                    {group.displayName}
+                                  </span>
+                                ) : null;
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Remove Button */}
+                      <button
+                        onClick={() => removeDepartmentMapping(index)}
+                        className="flex-shrink-0 p-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                        title="Remove mapping"
+                      >
+                        <TrashIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Save Button */}
+            {departmentMappings.length > 0 && !isLoadingGroups && (
+              <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Users will be automatically added to these groups during onboarding based on their department
+                </p>
+                <button
+                  onClick={saveMappings}
+                  className="btn-primary"
+                >
+                  Save Mappings
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Create Workflow Modal - Placeholder */}
       {showCreateModal && (
