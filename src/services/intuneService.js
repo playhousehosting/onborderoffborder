@@ -4,7 +4,7 @@
  * Supports all Intune management capabilities including Win32 apps, settings catalog, and templates
  */
 
-import graphService from './graphService';
+import { graphService } from './graphService';
 
 // ========== INTUNE API ENDPOINTS ==========
 const INTUNE_ENDPOINTS = {
@@ -53,7 +53,7 @@ export const getManagedDevices = async (options = {}) => {
     const queryString = params.toString();
     if (queryString) url += `?${queryString}`;
     
-    const response = await graphService.callMsGraph(url);
+    const response = await graphService.makeRequest(url);
     return response.value || [];
   } catch (error) {
     console.error('Error fetching managed devices:', error);
@@ -68,7 +68,7 @@ export const getManagedDevices = async (options = {}) => {
  */
 export const getManagedDevice = async (deviceId) => {
   try {
-    return await graphService.callMsGraph(`${INTUNE_ENDPOINTS.MANAGED_DEVICES}/${deviceId}`);
+    return await graphService.makeRequest(`${INTUNE_ENDPOINTS.MANAGED_DEVICES}/${deviceId}`);
   } catch (error) {
     console.error(`Error fetching device ${deviceId}:`, error);
     throw error;
@@ -82,10 +82,7 @@ export const getManagedDevice = async (deviceId) => {
  */
 export const syncDevice = async (deviceId) => {
   try {
-    await graphService.callMsGraph(
-      `${INTUNE_ENDPOINTS.MANAGED_DEVICES}/${deviceId}/syncDevice`,
-      'POST'
-    );
+    await graphService.makeRequest(`${INTUNE_ENDPOINTS.MANAGED_DEVICES}/${deviceId}/syncDevice`, { method: 'POST' });
   } catch (error) {
     console.error(`Error syncing device ${deviceId}:`, error);
     throw error;
@@ -99,10 +96,7 @@ export const syncDevice = async (deviceId) => {
  */
 export const rebootDevice = async (deviceId) => {
   try {
-    await graphService.callMsGraph(
-      `${INTUNE_ENDPOINTS.MANAGED_DEVICES}/${deviceId}/rebootNow`,
-      'POST'
-    );
+    await graphService.makeRequest(`${INTUNE_ENDPOINTS.MANAGED_DEVICES}/${deviceId}/rebootNow`, { method: 'POST' });
   } catch (error) {
     console.error(`Error rebooting device ${deviceId}:`, error);
     throw error;
@@ -116,10 +110,7 @@ export const rebootDevice = async (deviceId) => {
  */
 export const remoteLockDevice = async (deviceId) => {
   try {
-    await graphService.callMsGraph(
-      `${INTUNE_ENDPOINTS.MANAGED_DEVICES}/${deviceId}/remoteLock`,
-      'POST'
-    );
+    await graphService.makeRequest(`${INTUNE_ENDPOINTS.MANAGED_DEVICES}/${deviceId}/remoteLock`, { method: 'POST' });
   } catch (error) {
     console.error(`Error remote locking device ${deviceId}:`, error);
     throw error;
@@ -133,10 +124,7 @@ export const remoteLockDevice = async (deviceId) => {
  */
 export const retireDevice = async (deviceId) => {
   try {
-    await graphService.callMsGraph(
-      `${INTUNE_ENDPOINTS.MANAGED_DEVICES}/${deviceId}/retire`,
-      'POST'
-    );
+    await graphService.makeRequest(`${INTUNE_ENDPOINTS.MANAGED_DEVICES}/${deviceId}/retire`, { method: 'POST' });
   } catch (error) {
     console.error(`Error retiring device ${deviceId}:`, error);
     throw error;
@@ -151,11 +139,8 @@ export const retireDevice = async (deviceId) => {
  */
 export const wipeDevice = async (deviceId, options = {}) => {
   try {
-    await graphService.callMsGraph(
-      `${INTUNE_ENDPOINTS.MANAGED_DEVICES}/${deviceId}/wipe`,
-      'POST',
-      options
-    );
+    await graphService.makeRequest(`${INTUNE_ENDPOINTS.MANAGED_DEVICES}/${deviceId}/wipe`, { method: 'POST', body: JSON.stringify(options
+    ) });
   } catch (error) {
     console.error(`Error wiping device ${deviceId}:`, error);
     throw error;
@@ -202,7 +187,7 @@ export const getMobileApps = async (options = {}) => {
     const queryString = params.toString();
     if (queryString) url += `?${queryString}`;
     
-    const response = await graphService.callMsGraph(url);
+    const response = await graphService.makeRequest(url);
     return response.value || [];
   } catch (error) {
     console.error('Error fetching mobile apps:', error);
@@ -217,7 +202,7 @@ export const getMobileApps = async (options = {}) => {
  */
 export const getMobileApp = async (appId) => {
   try {
-    return await graphService.callMsGraph(`${INTUNE_ENDPOINTS.MOBILE_APPS}/${appId}`);
+    return await graphService.makeRequest(`${INTUNE_ENDPOINTS.MOBILE_APPS}/${appId}`);
   } catch (error) {
     console.error(`Error fetching app ${appId}:`, error);
     throw error;
@@ -249,7 +234,7 @@ export const createWin32App = async (appData) => {
       ...appData
     };
     
-    return await graphService.callMsGraph(INTUNE_ENDPOINTS.MOBILE_APPS, 'POST', app);
+    return await graphService.makeRequest(INTUNE_ENDPOINTS.MOBILE_APPS, { method: 'POST', body: JSON.stringify(app) });
   } catch (error) {
     console.error('Error creating Win32 app:', error);
     throw error;
@@ -263,11 +248,8 @@ export const createWin32App = async (appData) => {
  */
 export const createWin32AppContentVersion = async (appId) => {
   try {
-    return await graphService.callMsGraph(
-      `${INTUNE_ENDPOINTS.MOBILE_APPS}/${appId}/microsoft.graph.win32LobApp/contentVersions`,
-      'POST',
-      {}
-    );
+    return await graphService.makeRequest(`${INTUNE_ENDPOINTS.MOBILE_APPS}/${appId}/microsoft.graph.win32LobApp/contentVersions`, { method: 'POST', body: JSON.stringify({}
+    ) });
   } catch (error) {
     console.error('Error creating content version:', error);
     throw error;
@@ -291,11 +273,8 @@ export const createWin32AppContentFile = async (appId, contentVersionId, fileDat
       manifest: fileData.manifest
     };
     
-    return await graphService.callMsGraph(
-      `${INTUNE_ENDPOINTS.MOBILE_APPS}/${appId}/microsoft.graph.win32LobApp/contentVersions/${contentVersionId}/files`,
-      'POST',
-      file
-    );
+    return await graphService.makeRequest(`${INTUNE_ENDPOINTS.MOBILE_APPS}/${appId}/microsoft.graph.win32LobApp/contentVersions/${contentVersionId}/files`, { method: 'POST', body: JSON.stringify(file
+    ) });
   } catch (error) {
     console.error('Error creating content file:', error);
     throw error;
@@ -311,7 +290,7 @@ export const createWin32AppContentFile = async (appId, contentVersionId, fileDat
 export const getAppInstallStatus = async (appId, deviceId) => {
   try {
     const url = `${INTUNE_ENDPOINTS.MOBILE_APPS}/${appId}/deviceStatuses?$filter=deviceId eq '${deviceId}'`;
-    const response = await graphService.callMsGraph(url);
+    const response = await graphService.makeRequest(url);
     return response.value && response.value.length > 0 ? response.value[0] : null;
   } catch (error) {
     console.error(`Error fetching app install status:`, error);
@@ -326,7 +305,7 @@ export const getAppInstallStatus = async (appId, deviceId) => {
  */
 export const deleteMobileApp = async (appId) => {
   try {
-    await graphService.callMsGraph(`${INTUNE_ENDPOINTS.MOBILE_APPS}/${appId}`, 'DELETE');
+    await graphService.makeRequest(`${INTUNE_ENDPOINTS.MOBILE_APPS}/${appId}`, { method: 'DELETE' });
   } catch (error) {
     console.error(`Error deleting app ${appId}:`, error);
     throw error;
@@ -341,7 +320,7 @@ export const deleteMobileApp = async (appId) => {
  */
 export const getCompliancePolicies = async () => {
   try {
-    const response = await graphService.callMsGraph(INTUNE_ENDPOINTS.DEVICE_COMPLIANCE_POLICIES);
+    const response = await graphService.makeRequest(INTUNE_ENDPOINTS.DEVICE_COMPLIANCE_POLICIES);
     return response.value || [];
   } catch (error) {
     console.error('Error fetching compliance policies:', error);
@@ -356,7 +335,7 @@ export const getCompliancePolicies = async () => {
  */
 export const getCompliancePolicy = async (policyId) => {
   try {
-    return await graphService.callMsGraph(`${INTUNE_ENDPOINTS.DEVICE_COMPLIANCE_POLICIES}/${policyId}`);
+    return await graphService.makeRequest(`${INTUNE_ENDPOINTS.DEVICE_COMPLIANCE_POLICIES}/${policyId}`);
   } catch (error) {
     console.error(`Error fetching compliance policy ${policyId}:`, error);
     throw error;
@@ -370,11 +349,8 @@ export const getCompliancePolicy = async (policyId) => {
  */
 export const createCompliancePolicy = async (policyData) => {
   try {
-    return await graphService.callMsGraph(
-      INTUNE_ENDPOINTS.DEVICE_COMPLIANCE_POLICIES,
-      'POST',
-      policyData
-    );
+    return await graphService.makeRequest(INTUNE_ENDPOINTS.DEVICE_COMPLIANCE_POLICIES, { method: 'POST', body: JSON.stringify(policyData
+    ) });
   } catch (error) {
     console.error('Error creating compliance policy:', error);
     throw error;
@@ -388,7 +364,7 @@ export const createCompliancePolicy = async (policyData) => {
  */
 export const deleteCompliancePolicy = async (policyId) => {
   try {
-    await graphService.callMsGraph(`${INTUNE_ENDPOINTS.DEVICE_COMPLIANCE_POLICIES}/${policyId}`, 'DELETE');
+    await graphService.makeRequest(`${INTUNE_ENDPOINTS.DEVICE_COMPLIANCE_POLICIES}/${policyId}`, { method: 'DELETE' });
   } catch (error) {
     console.error(`Error deleting compliance policy ${policyId}:`, error);
     throw error;
@@ -403,7 +379,7 @@ export const deleteCompliancePolicy = async (policyId) => {
  */
 export const getConfigurationPolicies = async () => {
   try {
-    const response = await graphService.callMsGraph(INTUNE_ENDPOINTS.CONFIGURATION_POLICIES);
+    const response = await graphService.makeRequest(INTUNE_ENDPOINTS.CONFIGURATION_POLICIES);
     return response.value || [];
   } catch (error) {
     console.error('Error fetching configuration policies:', error);
@@ -418,7 +394,7 @@ export const getConfigurationPolicies = async () => {
  */
 export const getConfigurationPolicy = async (policyId) => {
   try {
-    return await graphService.callMsGraph(`${INTUNE_ENDPOINTS.CONFIGURATION_POLICIES}/${policyId}`);
+    return await graphService.makeRequest(`${INTUNE_ENDPOINTS.CONFIGURATION_POLICIES}/${policyId}`);
   } catch (error) {
     console.error(`Error fetching configuration policy ${policyId}:`, error);
     throw error;
@@ -441,11 +417,8 @@ export const createConfigurationPolicy = async (policyData) => {
       ...policyData
     };
     
-    return await graphService.callMsGraph(
-      INTUNE_ENDPOINTS.CONFIGURATION_POLICIES,
-      'POST',
-      policy
-    );
+    return await graphService.makeRequest(INTUNE_ENDPOINTS.CONFIGURATION_POLICIES, { method: 'POST', body: JSON.stringify(policy
+    ) });
   } catch (error) {
     console.error('Error creating configuration policy:', error);
     throw error;
@@ -460,11 +433,8 @@ export const createConfigurationPolicy = async (policyData) => {
  */
 export const updateConfigurationPolicy = async (policyId, updates) => {
   try {
-    return await graphService.callMsGraph(
-      `${INTUNE_ENDPOINTS.CONFIGURATION_POLICIES}/${policyId}`,
-      'PATCH',
-      updates
-    );
+    return await graphService.makeRequest(`${INTUNE_ENDPOINTS.CONFIGURATION_POLICIES}/${policyId}`, { method: 'PATCH', body: JSON.stringify(updates
+    ) });
   } catch (error) {
     console.error(`Error updating configuration policy ${policyId}:`, error);
     throw error;
@@ -478,7 +448,7 @@ export const updateConfigurationPolicy = async (policyId, updates) => {
  */
 export const deleteConfigurationPolicy = async (policyId) => {
   try {
-    await graphService.callMsGraph(`${INTUNE_ENDPOINTS.CONFIGURATION_POLICIES}/${policyId}`, 'DELETE');
+    await graphService.makeRequest(`${INTUNE_ENDPOINTS.CONFIGURATION_POLICIES}/${policyId}`, { method: 'DELETE' });
   } catch (error) {
     console.error(`Error deleting configuration policy ${policyId}:`, error);
     throw error;
@@ -493,7 +463,7 @@ export const deleteConfigurationPolicy = async (policyId) => {
  */
 export const getDeviceConfigurations = async () => {
   try {
-    const response = await graphService.callMsGraph(INTUNE_ENDPOINTS.DEVICE_CONFIGURATIONS);
+    const response = await graphService.makeRequest(INTUNE_ENDPOINTS.DEVICE_CONFIGURATIONS);
     return response.value || [];
   } catch (error) {
     console.error('Error fetching device configurations:', error);
@@ -508,11 +478,8 @@ export const getDeviceConfigurations = async () => {
  */
 export const createDeviceConfiguration = async (profileData) => {
   try {
-    return await graphService.callMsGraph(
-      INTUNE_ENDPOINTS.DEVICE_CONFIGURATIONS,
-      'POST',
-      profileData
-    );
+    return await graphService.makeRequest(INTUNE_ENDPOINTS.DEVICE_CONFIGURATIONS, { method: 'POST', body: JSON.stringify(profileData
+    ) });
   } catch (error) {
     console.error('Error creating device configuration:', error);
     throw error;
@@ -556,7 +523,7 @@ export const assignPolicy = async (policyId, policyType, assignments) => {
       }))
     };
     
-    await graphService.callMsGraph(endpoint, 'POST', payload);
+    await graphService.makeRequest(endpoint, { method: 'POST', body: JSON.stringify(payload) });
   } catch (error) {
     console.error('Error assigning policy:', error);
     throw error;
@@ -583,11 +550,8 @@ export const assignApp = async (appId, assignments) => {
       }))
     };
     
-    await graphService.callMsGraph(
-      `${INTUNE_ENDPOINTS.MOBILE_APPS}/${appId}/assign`,
-      'POST',
-      payload
-    );
+    await graphService.makeRequest(`${INTUNE_ENDPOINTS.MOBILE_APPS}/${appId}/assign`, { method: 'POST', body: JSON.stringify(payload
+    ) });
   } catch (error) {
     console.error('Error assigning app:', error);
     throw error;
@@ -618,7 +582,7 @@ export const getPolicyAssignments = async (policyId, policyType) => {
         throw new Error(`Unknown policy type: ${policyType}`);
     }
     
-    const response = await graphService.callMsGraph(endpoint);
+    const response = await graphService.makeRequest(endpoint);
     return response.value || [];
   } catch (error) {
     console.error('Error fetching policy assignments:', error);
@@ -634,7 +598,7 @@ export const getPolicyAssignments = async (policyId, policyType) => {
  */
 export const getDeviceComplianceReport = async () => {
   try {
-    const response = await graphService.callMsGraph(
+    const response = await graphService.makeRequest(
       `${INTUNE_ENDPOINTS.DEVICE_COMPLIANCE_REPORTS}/getDeviceCompliance`
     );
     return response;
@@ -659,11 +623,8 @@ export const exportReport = async (reportName, parameters = {}) => {
       orderBy: parameters.orderBy || []
     };
     
-    return await graphService.callMsGraph(
-      `${INTUNE_ENDPOINTS.REPORTS}/exportJobs`,
-      'POST',
-      payload
-    );
+    return await graphService.makeRequest(`${INTUNE_ENDPOINTS.REPORTS}/exportJobs`, { method: 'POST', body: JSON.stringify(payload
+    ) });
   } catch (error) {
     console.error('Error exporting report:', error);
     throw error;
@@ -889,3 +850,4 @@ export default {
   getPolicyTemplates,
   getDeviceStatistics,
 };
+

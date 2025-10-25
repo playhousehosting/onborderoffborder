@@ -643,7 +643,7 @@ const ApplicationsTab = ({ onSuccess, onError }) => {
                       <Button
                         size="small"
                         variant="contained"
-                        startIcon={<CloudUpload />}
+                        startIcon={<UploadIcon />}
                         onClick={() => setDeployDialog(pkg)}
                         fullWidth
                       >
