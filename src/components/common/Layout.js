@@ -65,6 +65,13 @@ const Layout = ({ children }) => {
       current: location.pathname === '/intune',
       permission: 'deviceManagement'
     },
+    {
+      name: t('nav.complianceManagement'),
+      href: '/compliance',
+      icon: ShieldCheckIcon,
+      current: location.pathname === '/compliance',
+      permission: 'complianceManagement'
+    },
     { name: t('nav.faq'), href: '/faq', icon: QuestionMarkCircleIcon, current: location.pathname === '/faq' },
     { name: t('nav.settings'), href: '/settings', icon: CogIcon, current: location.pathname === '/settings' },
   ];

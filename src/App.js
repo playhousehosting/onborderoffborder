@@ -19,6 +19,7 @@ import TransferWizard from './components/transfer/TransferWizard';
 import UserDetail from './components/users/UserDetail';
 import DeviceManagement from './components/intune/DeviceManagement';
 import IntuneManagement from './components/intune/IntuneManagement';
+import PurviewManagement from './components/compliance/PurviewManagement';
 import ScheduledOffboarding from './components/offboarding/ScheduledOffboarding';
 import WorkflowManagement from './components/workflows/WorkflowManagement';
 import Settings from './components/settings/Settings';
@@ -330,6 +331,16 @@ function App() {
                     <ProtectedRoute>
                       <Layout>
                         <IntuneManagement />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/compliance"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <PurviewManagement />
                       </Layout>
                     </ProtectedRoute>
                   }
