@@ -64,7 +64,8 @@ const Dashboard = () => {
           let auditActivity = [];
           try {
             // Get directory audit logs (user creation, password changes, etc.)
-            const auditLogs = await graphService.makeRequest('/auditLogs/directoryAudits?$top=50&$orderby=createdDateTime desc');
+            // Note: directoryAudits endpoint doesn't support $orderby, results are returned in descending order by default
+            const auditLogs = await graphService.makeRequest('/auditLogs/directoryAudits?$top=50');
             
             if (auditLogs.value && auditLogs.value.length > 0) {
               auditActivity = auditLogs.value.slice(0, 10).map((log, idx) => {

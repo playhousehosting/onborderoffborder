@@ -17,7 +17,7 @@ import { graphService } from './graphService';
  */
 export async function getTeams() {
   const response = await graphService.makeRequest(
-    "/v1.0/groups?$filter=resourceProvisioningOptions/Any(x:x eq 'Team')&$select=id,displayName,description,visibility,createdDateTime,mail,mailNickname",
+    "/groups?$filter=resourceProvisioningOptions/Any(x:x eq 'Team')&$select=id,displayName,description,visibility,createdDateTime,mail,mailNickname",
     {}
   );
   

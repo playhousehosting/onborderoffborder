@@ -22,7 +22,7 @@
  * - SecurityActions.ReadWrite.All - Manage security actions (quarantine release, block/allow lists)
  */
 
-import graphService from './graphService';
+import { graphService } from './graphService';
 
 /**
  * Get security alerts from Microsoft Defender
