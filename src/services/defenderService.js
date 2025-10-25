@@ -130,36 +130,44 @@ export async function getSecurityRecommendations() {
 /**
  * Get vulnerability information
  * Note: Full vulnerability assessment requires Microsoft Defender Vulnerability Management
+ * This endpoint is not available in v1.0 Graph API - returns empty data
  */
 export async function getVulnerabilities() {
-  // Note: This endpoint may require Defender Vulnerability Management license
-  const response = await graphService.makeRequest(
-    '/security/vulnerabilities?$top=100',
-    {}
-  );
+  // Note: This endpoint is not available in v1.0 Microsoft Graph API
+  // Vulnerability management data requires Microsoft Defender for Endpoint API directly
+  // or is available through beta endpoint (not stable for production)
   
-  if (response.value) {
-    const vulnerabilities = response.value;
-    const critical = vulnerabilities.filter(v => v.severity === 'Critical').length;
-    const high = vulnerabilities.filter(v => v.severity === 'High').length;
-    const medium = vulnerabilities.filter(v => v.severity === 'Medium').length;
-    const low = vulnerabilities.filter(v => v.severity === 'Low').length;
+  try {
+    const response = await graphService.makeRequest(
+      '/security/vulnerabilities?$top=100',
+      {}
+    );
+    
+    if (response.value) {
+      const vulnerabilities = response.value;
+      const critical = vulnerabilities.filter(v => v.severity === 'Critical').length;
+      const high = vulnerabilities.filter(v => v.severity === 'High').length;
+      const medium = vulnerabilities.filter(v => v.severity === 'Medium').length;
+      const low = vulnerabilities.filter(v => v.severity === 'Low').length;
 
-    return {
-      critical,
-      high,
-      medium,
-      low,
-      total: vulnerabilities.length,
-      topVulnerabilities: vulnerabilities.slice(0, 10).map(v => ({
-        id: v.id,
-        name: v.displayName || v.id,
-        severity: v.severity,
-        cvssScore: v.cvssScore,
-        affectedDevices: v.machinesCount || 0,
-        published: v.publishedDateTime
-      }))
-    };
+      return {
+        critical,
+        high,
+        medium,
+        low,
+        total: vulnerabilities.length,
+        topVulnerabilities: vulnerabilities.slice(0, 10).map(v => ({
+          id: v.id,
+          name: v.displayName || v.id,
+          severity: v.severity,
+          cvssScore: v.cvssScore,
+          affectedDevices: v.machinesCount || 0,
+          published: v.publishedDateTime
+        }))
+      };
+    }
+  } catch (error) {
+    console.warn('Vulnerability endpoint not available:', error.message);
   }
 
   // If endpoint not available, return empty data structure
@@ -223,21 +231,38 @@ export async function deleteQuarantinedMessage(messageId) {
 
 /**
  * Get tenant allow/block lists
+ * Note: This endpoint is not available in v1.0 Graph API - returns empty data
  */
 export async function getTenantAllowBlockList() {
-  const [allowDomains, blockDomains, allowSenders, blockSenders] = await Promise.all([
-    graphService.makeRequest('/security/tenantAllowBlockList/allowedDomains?$top=100', {}),
-    graphService.makeRequest('/security/tenantAllowBlockList/blockedDomains?$top=100', {}),
-    graphService.makeRequest('/security/tenantAllowBlockList/allowedSenders?$top=100', {}),
-    graphService.makeRequest('/security/tenantAllowBlockList/blockedSenders?$top=100', {})
-  ]);
+  // Note: This endpoint is not available in v1.0 Microsoft Graph API
+  // Exchange Online allow/block lists require Exchange Admin Center or PowerShell
+  // or Microsoft Graph beta endpoint (not stable for production)
+  
+  try {
+    const [allowDomains, blockDomains, allowSenders, blockSenders] = await Promise.all([
+      graphService.makeRequest('/security/tenantAllowBlockList/allowedDomains?$top=100', {}),
+      graphService.makeRequest('/security/tenantAllowBlockList/blockedDomains?$top=100', {}),
+      graphService.makeRequest('/security/tenantAllowBlockList/allowedSenders?$top=100', {}),
+      graphService.makeRequest('/security/tenantAllowBlockList/blockedSenders?$top=100', {})
+    ]);
 
-  return {
-    allowDomains: allowDomains.value || [],
-    blockDomains: blockDomains.value || [],
-    allowSenders: allowSenders.value || [],
-    blockSenders: blockSenders.value || []
-  };
+    return {
+      allowDomains: allowDomains.value || [],
+      blockDomains: blockDomains.value || [],
+      allowSenders: allowSenders.value || [],
+      blockSenders: blockSenders.value || []
+    };
+  } catch (error) {
+    console.warn('Tenant allow/block list endpoint not available:', error.message);
+    
+    // Return empty data structure
+    return {
+      allowDomains: [],
+      blockDomains: [],
+      allowSenders: [],
+      blockSenders: []
+    };
+  }
 }
 
 /**
