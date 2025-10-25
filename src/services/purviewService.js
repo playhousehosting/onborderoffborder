@@ -13,7 +13,8 @@
  */
 
 import { graphService } from './graphService';
-import { isDemoMode } from '../config/apiConfig';
+
+const isDemoMode = process.env.REACT_APP_DEMO_MODE === 'true';
 
 class PurviewService {
   /**
