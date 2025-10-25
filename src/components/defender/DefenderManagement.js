@@ -10,7 +10,11 @@ import {
   MagnifyingGlassIcon,
   FunnelIcon,
   CheckCircleIcon,
-  XCircleIcon
+  XCircleIcon,
+  EnvelopeIcon,
+  NoSymbolIcon,
+  TrashIcon,
+  PlusIcon
 } from '@heroicons/react/24/outline';
 import defenderService from '../../services/defenderService';
 
@@ -23,13 +27,25 @@ export default function DefenderManagement() {
   const [secureScore, setSecureScore] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
   const [vulnerabilities, setVulnerabilities] = useState(null);
+  const [quarantinedMessages, setQuarantinedMessages] = useState([]);
+  const [allowBlockList, setAllowBlockList] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [alertFilter, setAlertFilter] = useState({ severity: '', status: '', days: 7 });
   const [incidentFilter, setIncidentFilter] = useState({ status: '', severity: '' });
+  const [quarantineFilter, setQuarantineFilter] = useState({ quarantineReason: '' });
+  const [showAddDomainModal, setShowAddDomainModal] = useState(false);
+  const [showAddSenderModal, setShowAddSenderModal] = useState(false);
+  const [newDomain, setNewDomain] = useState('');
+  const [newSender, setNewSender] = useState('');
+  const [domainNotes, setDomainNotes] = useState('');
+  const [senderNotes, setSenderNotes] = useState('');
+  const [listType, setListType] = useState('block'); // 'block' or 'allow'
 
   const tabs = [
     { id: 'alerts', label: 'Security Alerts', icon: ShieldExclamationIcon },
     { id: 'incidents', label: 'Incidents', icon: ExclamationTriangleIcon },
+    { id: 'quarantine', label: 'Quarantined Email', icon: EnvelopeIcon },
+    { id: 'allowblock', label: 'Allow/Block Lists', icon: NoSymbolIcon },
     { id: 'score', label: 'Secure Score', icon: ChartBarIcon },
     { id: 'vulnerabilities', label: 'Vulnerabilities', icon: BugAntIcon },
     { id: 'recommendations', label: 'Recommendations', icon: LightBulbIcon }
@@ -37,7 +53,7 @@ export default function DefenderManagement() {
 
   useEffect(() => {
     loadTabData();
-  }, [activeTab, alertFilter, incidentFilter]);
+  }, [activeTab, alertFilter, incidentFilter, quarantineFilter]);
 
   const loadTabData = async () => {
     setLoading(true);
@@ -48,6 +64,12 @@ export default function DefenderManagement() {
           break;
         case 'incidents':
           await loadIncidents();
+          break;
+        case 'quarantine':
+          await loadQuarantinedMessages();
+          break;
+        case 'allowblock':
+          await loadAllowBlockList();
           break;
         case 'score':
           await loadSecureScore();
@@ -114,6 +136,124 @@ export default function DefenderManagement() {
       setRecommendations(recs);
     } catch (error) {
       toast.error('Failed to load recommendations');
+      console.error(error);
+    }
+  };
+
+  const loadQuarantinedMessages = async () => {
+    try {
+      const response = await defenderService.getQuarantinedMessages(quarantineFilter);
+      setQuarantinedMessages(response.value || []);
+    } catch (error) {
+      toast.error('Failed to load quarantined messages');
+      console.error(error);
+    }
+  };
+
+  const loadAllowBlockList = async () => {
+    try {
+      const list = await defenderService.getTenantAllowBlockList();
+      setAllowBlockList(list);
+    } catch (error) {
+      toast.error('Failed to load allow/block lists');
+      console.error(error);
+    }
+  };
+
+  const handleReleaseMessage = async (messageId) => {
+    if (!window.confirm('Are you sure you want to release this message from quarantine?')) {
+      return;
+    }
+    
+    try {
+      await defenderService.releaseQuarantinedMessage(messageId);
+      toast.success('Message released successfully');
+      loadQuarantinedMessages();
+    } catch (error) {
+      toast.error('Failed to release message');
+      console.error(error);
+    }
+  };
+
+  const handleDeleteQuarantinedMessage = async (messageId) => {
+    if (!window.confirm('Are you sure you want to delete this message permanently?')) {
+      return;
+    }
+    
+    try {
+      await defenderService.deleteQuarantinedMessage(messageId);
+      toast.success('Message deleted successfully');
+      loadQuarantinedMessages();
+    } catch (error) {
+      toast.error('Failed to delete message');
+      console.error(error);
+    }
+  };
+
+  const handleAddDomain = async () => {
+    if (!newDomain.trim()) {
+      toast.error('Please enter a domain');
+      return;
+    }
+
+    try {
+      if (listType === 'allow') {
+        await defenderService.addDomainToAllowList(newDomain.trim(), domainNotes);
+        toast.success(`Domain ${newDomain} added to allow list`);
+      } else {
+        await defenderService.addDomainToBlockList(newDomain.trim(), domainNotes);
+        toast.success(`Domain ${newDomain} added to block list`);
+      }
+      setNewDomain('');
+      setDomainNotes('');
+      setShowAddDomainModal(false);
+      loadAllowBlockList();
+    } catch (error) {
+      toast.error('Failed to add domain');
+      console.error(error);
+    }
+  };
+
+  const handleRemoveDomain = async (entryId, isAllowList) => {
+    if (!window.confirm('Are you sure you want to remove this domain from the list?')) {
+      return;
+    }
+
+    try {
+      if (isAllowList) {
+        await defenderService.removeDomainFromAllowList(entryId);
+        toast.success('Domain removed from allow list');
+      } else {
+        await defenderService.removeDomainFromBlockList(entryId);
+        toast.success('Domain removed from block list');
+      }
+      loadAllowBlockList();
+    } catch (error) {
+      toast.error('Failed to remove domain');
+      console.error(error);
+    }
+  };
+
+  const handleAddSender = async () => {
+    if (!newSender.trim()) {
+      toast.error('Please enter a sender email address');
+      return;
+    }
+
+    try {
+      if (listType === 'allow') {
+        await defenderService.addSenderToAllowList(newSender.trim(), senderNotes);
+        toast.success(`Sender ${newSender} added to allow list`);
+      } else {
+        await defenderService.addSenderToBlockList(newSender.trim(), senderNotes);
+        toast.success(`Sender ${newSender} added to block list`);
+      }
+      setNewSender('');
+      setSenderNotes('');
+      setShowAddSenderModal(false);
+      loadAllowBlockList();
+    } catch (error) {
+      toast.error('Failed to add sender');
       console.error(error);
     }
   };
@@ -752,6 +892,457 @@ export default function DefenderManagement() {
     </div>
   );
 
+  const renderQuarantineTab = () => (
+    <div className="space-y-4">
+      {/* Filters */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Quarantine Reason
+            </label>
+            <select
+              value={quarantineFilter.quarantineReason}
+              onChange={(e) => setQuarantineFilter({ ...quarantineFilter, quarantineReason: e.target.value })}
+              className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            >
+              <option value="">All</option>
+              <option value="Spam">Spam</option>
+              <option value="Phishing">Phishing</option>
+              <option value="Malware">Malware</option>
+              <option value="HighConfidencePhishing">High Confidence Phishing</option>
+            </select>
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Search
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by sender or recipient..."
+                className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 pl-10"
+              />
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quarantined Messages List */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+            Quarantined Messages ({quarantinedMessages.length})
+          </h3>
+        </div>
+        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          {loading ? (
+            <div className="p-8 text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">Loading quarantined messages...</p>
+            </div>
+          ) : quarantinedMessages.length === 0 ? (
+            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+              <EnvelopeIcon className="mx-auto h-12 w-12 text-gray-400" />
+              <p className="mt-2">No quarantined messages found</p>
+            </div>
+          ) : (
+            quarantinedMessages
+              .filter(msg => 
+                searchTerm === '' || 
+                msg.senderEmailAddress?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                msg.recipientEmailAddress?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                msg.subject?.toLowerCase().includes(searchTerm.toLowerCase())
+              )
+              .map((msg) => (
+                <div key={msg.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-750">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <h4 className="text-base font-medium text-gray-900 dark:text-white">
+                          {msg.subject}
+                        </h4>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getSeverityColor(msg.quarantineReason)}`}>
+                          {msg.quarantineReason}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        <div>
+                          <strong>From:</strong> {msg.senderEmailAddress}
+                        </div>
+                        <div>
+                          <strong>To:</strong> {msg.recipientEmailAddress}
+                        </div>
+                        <div>
+                          <strong>Received:</strong> {new Date(msg.receivedDateTime).toLocaleString()}
+                        </div>
+                        <div>
+                          <strong>Size:</strong> {(msg.size / 1024).toFixed(2)} KB
+                        </div>
+                      </div>
+                      {msg.threatTypes && msg.threatTypes.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {msg.threatTypes.map((threat, idx) => (
+                            <span
+                              key={idx}
+                              className="px-2 py-1 text-xs bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded"
+                            >
+                              {threat}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="ml-4 flex-shrink-0 space-x-2">
+                      <button
+                        onClick={() => handleReleaseMessage(msg.id)}
+                        className="inline-flex items-center px-3 py-2 border border-green-500 shadow-sm text-sm font-medium rounded-md text-green-700 dark:text-green-300 bg-white dark:bg-gray-700 hover:bg-green-50 dark:hover:bg-gray-600"
+                      >
+                        <CheckCircleIcon className="h-4 w-4 mr-1" />
+                        Release
+                      </button>
+                      <button
+                        onClick={() => handleDeleteQuarantinedMessage(msg.id)}
+                        className="inline-flex items-center px-3 py-2 border border-red-500 shadow-sm text-sm font-medium rounded-md text-red-700 dark:text-red-300 bg-white dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-gray-600"
+                      >
+                        <TrashIcon className="h-4 w-4 mr-1" />
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderAllowBlockListTab = () => {
+    if (!allowBlockList) return null;
+
+    return (
+      <div className="space-y-6">
+        {/* Domain Management */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                Domain Management
+              </h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Manage allowed and blocked domains
+              </p>
+            </div>
+            <button
+              onClick={() => setShowAddDomainModal(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Add Domain
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 divide-x divide-gray-200 dark:divide-gray-700">
+            {/* Allow List */}
+            <div className="p-6">
+              <h4 className="text-md font-medium text-green-700 dark:text-green-400 mb-4 flex items-center">
+                <CheckCircleIcon className="h-5 w-5 mr-2" />
+                Allow List ({allowBlockList.allowedDomains.length})
+              </h4>
+              <div className="space-y-2">
+                {allowBlockList.allowedDomains.length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No allowed domains</p>
+                ) : (
+                  allowBlockList.allowedDomains.map((domain) => (
+                    <div key={domain.id} className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 dark:text-white">{domain.value}</div>
+                        {domain.notes && (
+                          <div className="text-xs text-gray-600 dark:text-gray-400">{domain.notes}</div>
+                        )}
+                        <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                          Added: {new Date(domain.createdDateTime).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveDomain(domain.id, true)}
+                        className="ml-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                      >
+                        <XCircleIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Block List */}
+            <div className="p-6">
+              <h4 className="text-md font-medium text-red-700 dark:text-red-400 mb-4 flex items-center">
+                <NoSymbolIcon className="h-5 w-5 mr-2" />
+                Block List ({allowBlockList.blockedDomains.length})
+              </h4>
+              <div className="space-y-2">
+                {allowBlockList.blockedDomains.length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No blocked domains</p>
+                ) : (
+                  allowBlockList.blockedDomains.map((domain) => (
+                    <div key={domain.id} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 dark:text-white">{domain.value}</div>
+                        {domain.notes && (
+                          <div className="text-xs text-gray-600 dark:text-gray-400">{domain.notes}</div>
+                        )}
+                        <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                          Added: {new Date(domain.createdDateTime).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveDomain(domain.id, false)}
+                        className="ml-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                      >
+                        <XCircleIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sender Management */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                Sender Management
+              </h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Manage allowed and blocked email senders
+              </p>
+            </div>
+            <button
+              onClick={() => setShowAddSenderModal(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Add Sender
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 divide-x divide-gray-200 dark:divide-gray-700">
+            {/* Allow List */}
+            <div className="p-6">
+              <h4 className="text-md font-medium text-green-700 dark:text-green-400 mb-4 flex items-center">
+                <CheckCircleIcon className="h-5 w-5 mr-2" />
+                Allowed Senders ({allowBlockList.allowedSenders.length})
+              </h4>
+              <div className="space-y-2">
+                {allowBlockList.allowedSenders.length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No allowed senders</p>
+                ) : (
+                  allowBlockList.allowedSenders.map((sender) => (
+                    <div key={sender.id} className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 dark:text-white">{sender.value}</div>
+                        {sender.notes && (
+                          <div className="text-xs text-gray-600 dark:text-gray-400">{sender.notes}</div>
+                        )}
+                        <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                          Added: {new Date(sender.createdDateTime).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveDomain(sender.id, true)}
+                        className="ml-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                      >
+                        <XCircleIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Block List */}
+            <div className="p-6">
+              <h4 className="text-md font-medium text-red-700 dark:text-red-400 mb-4 flex items-center">
+                <NoSymbolIcon className="h-5 w-5 mr-2" />
+                Blocked Senders ({allowBlockList.blockedSenders.length})
+              </h4>
+              <div className="space-y-2">
+                {allowBlockList.blockedSenders.length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No blocked senders</p>
+                ) : (
+                  allowBlockList.blockedSenders.map((sender) => (
+                    <div key={sender.id} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 dark:text-white">{sender.value}</div>
+                        {sender.notes && (
+                          <div className="text-xs text-gray-600 dark:text-gray-400">{sender.notes}</div>
+                        )}
+                        <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                          Added: {new Date(sender.createdDateTime).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveDomain(sender.id, false)}
+                        className="ml-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                      >
+                        <XCircleIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Add Domain Modal */}
+        {showAddDomainModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                Add Domain to List
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    List Type
+                  </label>
+                  <select
+                    value={listType}
+                    onChange={(e) => setListType(e.target.value)}
+                    className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    <option value="allow">Allow List (Whitelist)</option>
+                    <option value="block">Block List (Blacklist)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Domain
+                  </label>
+                  <input
+                    type="text"
+                    value={newDomain}
+                    onChange={(e) => setNewDomain(e.target.value)}
+                    placeholder="example.com"
+                    className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Notes (Optional)
+                  </label>
+                  <textarea
+                    value={domainNotes}
+                    onChange={(e) => setDomainNotes(e.target.value)}
+                    placeholder="Reason for adding this domain..."
+                    rows="3"
+                    className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowAddDomainModal(false);
+                    setNewDomain('');
+                    setDomainNotes('');
+                  }}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddDomain}
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  Add Domain
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Sender Modal */}
+        {showAddSenderModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                Add Sender to List
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    List Type
+                  </label>
+                  <select
+                    value={listType}
+                    onChange={(e) => setListType(e.target.value)}
+                    className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    <option value="allow">Allow List (Whitelist)</option>
+                    <option value="block">Block List (Blacklist)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={newSender}
+                    onChange={(e) => setNewSender(e.target.value)}
+                    placeholder="sender@example.com"
+                    className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Notes (Optional)
+                  </label>
+                  <textarea
+                    value={senderNotes}
+                    onChange={(e) => setSenderNotes(e.target.value)}
+                    placeholder="Reason for adding this sender..."
+                    rows="3"
+                    className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowAddSenderModal(false);
+                    setNewSender('');
+                    setSenderNotes('');
+                  }}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddSender}
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  Add Sender
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
@@ -800,6 +1391,8 @@ export default function DefenderManagement() {
       <div>
         {activeTab === 'alerts' && renderAlertsTab()}
         {activeTab === 'incidents' && renderIncidentsTab()}
+        {activeTab === 'quarantine' && renderQuarantineTab()}
+        {activeTab === 'allowblock' && renderAllowBlockListTab()}
         {activeTab === 'score' && renderSecureScoreTab()}
         {activeTab === 'vulnerabilities' && renderVulnerabilitiesTab()}
         {activeTab === 'recommendations' && renderRecommendationsTab()}

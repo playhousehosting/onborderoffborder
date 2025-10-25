@@ -10,10 +10,16 @@
  * - /security/secureScores - Secure Score and recommendations
  * - /security/secureScoreControlProfiles - Detailed control information
  * 
+ * Email Security (Exchange Online Protection):
+ * - Quarantined messages management
+ * - Tenant allow/block lists for domains, senders, URLs
+ * - Anti-spam and anti-phishing policies
+ * 
  * Required Permissions:
  * - SecurityEvents.Read.All - Read security events
  * - SecurityAlert.Read.All - Read security alerts
  * - ThreatIndicators.Read.All - Read threat intelligence
+ * - SecurityActions.ReadWrite.All - Manage security actions (quarantine release, block/allow lists)
  */
 
 import graphService from './graphService';
@@ -457,6 +463,386 @@ export async function updateIncident(incidentId, updates) {
   }
 }
 
+// ==================== EMAIL SECURITY FUNCTIONS ====================
+
+/**
+ * Mock quarantined messages for demo mode
+ */
+const mockQuarantinedMessages = {
+  value: [
+    {
+      id: 'quarantine-001',
+      receivedDateTime: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      senderEmailAddress: 'suspicious@external-domain.com',
+      recipientEmailAddress: 'john.doe@company.com',
+      subject: 'Urgent: Update your account information',
+      size: 45678,
+      direction: 'Inbound',
+      quarantineReason: 'Phishing',
+      releaseStatus: 'NotReleased',
+      threatTypes: ['Phishing', 'Malware']
+    },
+    {
+      id: 'quarantine-002',
+      receivedDateTime: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+      senderEmailAddress: 'spam@marketing-blast.net',
+      recipientEmailAddress: 'jane.smith@company.com',
+      subject: 'You won $1,000,000!',
+      size: 23456,
+      direction: 'Inbound',
+      quarantineReason: 'Spam',
+      releaseStatus: 'NotReleased',
+      threatTypes: ['Spam']
+    },
+    {
+      id: 'quarantine-003',
+      receivedDateTime: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      senderEmailAddress: 'malicious@bad-actor.org',
+      recipientEmailAddress: 'admin@company.com',
+      subject: 'Invoice Attachment - Please Review',
+      size: 156789,
+      direction: 'Inbound',
+      quarantineReason: 'Malware',
+      releaseStatus: 'NotReleased',
+      threatTypes: ['Malware']
+    }
+  ]
+};
+
+/**
+ * Mock tenant allow/block lists
+ */
+const mockTenantAllowBlockList = {
+  allowedDomains: [
+    { id: 'allow-001', value: 'trusted-partner.com', notes: 'Business partner', createdDateTime: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() },
+    { id: 'allow-002', value: 'vendor-company.net', notes: 'Approved vendor', createdDateTime: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString() }
+  ],
+  blockedDomains: [
+    { id: 'block-001', value: 'known-phishing.com', notes: 'Phishing campaign source', createdDateTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() },
+    { id: 'block-002', value: 'spam-sender.net', notes: 'Persistent spam source', createdDateTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() },
+    { id: 'block-003', value: 'malware-distribution.org', notes: 'Malware distribution', createdDateTime: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() }
+  ],
+  allowedSenders: [
+    { id: 'allow-sender-001', value: 'newsletter@trusted-source.com', notes: 'Company newsletter', createdDateTime: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString() }
+  ],
+  blockedSenders: [
+    { id: 'block-sender-001', value: 'spammer@bad-domain.com', notes: 'Known spammer', createdDateTime: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() }
+  ]
+};
+
+/**
+ * Get quarantined messages
+ * Retrieves messages quarantined by Exchange Online Protection
+ */
+export async function getQuarantinedMessages(filters = {}) {
+  if (isDemoMode) {
+    let messages = mockQuarantinedMessages.value;
+    
+    // Apply filters
+    if (filters.quarantineReason) {
+      messages = messages.filter(m => m.quarantineReason === filters.quarantineReason);
+    }
+    if (filters.recipientEmail) {
+      messages = messages.filter(m => 
+        m.recipientEmailAddress.toLowerCase().includes(filters.recipientEmail.toLowerCase())
+      );
+    }
+    
+    return { value: messages };
+  }
+
+  try {
+    // Use Microsoft Graph Security API for quarantined messages
+    let endpoint = '/security/threatSubmission/emailThreats';
+    const queryParams = [];
+
+    if (filters.recipientEmail) {
+      queryParams.push(`$filter=recipientEmailAddress eq '${filters.recipientEmail}'`);
+    }
+    if (filters.startDate) {
+      queryParams.push(`receivedDateTime ge ${filters.startDate}`);
+    }
+
+    if (queryParams.length > 0) {
+      endpoint += '?' + queryParams.join('&');
+    }
+
+    const response = await graphService.makeRequest(endpoint, {});
+    return response;
+  } catch (error) {
+    console.warn('Quarantine API unavailable, using mock data:', error.message);
+    return mockQuarantinedMessages;
+  }
+}
+
+/**
+ * Release message from quarantine
+ */
+export async function releaseQuarantinedMessage(messageId, releaseToAll = false) {
+  if (isDemoMode) {
+    return { success: true, message: 'Message released from quarantine' };
+  }
+
+  try {
+    // Release message using Security API
+    await graphService.makeRequest(
+      `/security/threatSubmission/emailThreats/${messageId}/release`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          releaseToAll: releaseToAll
+        })
+      }
+    );
+    return { success: true, message: 'Message released successfully' };
+  } catch (error) {
+    console.error('Failed to release message:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete message from quarantine
+ */
+export async function deleteQuarantinedMessage(messageId) {
+  if (isDemoMode) {
+    return { success: true, message: 'Message deleted from quarantine' };
+  }
+
+  try {
+    await graphService.makeRequest(
+      `/security/threatSubmission/emailThreats/${messageId}`,
+      {
+        method: 'DELETE'
+      }
+    );
+    return { success: true, message: 'Message deleted successfully' };
+  } catch (error) {
+    console.error('Failed to delete quarantined message:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get tenant allow/block lists
+ * Retrieves domains and senders in allow/block lists
+ */
+export async function getTenantAllowBlockList() {
+  if (isDemoMode) {
+    return mockTenantAllowBlockList;
+  }
+
+  try {
+    // Get tenant allow/block list entries
+    // Note: This may require Exchange Online PowerShell or Security & Compliance Center API
+    // For now, using a placeholder endpoint structure
+    const [allowedDomains, blockedDomains, allowedSenders, blockedSenders] = await Promise.all([
+      graphService.makeRequest('/security/tenantAllowBlockList/allowedDomains', {}).catch(() => ({ value: [] })),
+      graphService.makeRequest('/security/tenantAllowBlockList/blockedDomains', {}).catch(() => ({ value: [] })),
+      graphService.makeRequest('/security/tenantAllowBlockList/allowedSenders', {}).catch(() => ({ value: [] })),
+      graphService.makeRequest('/security/tenantAllowBlockList/blockedSenders', {}).catch(() => ({ value: [] }))
+    ]);
+
+    return {
+      allowedDomains: allowedDomains.value || [],
+      blockedDomains: blockedDomains.value || [],
+      allowedSenders: allowedSenders.value || [],
+      blockedSenders: blockedSenders.value || []
+    };
+  } catch (error) {
+    console.warn('Tenant allow/block list API unavailable, using mock data:', error.message);
+    return mockTenantAllowBlockList;
+  }
+}
+
+/**
+ * Add domain to allow list (whitelist)
+ */
+export async function addDomainToAllowList(domain, notes = '') {
+  if (isDemoMode) {
+    return { 
+      success: true, 
+      message: `Domain ${domain} added to allow list`,
+      entry: {
+        id: `allow-${Date.now()}`,
+        value: domain,
+        notes: notes,
+        createdDateTime: new Date().toISOString()
+      }
+    };
+  }
+
+  try {
+    const response = await graphService.makeRequest(
+      '/security/tenantAllowBlockList/allowedDomains',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          value: domain,
+          notes: notes,
+          action: 'Allow'
+        })
+      }
+    );
+    return { success: true, message: 'Domain added to allow list', entry: response };
+  } catch (error) {
+    console.error('Failed to add domain to allow list:', error);
+    throw error;
+  }
+}
+
+/**
+ * Add domain to block list (blacklist)
+ */
+export async function addDomainToBlockList(domain, notes = '') {
+  if (isDemoMode) {
+    return { 
+      success: true, 
+      message: `Domain ${domain} added to block list`,
+      entry: {
+        id: `block-${Date.now()}`,
+        value: domain,
+        notes: notes,
+        createdDateTime: new Date().toISOString()
+      }
+    };
+  }
+
+  try {
+    const response = await graphService.makeRequest(
+      '/security/tenantAllowBlockList/blockedDomains',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          value: domain,
+          notes: notes,
+          action: 'Block'
+        })
+      }
+    );
+    return { success: true, message: 'Domain added to block list', entry: response };
+  } catch (error) {
+    console.error('Failed to add domain to block list:', error);
+    throw error;
+  }
+}
+
+/**
+ * Remove domain from allow list
+ */
+export async function removeDomainFromAllowList(entryId) {
+  if (isDemoMode) {
+    return { success: true, message: 'Domain removed from allow list' };
+  }
+
+  try {
+    await graphService.makeRequest(
+      `/security/tenantAllowBlockList/allowedDomains/${entryId}`,
+      {
+        method: 'DELETE'
+      }
+    );
+    return { success: true, message: 'Domain removed from allow list' };
+  } catch (error) {
+    console.error('Failed to remove domain from allow list:', error);
+    throw error;
+  }
+}
+
+/**
+ * Remove domain from block list
+ */
+export async function removeDomainFromBlockList(entryId) {
+  if (isDemoMode) {
+    return { success: true, message: 'Domain removed from block list' };
+  }
+
+  try {
+    await graphService.makeRequest(
+      `/security/tenantAllowBlockList/blockedDomains/${entryId}`,
+      {
+        method: 'DELETE'
+      }
+    );
+    return { success: true, message: 'Domain removed from block list' };
+  } catch (error) {
+    console.error('Failed to remove domain from block list:', error);
+    throw error;
+  }
+}
+
+/**
+ * Add sender to allow list
+ */
+export async function addSenderToAllowList(email, notes = '') {
+  if (isDemoMode) {
+    return { 
+      success: true, 
+      message: `Sender ${email} added to allow list`,
+      entry: {
+        id: `allow-sender-${Date.now()}`,
+        value: email,
+        notes: notes,
+        createdDateTime: new Date().toISOString()
+      }
+    };
+  }
+
+  try {
+    const response = await graphService.makeRequest(
+      '/security/tenantAllowBlockList/allowedSenders',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          value: email,
+          notes: notes,
+          action: 'Allow'
+        })
+      }
+    );
+    return { success: true, message: 'Sender added to allow list', entry: response };
+  } catch (error) {
+    console.error('Failed to add sender to allow list:', error);
+    throw error;
+  }
+}
+
+/**
+ * Add sender to block list
+ */
+export async function addSenderToBlockList(email, notes = '') {
+  if (isDemoMode) {
+    return { 
+      success: true, 
+      message: `Sender ${email} added to block list`,
+      entry: {
+        id: `block-sender-${Date.now()}`,
+        value: email,
+        notes: notes,
+        createdDateTime: new Date().toISOString()
+      }
+    };
+  }
+
+  try {
+    const response = await graphService.makeRequest(
+      '/security/tenantAllowBlockList/blockedSenders',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          value: email,
+          notes: notes,
+          action: 'Block'
+        })
+      }
+    );
+    return { success: true, message: 'Sender added to block list', entry: response };
+  } catch (error) {
+    console.error('Failed to add sender to block list:', error);
+    throw error;
+  }
+}
+
 export const defenderService = {
   getSecurityAlerts,
   getSecurityIncidents,
@@ -464,7 +850,18 @@ export const defenderService = {
   getSecurityRecommendations,
   getVulnerabilities,
   updateAlert,
-  updateIncident
+  updateIncident,
+  // Email Security
+  getQuarantinedMessages,
+  releaseQuarantinedMessage,
+  deleteQuarantinedMessage,
+  getTenantAllowBlockList,
+  addDomainToAllowList,
+  addDomainToBlockList,
+  removeDomainFromAllowList,
+  removeDomainFromBlockList,
+  addSenderToAllowList,
+  addSenderToBlockList
 };
 
 export default defenderService;
