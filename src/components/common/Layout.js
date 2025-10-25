@@ -18,6 +18,8 @@ import {
   CalendarIcon,
   QuestionMarkCircleIcon,
   ArrowPathIcon,
+  ChatBubbleLeftRightIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline';
 
 const Layout = ({ children }) => {
