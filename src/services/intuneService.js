@@ -12,7 +12,7 @@ const INTUNE_ENDPOINTS = {
   MANAGED_DEVICES: '/deviceManagement/managedDevices',
   DEVICE_COMPLIANCE_POLICIES: '/deviceManagement/deviceCompliancePolicies',
   DEVICE_CONFIGURATIONS: '/deviceManagement/deviceConfigurations',
-  CONFIGURATION_POLICIES: '/deviceManagement/configurationPolicies',
+  CONFIGURATION_POLICIES: '/deviceManagement/deviceConfigurations', // Using deviceConfigurations for v1.0 API
   
   // Application Management
   MOBILE_APPS: '/deviceAppManagement/mobileApps',
@@ -20,7 +20,7 @@ const INTUNE_ENDPOINTS = {
   APP_PROTECTION_POLICIES: '/deviceAppManagement/managedAppPolicies',
   
   // Policy Management
-  SETTINGS_CATALOG: '/deviceManagement/configurationPolicies',
+  SETTINGS_CATALOG: '/deviceManagement/deviceConfigurations', // Using deviceConfigurations for v1.0 API
   TEMPLATES: '/deviceManagement/templates',
   INTENTS: '/deviceManagement/intents',
   
