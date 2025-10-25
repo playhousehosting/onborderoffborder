@@ -26,6 +26,8 @@ export const AuthProvider = ({ children }) => {
     mailManagement: false,
     sharePointManagement: false,
     teamsManagement: false,
+    copilotManagement: false,
+    complianceManagement: false,
   });
 
   // Initialize authService with MSAL instance
@@ -68,6 +70,8 @@ export const AuthProvider = ({ children }) => {
           mailManagement: true,
           sharePointManagement: true,
           teamsManagement: true,
+          copilotManagement: true,
+          complianceManagement: true,
         });
 
         // Dispatch completion event AFTER this render cycle completes
@@ -110,6 +114,8 @@ export const AuthProvider = ({ children }) => {
                 mailManagement: true,
                 sharePointManagement: true,
                 teamsManagement: true,
+                copilotManagement: true,
+                complianceManagement: true,
               });
               setLoading(false);
               return;
@@ -193,12 +199,16 @@ export const AuthProvider = ({ children }) => {
         mailMgmt,
         sharePointMgmt,
         teamsMgmt,
+        copilotMgmt,
+        complianceMgmt,
       ] = await Promise.all([
         authService.hasPermissions(['User.ReadWrite.All']),
         authService.hasPermissions(['DeviceManagementManagedDevices.ReadWrite.All']),
         authService.hasPermissions(['MailboxSettings.ReadWrite']),
         authService.hasPermissions(['Sites.ReadWrite.All']),
         authService.hasPermissions(['Team.ReadWrite.All']),
+        authService.hasPermissions(['TeamworkAppSettings.ReadWrite.All']), // Copilot
+        authService.hasPermissions(['InformationProtectionPolicy.Read']), // Compliance/Purview
       ]);
 
       setPermissions({
@@ -207,6 +217,8 @@ export const AuthProvider = ({ children }) => {
         mailManagement: mailMgmt,
         sharePointManagement: sharePointMgmt,
         teamsManagement: teamsMgmt,
+        copilotManagement: copilotMgmt,
+        complianceManagement: complianceMgmt,
       });
     } catch (error) {
       console.error('Permission check error:', error);
@@ -285,6 +297,8 @@ export const AuthProvider = ({ children }) => {
         mailManagement: false,
         sharePointManagement: false,
         teamsManagement: false,
+        copilotManagement: false,
+        complianceManagement: false,
       });
     } catch (err) {
       console.error('Logout error:', err);
