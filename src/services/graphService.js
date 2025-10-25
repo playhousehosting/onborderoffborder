@@ -183,7 +183,17 @@ export class GraphService {
         },
       };
 
-      const response = await fetch(url, { ...defaultOptions, ...options });
+      // Merge headers properly to avoid overwriting Authorization header
+      const mergedOptions = {
+        ...defaultOptions,
+        ...options,
+        headers: {
+          ...defaultOptions.headers,
+          ...(options.headers || {})
+        }
+      };
+
+      const response = await fetch(url, mergedOptions);
       
       // Handle throttling (429 Too Many Requests)
       if (response.status === 429 && retryCount < this.maxRetries) {

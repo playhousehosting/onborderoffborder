@@ -28,6 +28,7 @@ export async function getTeams() {
       response.value.map(async (team) => {
         try {
           // Get member count from the group (not team-specific members)
+          // Note: $count endpoint requires ConsistencyLevel: eventual header
           const membersResponse = await graphService.makeRequest(
             `/groups/${team.id}/members/$count`,
             {
