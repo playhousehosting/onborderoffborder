@@ -20,6 +20,8 @@ import UserDetail from './components/users/UserDetail';
 import DeviceManagement from './components/intune/DeviceManagement';
 import IntuneManagement from './components/intune/IntuneManagement';
 import PurviewManagement from './components/compliance/PurviewManagement';
+import TeamsManagement from './components/teams/TeamsManagement';
+import CopilotManagement from './components/copilot/CopilotManagement';
 import ScheduledOffboarding from './components/offboarding/ScheduledOffboarding';
 import WorkflowManagement from './components/workflows/WorkflowManagement';
 import Settings from './components/settings/Settings';
@@ -341,6 +343,26 @@ function App() {
                     <ProtectedRoute>
                       <Layout>
                         <PurviewManagement />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/teams"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <TeamsManagement />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/copilot"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <CopilotManagement />
                       </Layout>
                     </ProtectedRoute>
                   }

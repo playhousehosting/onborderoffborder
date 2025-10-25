@@ -29,6 +29,8 @@
     "workflows": "Flujos de Trabajo del Ciclo de Vida",
     "deviceManagement": "Gestión de Dispositivos",
     "complianceManagement": "Gestión de Cumplimiento",
+    "teamsManagement": "Gestión de Teams",
+    "copilotManagement": "Gestión de Copilot",
     "faq": "Preguntas Frecuentes",
     "settings": "Configuración"
   },

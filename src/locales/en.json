@@ -37,6 +37,8 @@
     "workflows": "Lifecycle Workflows",
     "deviceManagement": "Device Management",
     "complianceManagement": "Compliance Management",
+    "teamsManagement": "Teams Management",
+    "copilotManagement": "Copilot Management",
     "faq": "FAQ",
     "settings": "Settings",
     "appTitle": "Employee Life Cycle Portal"
