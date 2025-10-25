@@ -21,7 +21,7 @@ import DeviceManagement from './components/intune/DeviceManagement';
 import IntuneManagement from './components/intune/IntuneManagement';
 import PurviewManagement from './components/compliance/PurviewManagement';
 import TeamsManagement from './components/teams/TeamsManagement';
-import CopilotManagement from './components/copilot/CopilotManagement';
+import DefenderManagement from './components/defender/DefenderManagement';
 import ScheduledOffboarding from './components/offboarding/ScheduledOffboarding';
 import WorkflowManagement from './components/workflows/WorkflowManagement';
 import Settings from './components/settings/Settings';
@@ -358,17 +358,17 @@ function App() {
                   }
                 />
                 <Route
-                  path="/copilot"
+                  path="/defender"
                   element={
                     <ProtectedRoute>
                       <Layout>
-                        <CopilotManagement />
+                        <DefenderManagement />
                       </Layout>
                     </ProtectedRoute>
                   }
                 />
                 <Route
-                  path="/settings"
+                  path="/workflows"
                   element={
                     <ProtectedRoute>
                       <Layout>
