@@ -88,20 +88,6 @@ const Layout = ({ children }) => {
       current: location.pathname === '/copilot',
       permission: 'copilotManagement'
     },
-    {
-      name: t('nav.faq'),
-      href: '/teams',
-      icon: ChatBubbleLeftRightIcon,
-      current: location.pathname === '/teams',
-      permission: 'teamsManagement'
-    },
-    {
-      name: t('nav.copilotManagement'),
-      href: '/copilot',
-      icon: SparklesIcon,
-      current: location.pathname === '/copilot',
-      permission: 'copilotManagement'
-    },
     { name: t('nav.faq'), href: '/faq', icon: QuestionMarkCircleIcon, current: location.pathname === '/faq' },
     { name: t('nav.settings'), href: '/settings', icon: CogIcon, current: location.pathname === '/settings' },
   ];

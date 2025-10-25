@@ -29,6 +29,8 @@ export default function TeamsManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showChannelModal, setShowChannelModal] = useState(false);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newTeam, setNewTeam] = useState({ displayName: '', description: '', visibility: 'Private' });
   const [newChannel, setNewChannel] = useState({ displayName: '', description: '', membershipType: 'standard' });
 
@@ -131,11 +133,15 @@ export default function TeamsManagement() {
 
     setLoading(true);
     try {
-      await teamsService.createTeam(newTeam);
+      const response = await teamsService.createTeam(newTeam);
       toast.success('Team created successfully');
       setShowCreateModal(false);
       setNewTeam({ displayName: '', description: '', visibility: 'Private' });
-      loadTeams();
+      await loadTeams();
+      // Auto-select the newly created team if response contains the team data
+      if (response && response.id) {
+        setSelectedTeam(response);
+      }
     } catch (error) {
       toast.error('Failed to create team');
       console.error(error);
@@ -317,9 +323,18 @@ export default function TeamsManagement() {
 
     return (
       <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">
-          {selectedTeam.displayName} - Members
-        </h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">
+            {selectedTeam.displayName} - Members
+          </h3>
+          <button
+            onClick={() => setShowAddMemberModal(true)}
+            className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+          >
+            <PlusIcon className="h-4 w-4 mr-1" />
+            Add Member
+          </button>
+        </div>
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
           <ul className="divide-y divide-gray-200">
             {members.map((member) => (
@@ -367,6 +382,27 @@ export default function TeamsManagement() {
       loadMembers();
     } catch (error) {
       toast.error('Failed to remove member');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddMember = async () => {
+    if (!newMemberEmail.trim()) {
+      toast.error('Email address is required');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await teamsService.addMember(selectedTeam.id, { email: newMemberEmail });
+      toast.success('Member added successfully');
+      setShowAddMemberModal(false);
+      setNewMemberEmail('');
+      loadMembers();
+    } catch (error) {
+      toast.error('Failed to add member');
       console.error(error);
     } finally {
       setLoading(false);
@@ -678,6 +714,30 @@ export default function TeamsManagement() {
         </nav>
       </div>
 
+      {/* Team Selector - shown on all tabs except Teams tab */}
+      {activeTab !== 'teams' && (
+        <div className="bg-white rounded-lg shadow p-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Select Team
+          </label>
+          <select
+            value={selectedTeam?.id || ''}
+            onChange={(e) => {
+              const team = teams.find(t => t.id === e.target.value);
+              setSelectedTeam(team);
+            }}
+            className="w-full max-w-md rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          >
+            <option value="">-- Select a team --</option>
+            {teams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.displayName}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Content */}
       <div>
         {loading && (
@@ -825,6 +885,50 @@ export default function TeamsManagement() {
                 className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
               >
                 Create Channel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Member Modal */}
+      {showAddMemberModal && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Add Team Member</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  value={newMemberEmail}
+                  onChange={(e) => setNewMemberEmail(e.target.value)}
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="user@example.com"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Enter the email address of the user you want to add to this team
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowAddMemberModal(false);
+                  setNewMemberEmail('');
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddMember}
+                disabled={loading}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+              >
+                Add Member
               </button>
             </div>
           </div>
