@@ -29,7 +29,7 @@ class PurviewService {
     try {
       // Use /security/informationProtection/sensitivityLabels from beta API
       const response = await graphService.makeRequest(
-        '/v1.0/security/informationProtection/sensitivityLabels'
+        '/security/informationProtection/sensitivityLabels'
       );
       
       return response.value || [];
@@ -39,7 +39,7 @@ class PurviewService {
       
       try {
         const response = await graphService.makeRequest(
-          '/v1.0/me/security/informationProtection/sensitivityLabels'
+          '/me/security/informationProtection/sensitivityLabels'
         );
         return response.value || [];
       } catch (fallbackError) {
@@ -61,7 +61,7 @@ class PurviewService {
 
     try {
       const response = await graphService.makeRequest(
-        `/v1.0/security/informationProtection/sensitivityLabels/${labelId}`
+        `/security/informationProtection/sensitivityLabels/${labelId}`
       );
       return response;
     } catch (error) {
@@ -81,7 +81,7 @@ class PurviewService {
 
     try {
       const response = await graphService.makeRequest(
-        `/v1.0/users/${userId}/security/informationProtection/sensitivityLabels`
+        `/users/${userId}/security/informationProtection/sensitivityLabels`
       );
       return response.value || [];
     } catch (error) {
@@ -101,7 +101,7 @@ class PurviewService {
 
     try {
       const response = await graphService.makeRequest(
-        '/v1.0/security/informationProtection/labelPolicySettings'
+        '/security/informationProtection/labelPolicySettings'
       );
       return response;
     } catch (error) {
@@ -124,7 +124,7 @@ class PurviewService {
       // Note: DLP alerts may require Microsoft 365 Defender or Purview portal access
       // This endpoint may not be available in all tenants
       const response = await graphService.makeRequest(
-        '/v1.0/security/alerts_v2?$filter=category eq \'DataLossPrevention\''
+        '/security/alerts_v2?$filter=category eq \'DataLossPrevention\''
       );
       return response.value || [];
     } catch (error) {
