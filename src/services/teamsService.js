@@ -14,12 +14,57 @@ import { graphService } from './graphService';
 /**
  * Get all Teams-enabled M365 groups in the organization
  * Uses resourceProvisioningOptions filter to get only groups with Teams provisioned
+ * Enriches each team with member and channel counts
  */
 export async function getTeams() {
   const response = await graphService.makeRequest(
     "/groups?$filter=resourceProvisioningOptions/Any(x:x eq 'Team')&$select=id,displayName,description,visibility,createdDateTime,mail,mailNickname",
     {}
   );
+  
+  // Enrich teams with counts
+  if (response.value && response.value.length > 0) {
+    const teamsWithCounts = await Promise.all(
+      response.value.map(async (team) => {
+        try {
+          // Get member count from the group (not team-specific members)
+          const membersResponse = await graphService.makeRequest(
+            `/groups/${team.id}/members/$count`,
+            {
+              headers: {
+                'ConsistencyLevel': 'eventual'
+              }
+            }
+          );
+          
+          // Get channel count
+          const channelsResponse = await graphService.makeRequest(
+            `/teams/${team.id}/channels/$count`,
+            {
+              headers: {
+                'ConsistencyLevel': 'eventual'
+              }
+            }
+          );
+          
+          return {
+            ...team,
+            memberCount: typeof membersResponse === 'number' ? membersResponse : 0,
+            channelCount: typeof channelsResponse === 'number' ? channelsResponse : 0
+          };
+        } catch (error) {
+          console.warn(`Failed to get counts for team ${team.id}:`, error);
+          return {
+            ...team,
+            memberCount: 0,
+            channelCount: 0
+          };
+        }
+      })
+    );
+    
+    return { ...response, value: teamsWithCounts };
+  }
   
   return response;
 }
@@ -30,7 +75,7 @@ export async function getTeams() {
  */
 export async function getTeam(teamId) {
   const response = await graphService.makeRequest(
-    `/v1.0/teams/${teamId}`,
+    /teams/${teamId}`,
     {}
   );
   
@@ -120,7 +165,7 @@ export async function createTeam(teamData) {
   };
 
   await graphService.makeRequest(
-    `/v1.0/groups/${group.id}/team`,
+    /groups/${group.id}/team`,
     {
       method: 'PUT',
       body: JSON.stringify(teamSettings)
@@ -136,7 +181,7 @@ export async function createTeam(teamData) {
  */
 export async function archiveTeam(teamId) {
   const response = await graphService.makeRequest(
-    `/v1.0/teams/${teamId}/archive`,
+    /teams/${teamId}/archive`,
     {
       method: 'POST',
       body: JSON.stringify({
@@ -154,7 +199,7 @@ export async function archiveTeam(teamId) {
  */
 export async function deleteTeam(groupId) {
   await graphService.makeRequest(
-    `/v1.0/groups/${groupId}`,
+    /groups/${groupId}`,
     {
       method: 'DELETE'
     }
@@ -169,7 +214,7 @@ export async function deleteTeam(groupId) {
  */
 export async function getMembers(teamId) {
   const response = await graphService.makeRequest(
-    `/v1.0/teams/${teamId}/members`,
+    /teams/${teamId}/members`,
     {}
   );
 
@@ -187,7 +232,7 @@ export async function addMember(groupId, userId) {
   };
 
   const response = await graphService.makeRequest(
-    `/v1.0/groups/${groupId}/members/$ref`,
+    /groups/${groupId}/members/$ref`,
     {
       method: 'POST',
       body: JSON.stringify(memberData)
@@ -204,7 +249,7 @@ export async function addMember(groupId, userId) {
  */
 export async function removeMember(groupId, userId) {
   await graphService.makeRequest(
-    `/v1.0/groups/${groupId}/members/${userId}/$ref`,
+    /groups/${groupId}/members/${userId}/$ref`,
     {
       method: 'DELETE'
     }
@@ -219,7 +264,7 @@ export async function removeMember(groupId, userId) {
  */
 export async function getOwners(groupId) {
   const response = await graphService.makeRequest(
-    `/v1.0/groups/${groupId}/owners`,
+    /groups/${groupId}/owners`,
     {}
   );
 
@@ -237,7 +282,7 @@ export async function addOwner(groupId, userId) {
   };
 
   const response = await graphService.makeRequest(
-    `/v1.0/groups/${groupId}/owners/$ref`,
+    /groups/${groupId}/owners/$ref`,
     {
       method: 'POST',
       body: JSON.stringify(ownerData)
@@ -253,7 +298,7 @@ export async function addOwner(groupId, userId) {
  */
 export async function getChannels(teamId) {
   const response = await graphService.makeRequest(
-    `/v1.0/teams/${teamId}/channels`,
+    /teams/${teamId}/channels`,
     {}
   );
 
@@ -270,7 +315,7 @@ export async function getChannels(teamId) {
  */
 export async function createChannel(teamId, channelData) {
   const response = await graphService.makeRequest(
-    `/v1.0/teams/${teamId}/channels`,
+    /teams/${teamId}/channels`,
     {
       method: 'POST',
       body: JSON.stringify({
@@ -292,7 +337,7 @@ export async function createChannel(teamId, channelData) {
  */
 export async function updateChannel(teamId, channelId, updates) {
   const response = await graphService.makeRequest(
-    `/v1.0/teams/${teamId}/channels/${channelId}`,
+    /teams/${teamId}/channels/${channelId}`,
     {
       method: 'PATCH',
       body: JSON.stringify(updates)
@@ -309,7 +354,7 @@ export async function updateChannel(teamId, channelId, updates) {
  */
 export async function deleteChannel(teamId, channelId) {
   await graphService.makeRequest(
-    `/v1.0/teams/${teamId}/channels/${channelId}`,
+    /teams/${teamId}/channels/${channelId}`,
     {
       method: 'DELETE'
     }
@@ -333,7 +378,7 @@ export async function getTeamSettings(teamId) {
  */
 export async function updateTeamSettings(teamId, settings) {
   const response = await graphService.makeRequest(
-    `/v1.0/teams/${teamId}`,
+    /teams/${teamId}`,
     {
       method: 'PATCH',
       body: JSON.stringify(settings)
@@ -349,7 +394,7 @@ export async function updateTeamSettings(teamId, settings) {
  */
 export async function getInstalledApps(teamId) {
   const response = await graphService.makeRequest(
-    `/v1.0/teams/${teamId}/installedApps?$expand=teamsAppDefinition`,
+    /teams/${teamId}/installedApps?$expand=teamsAppDefinition`,
     {}
   );
 
@@ -367,7 +412,7 @@ export async function installApp(teamId, appId) {
   };
 
   const response = await graphService.makeRequest(
-    `/v1.0/teams/${teamId}/installedApps`,
+    /teams/${teamId}/installedApps`,
     {
       method: 'POST',
       body: JSON.stringify(appData)
@@ -384,7 +429,7 @@ export async function installApp(teamId, appId) {
  */
 export async function uninstallApp(teamId, installationId) {
   await graphService.makeRequest(
-    `/v1.0/teams/${teamId}/installedApps/${installationId}`,
+    /teams/${teamId}/installedApps/${installationId}`,
     {
       method: 'DELETE'
     }
@@ -412,7 +457,7 @@ export async function getGroupSettingTemplates() {
  */
 export async function getGroupSettings(groupId) {
   const response = await graphService.makeRequest(
-    `/v1.0/groups/${groupId}/settings`,
+    /groups/${groupId}/settings`,
     {}
   );
 
@@ -432,7 +477,7 @@ export async function updateGroupSettings(groupId, templateId, values) {
   };
 
   const response = await graphService.makeRequest(
-    `/v1.0/groups/${groupId}/settings`,
+    /groups/${groupId}/settings`,
     {
       method: 'POST',
       body: JSON.stringify(settingsData)
