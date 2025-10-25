@@ -1,320 +1,23 @@
+/**
+ * Microsoft Teams Service
+ * 
+ * Provides Microsoft Teams-specific management functionality.
+ * Focuses on Teams-enabled M365 groups and comprehensive Teams settings.
+ * 
+ * Production-only implementation - NO MOCK DATA
+ * 
+ * @module teamsService
+ */
+
 import { graphService } from './graphService';
 
-const isDemoMode = process.env.REACT_APP_DEMO_MODE === 'true';
-
-// Mock data for demo mode
-const mockTeams = [
-  {
-    id: '734c3798-b644-4b50-8f42-b3d56b6d1e35',
-    displayName: 'Marketing Team',
-    description: 'Collaborate on marketing campaigns and strategies',
-    isArchived: false,
-    webUrl: 'https://teams.microsoft.com/l/team/19:marketing...',
-    visibility: 'private',
-    createdDateTime: '2024-01-15T08:00:00Z',
-    memberCount: 24,
-    channelCount: 8,
-    memberSettings: {
-      allowCreateUpdateChannels: true,
-      allowDeleteChannels: false,
-      allowAddRemoveApps: true,
-      allowCreateUpdateRemoveTabs: true,
-      allowCreateUpdateRemoveConnectors: true
-    },
-    guestSettings: {
-      allowCreateUpdateChannels: false,
-      allowDeleteChannels: false
-    },
-    messagingSettings: {
-      allowUserEditMessages: true,
-      allowUserDeleteMessages: true,
-      allowOwnerDeleteMessages: true,
-      allowTeamMentions: true,
-      allowChannelMentions: true
-    },
-    funSettings: {
-      allowGiphy: true,
-      giphyContentRating: 'moderate',
-      allowStickersAndMemes: true,
-      allowCustomMemes: true
-    }
-  },
-  {
-    id: 'af630fe0-04d3-4559-8cf9-91fe45e36296',
-    displayName: 'Engineering Team',
-    description: 'Development and technical discussions',
-    isArchived: false,
-    webUrl: 'https://teams.microsoft.com/l/team/19:engineering...',
-    visibility: 'private',
-    createdDateTime: '2024-02-01T09:30:00Z',
-    memberCount: 35,
-    channelCount: 12,
-    memberSettings: {
-      allowCreateUpdateChannels: true,
-      allowDeleteChannels: true,
-      allowAddRemoveApps: true,
-      allowCreateUpdateRemoveTabs: true,
-      allowCreateUpdateRemoveConnectors: true
-    },
-    guestSettings: {
-      allowCreateUpdateChannels: false,
-      allowDeleteChannels: false
-    },
-    messagingSettings: {
-      allowUserEditMessages: true,
-      allowUserDeleteMessages: true,
-      allowOwnerDeleteMessages: true,
-      allowTeamMentions: true,
-      allowChannelMentions: true
-    },
-    funSettings: {
-      allowGiphy: true,
-      giphyContentRating: 'moderate',
-      allowStickersAndMemes: true,
-      allowCustomMemes: true
-    }
-  },
-  {
-    id: '9a7608d3-53e4-4a92-804f-ef43f1e5f5b5',
-    displayName: 'Sales Team',
-    description: 'Sales pipeline and customer engagement',
-    isArchived: false,
-    webUrl: 'https://teams.microsoft.com/l/team/19:sales...',
-    visibility: 'private',
-    createdDateTime: '2024-01-20T10:00:00Z',
-    memberCount: 18,
-    channelCount: 6,
-    memberSettings: {
-      allowCreateUpdateChannels: true,
-      allowDeleteChannels: false,
-      allowAddRemoveApps: true,
-      allowCreateUpdateRemoveTabs: true,
-      allowCreateUpdateRemoveConnectors: false
-    },
-    guestSettings: {
-      allowCreateUpdateChannels: false,
-      allowDeleteChannels: false
-    },
-    messagingSettings: {
-      allowUserEditMessages: true,
-      allowUserDeleteMessages: false,
-      allowOwnerDeleteMessages: true,
-      allowTeamMentions: true,
-      allowChannelMentions: true
-    },
-    funSettings: {
-      allowGiphy: false,
-      giphyContentRating: 'strict',
-      allowStickersAndMemes: false,
-      allowCustomMemes: false
-    }
-  },
-  {
-    id: 'bc842d7a-2f6e-4b18-a1c7-73ef91d5c8e3',
-    displayName: 'Executive Leadership',
-    description: 'C-Suite and executive team communications',
-    isArchived: false,
-    webUrl: 'https://teams.microsoft.com/l/team/19:executive...',
-    visibility: 'private',
-    createdDateTime: '2024-01-10T07:00:00Z',
-    memberCount: 8,
-    channelCount: 4,
-    memberSettings: {
-      allowCreateUpdateChannels: false,
-      allowDeleteChannels: false,
-      allowAddRemoveApps: false,
-      allowCreateUpdateRemoveTabs: false,
-      allowCreateUpdateRemoveConnectors: false
-    },
-    guestSettings: {
-      allowCreateUpdateChannels: false,
-      allowDeleteChannels: false
-    },
-    messagingSettings: {
-      allowUserEditMessages: false,
-      allowUserDeleteMessages: false,
-      allowOwnerDeleteMessages: true,
-      allowTeamMentions: true,
-      allowChannelMentions: false
-    },
-    funSettings: {
-      allowGiphy: false,
-      giphyContentRating: 'strict',
-      allowStickersAndMemes: false,
-      allowCustomMemes: false
-    }
-  },
-  {
-    id: 'd1aeb56e-5a25-4d91-a4f6-0f5e6a50d887',
-    displayName: 'HR Operations',
-    description: 'Human resources and employee support',
-    isArchived: false,
-    webUrl: 'https://teams.microsoft.com/l/team/19:hr...',
-    visibility: 'private',
-    createdDateTime: '2024-01-25T11:00:00Z',
-    memberCount: 12,
-    channelCount: 5,
-    memberSettings: {
-      allowCreateUpdateChannels: true,
-      allowDeleteChannels: false,
-      allowAddRemoveApps: true,
-      allowCreateUpdateRemoveTabs: true,
-      allowCreateUpdateRemoveConnectors: true
-    },
-    guestSettings: {
-      allowCreateUpdateChannels: false,
-      allowDeleteChannels: false
-    },
-    messagingSettings: {
-      allowUserEditMessages: true,
-      allowUserDeleteMessages: true,
-      allowOwnerDeleteMessages: true,
-      allowTeamMentions: true,
-      allowChannelMentions: true
-    },
-    funSettings: {
-      allowGiphy: true,
-      giphyContentRating: 'moderate',
-      allowStickersAndMemes: true,
-      allowCustomMemes: false
-    }
-  }
-];
-
-const mockMembers = {
-  '734c3798-b644-4b50-8f42-b3d56b6d1e35': [
-    {
-      id: 'mem-001',
-      roles: ['owner'],
-      displayName: 'Sarah Johnson',
-      userId: 'user-001',
-      email: 'sarah.johnson@company.com',
-      membershipType: 'aadUser'
-    },
-    {
-      id: 'mem-002',
-      roles: ['member'],
-      displayName: 'Michael Brown',
-      userId: 'user-002',
-      email: 'michael.brown@company.com',
-      membershipType: 'aadUser'
-    },
-    {
-      id: 'mem-003',
-      roles: ['member'],
-      displayName: 'Emily Davis',
-      userId: 'user-003',
-      email: 'emily.davis@company.com',
-      membershipType: 'aadUser'
-    }
-  ],
-  'af630fe0-04d3-4559-8cf9-91fe45e36296': [
-    {
-      id: 'mem-004',
-      roles: ['owner'],
-      displayName: 'David Wilson',
-      userId: 'user-004',
-      email: 'david.wilson@company.com',
-      membershipType: 'aadUser'
-    },
-    {
-      id: 'mem-005',
-      roles: ['owner'],
-      displayName: 'Lisa Chen',
-      userId: 'user-005',
-      email: 'lisa.chen@company.com',
-      membershipType: 'aadUser'
-    }
-  ]
-};
-
-const mockChannels = {
-  '734c3798-b644-4b50-8f42-b3d56b6d1e35': [
-    {
-      id: '19:marketing-general@thread.tacv2',
-      displayName: 'General',
-      description: 'General team discussions',
-      membershipType: 'standard',
-      createdDateTime: '2024-01-15T08:00:00Z',
-      webUrl: 'https://teams.microsoft.com/l/channel/19:marketing-general...'
-    },
-    {
-      id: '19:marketing-campaigns@thread.tacv2',
-      displayName: 'Campaign Planning',
-      description: 'Plan and coordinate marketing campaigns',
-      membershipType: 'standard',
-      createdDateTime: '2024-01-16T09:00:00Z',
-      webUrl: 'https://teams.microsoft.com/l/channel/19:marketing-campaigns...'
-    },
-    {
-      id: '19:marketing-analytics@thread.tacv2',
-      displayName: 'Analytics',
-      description: 'Marketing analytics and reporting',
-      membershipType: 'private',
-      createdDateTime: '2024-01-20T10:00:00Z',
-      webUrl: 'https://teams.microsoft.com/l/channel/19:marketing-analytics...'
-    }
-  ],
-  'af630fe0-04d3-4559-8cf9-91fe45e36296': [
-    {
-      id: '19:engineering-general@thread.tacv2',
-      displayName: 'General',
-      description: 'General engineering discussions',
-      membershipType: 'standard',
-      createdDateTime: '2024-02-01T09:30:00Z',
-      webUrl: 'https://teams.microsoft.com/l/channel/19:engineering-general...'
-    },
-    {
-      id: '19:engineering-architecture@thread.tacv2',
-      displayName: 'Architecture',
-      description: 'System architecture and design',
-      membershipType: 'private',
-      createdDateTime: '2024-02-02T10:00:00Z',
-      webUrl: 'https://teams.microsoft.com/l/channel/19:engineering-architecture...'
-    }
-  ]
-};
-
-const mockInstalledApps = {
-  '734c3798-b644-4b50-8f42-b3d56b6d1e35': [
-    {
-      id: 'app-001',
-      teamsApp: {
-        id: 'com.microsoft.teamspace.tab.planner',
-        displayName: 'Planner',
-        distributionMethod: 'store'
-      },
-      teamsAppDefinition: {
-        displayName: 'Planner',
-        version: '1.0.0'
-      }
-    },
-    {
-      id: 'app-002',
-      teamsApp: {
-        id: 'com.microsoft.teamspace.tab.powerbi',
-        displayName: 'Power BI',
-        distributionMethod: 'store'
-      },
-      teamsAppDefinition: {
-        displayName: 'Power BI',
-        version: '2.1.0'
-      }
-    }
-  ]
-};
-
 /**
- * Get all teams in the organization
+ * Get all Teams-enabled M365 groups in the organization
+ * Uses resourceProvisioningOptions filter to get only groups with Teams provisioned
  */
 export async function getTeams() {
-  if (isDemoMode) {
-    return { value: mockTeams };
-  }
-
-  // Get groups that are teams
   const response = await graphService.makeRequest(
-    "/v1.0/groups?$filter=resourceProvisioningOptions/Any(x:x eq 'Team')&$select=id,displayName,description,visibility,createdDateTime",
+    "/v1.0/groups?$filter=resourceProvisioningOptions/Any(x:x eq 'Team')&$select=id,displayName,description,visibility,createdDateTime,mail,mailNickname",
     {}
   );
   
@@ -322,15 +25,10 @@ export async function getTeams() {
 }
 
 /**
- * Get specific team details including settings
+ * Get specific team details including all settings
+ * @param {string} teamId - The team ID
  */
 export async function getTeam(teamId) {
-  if (isDemoMode) {
-    const team = mockTeams.find(t => t.id === teamId);
-    if (!team) throw new Error('Team not found');
-    return team;
-  }
-
   const response = await graphService.makeRequest(
     `/v1.0/teams/${teamId}`,
     {}
@@ -342,60 +40,30 @@ export async function getTeam(teamId) {
 /**
  * Create a new team (4-step process as per Microsoft documentation)
  * Step 1: Create M365 group
- * Step 2: Add owners (minimum 2)
+ * Step 2: Add owners (minimum 2 required)
  * Step 3: Add members (with 1 second delay between adds)
  * Step 4: Convert group to team
+ * 
+ * @param {Object} teamData - Team creation data
+ * @param {string} teamData.displayName - Team display name
+ * @param {string} teamData.description - Team description
+ * @param {string} teamData.visibility - Team visibility (Private or Public)
+ * @param {Array<string>} teamData.ownerIds - Array of owner user IDs (minimum 2)
+ * @param {Array<string>} teamData.memberIds - Optional array of member user IDs
  */
 export async function createTeam(teamData) {
-  if (isDemoMode) {
-    const newTeam = {
-      id: `team-${Date.now()}`,
-      displayName: teamData.displayName,
-      description: teamData.description,
-      isArchived: false,
-      webUrl: `https://teams.microsoft.com/l/team/19:${Date.now()}...`,
-      visibility: teamData.visibility || 'private',
-      createdDateTime: new Date().toISOString(),
-      memberCount: 1,
-      channelCount: 1,
-      memberSettings: {
-        allowCreateUpdateChannels: true,
-        allowDeleteChannels: false,
-        allowAddRemoveApps: true,
-        allowCreateUpdateRemoveTabs: true,
-        allowCreateUpdateRemoveConnectors: true
-      },
-      guestSettings: {
-        allowCreateUpdateChannels: false,
-        allowDeleteChannels: false
-      },
-      messagingSettings: {
-        allowUserEditMessages: true,
-        allowUserDeleteMessages: true,
-        allowOwnerDeleteMessages: true,
-        allowTeamMentions: true,
-        allowChannelMentions: true
-      },
-      funSettings: {
-        allowGiphy: true,
-        giphyContentRating: 'moderate',
-        allowStickersAndMemes: true,
-        allowCustomMemes: true
-      }
-    };
-    mockTeams.push(newTeam);
-    return newTeam;
-  }
-
   // Step 1: Create M365 group
   const groupData = {
     displayName: teamData.displayName,
     description: teamData.description,
     groupTypes: ['Unified'],
     mailEnabled: true,
-    mailNickname: teamData.displayName.toLowerCase().replace(/\s+/g, '-'),
+    mailNickname: teamData.displayName.toLowerCase().replace(/\s+/g, '-').substring(0, 64),
     securityEnabled: false,
-    visibility: teamData.visibility || 'Private'
+    visibility: teamData.visibility || 'Private',
+    'owners@odata.bind': teamData.ownerIds?.slice(0, 1).map(id => 
+      `https://graph.microsoft.com/v1.0/users/${id}`
+    ) || []
   };
 
   const group = await graphService.makeRequest(
@@ -406,59 +74,85 @@ export async function createTeam(teamData) {
     }
   );
 
-  // Steps 2-4 would happen here with proper delays
-  // For now, convert to team immediately
-  const teamPayload = {
+  // Step 2: Add additional owners (if more than 1)
+  if (teamData.ownerIds && teamData.ownerIds.length > 1) {
+    for (let i = 1; i < teamData.ownerIds.length; i++) {
+      await addOwner(group.id, teamData.ownerIds[i]);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+
+  // Step 3: Add members (with delay)
+  if (teamData.memberIds && teamData.memberIds.length > 0) {
+    for (const memberId of teamData.memberIds) {
+      await addMember(group.id, memberId);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+
+  // Step 4: Convert group to team
+  const teamSettings = {
     'template@odata.bind': "https://graph.microsoft.com/v1.0/teamsTemplates('standard')",
-    'group@odata.bind': `https://graph.microsoft.com/v1.0/groups('${group.id}')`
+    memberSettings: {
+      allowCreateUpdateChannels: teamData.memberSettings?.allowCreateUpdateChannels ?? true,
+      allowDeleteChannels: teamData.memberSettings?.allowDeleteChannels ?? false,
+      allowAddRemoveApps: teamData.memberSettings?.allowAddRemoveApps ?? true,
+      allowCreateUpdateRemoveTabs: teamData.memberSettings?.allowCreateUpdateRemoveTabs ?? true,
+      allowCreateUpdateRemoveConnectors: teamData.memberSettings?.allowCreateUpdateRemoveConnectors ?? true
+    },
+    guestSettings: {
+      allowCreateUpdateChannels: teamData.guestSettings?.allowCreateUpdateChannels ?? false,
+      allowDeleteChannels: teamData.guestSettings?.allowDeleteChannels ?? false
+    },
+    messagingSettings: {
+      allowUserEditMessages: teamData.messagingSettings?.allowUserEditMessages ?? true,
+      allowUserDeleteMessages: teamData.messagingSettings?.allowUserDeleteMessages ?? true,
+      allowOwnerDeleteMessages: teamData.messagingSettings?.allowOwnerDeleteMessages ?? true,
+      allowTeamMentions: teamData.messagingSettings?.allowTeamMentions ?? true,
+      allowChannelMentions: teamData.messagingSettings?.allowChannelMentions ?? true
+    },
+    funSettings: {
+      allowGiphy: teamData.funSettings?.allowGiphy ?? true,
+      giphyContentRating: teamData.funSettings?.giphyContentRating ?? 'moderate',
+      allowStickersAndMemes: teamData.funSettings?.allowStickersAndMemes ?? true,
+      allowCustomMemes: teamData.funSettings?.allowCustomMemes ?? true
+    }
   };
 
-  const team = await graphService.makeRequest(
-    '/v1.0/teams',
+  await graphService.makeRequest(
+    `/v1.0/groups/${group.id}/team`,
     {
-      method: 'POST',
-      body: JSON.stringify(teamPayload)
+      method: 'PUT',
+      body: JSON.stringify(teamSettings)
     }
   );
 
-  return team;
+  return group;
 }
 
 /**
- * Archive a team
+ * Archive a team (preserves data but makes read-only)
+ * @param {string} teamId - The team ID
  */
 export async function archiveTeam(teamId) {
-  if (isDemoMode) {
-    const team = mockTeams.find(t => t.id === teamId);
-    if (team) {
-      team.isArchived = true;
-    }
-    return { success: true };
-  }
-
-  await graphService.makeRequest(
+  const response = await graphService.makeRequest(
     `/v1.0/teams/${teamId}/archive`,
     {
       method: 'POST',
-      body: JSON.stringify({ shouldSetSpoSiteReadOnlyForMembers: false })
+      body: JSON.stringify({
+        shouldSetSpoSiteReadOnlyForMembers: true
+      })
     }
   );
 
-  return { success: true };
+  return response;
 }
 
 /**
- * Delete a team (deletes the backing Microsoft 365 group)
+ * Delete a team (deletes the underlying M365 group)
+ * @param {string} groupId - The group/team ID
  */
 export async function deleteTeam(groupId) {
-  if (isDemoMode) {
-    const index = mockTeams.findIndex(t => t.id === groupId);
-    if (index !== -1) {
-      mockTeams.splice(index, 1);
-    }
-    return { success: true };
-  }
-
   await graphService.makeRequest(
     `/v1.0/groups/${groupId}`,
     {
@@ -471,12 +165,9 @@ export async function deleteTeam(groupId) {
 
 /**
  * Get team members
+ * @param {string} teamId - The team ID
  */
 export async function getMembers(teamId) {
-  if (isDemoMode) {
-    return { value: mockMembers[teamId] || [] };
-  }
-
   const response = await graphService.makeRequest(
     `/v1.0/teams/${teamId}/members`,
     {}
@@ -486,30 +177,16 @@ export async function getMembers(teamId) {
 }
 
 /**
- * Add member to team (uses group endpoint with $ref binding)
+ * Add a member to the team's underlying M365 group
+ * @param {string} groupId - The group/team ID
+ * @param {string} userId - The user ID to add
  */
 export async function addMember(groupId, userId) {
-  if (isDemoMode) {
-    const newMember = {
-      id: `mem-${Date.now()}`,
-      roles: ['member'],
-      displayName: 'New Member',
-      userId: userId,
-      email: `${userId}@company.com`,
-      membershipType: 'aadUser'
-    };
-    if (!mockMembers[groupId]) {
-      mockMembers[groupId] = [];
-    }
-    mockMembers[groupId].push(newMember);
-    return newMember;
-  }
-
   const memberData = {
-    '@odata.id': `https://graph.microsoft.com/v1.0/users/${userId}`
+    '@odata.id': `https://graph.microsoft.com/v1.0/directoryObjects/${userId}`
   };
 
-  await graphService.makeRequest(
+  const response = await graphService.makeRequest(
     `/v1.0/groups/${groupId}/members/$ref`,
     {
       method: 'POST',
@@ -517,20 +194,15 @@ export async function addMember(groupId, userId) {
     }
   );
 
-  return { success: true };
+  return response;
 }
 
 /**
- * Remove member from team
+ * Remove a member from the team's underlying M365 group
+ * @param {string} groupId - The group/team ID
+ * @param {string} userId - The user ID to remove
  */
 export async function removeMember(groupId, userId) {
-  if (isDemoMode) {
-    if (mockMembers[groupId]) {
-      mockMembers[groupId] = mockMembers[groupId].filter(m => m.userId !== userId);
-    }
-    return { success: true };
-  }
-
   await graphService.makeRequest(
     `/v1.0/groups/${groupId}/members/${userId}/$ref`,
     {
@@ -542,14 +214,10 @@ export async function removeMember(groupId, userId) {
 }
 
 /**
- * Get team owners
+ * Get team owners from the underlying M365 group
+ * @param {string} groupId - The group/team ID
  */
 export async function getOwners(groupId) {
-  if (isDemoMode) {
-    const members = mockMembers[groupId] || [];
-    return { value: members.filter(m => m.roles.includes('owner')) };
-  }
-
   const response = await graphService.makeRequest(
     `/v1.0/groups/${groupId}/owners`,
     {}
@@ -559,30 +227,16 @@ export async function getOwners(groupId) {
 }
 
 /**
- * Add owner to team
+ * Add an owner to the team's underlying M365 group
+ * @param {string} groupId - The group/team ID
+ * @param {string} userId - The user ID to add as owner
  */
 export async function addOwner(groupId, userId) {
-  if (isDemoMode) {
-    const newOwner = {
-      id: `own-${Date.now()}`,
-      roles: ['owner'],
-      displayName: 'New Owner',
-      userId: userId,
-      email: `${userId}@company.com`,
-      membershipType: 'aadUser'
-    };
-    if (!mockMembers[groupId]) {
-      mockMembers[groupId] = [];
-    }
-    mockMembers[groupId].push(newOwner);
-    return newOwner;
-  }
-
   const ownerData = {
     '@odata.id': `https://graph.microsoft.com/v1.0/users/${userId}`
   };
 
-  await graphService.makeRequest(
+  const response = await graphService.makeRequest(
     `/v1.0/groups/${groupId}/owners/$ref`,
     {
       method: 'POST',
@@ -590,17 +244,14 @@ export async function addOwner(groupId, userId) {
     }
   );
 
-  return { success: true };
+  return response;
 }
 
 /**
  * Get team channels
+ * @param {string} teamId - The team ID
  */
 export async function getChannels(teamId) {
-  if (isDemoMode) {
-    return { value: mockChannels[teamId] || [] };
-  }
-
   const response = await graphService.makeRequest(
     `/v1.0/teams/${teamId}/channels`,
     {}
@@ -610,30 +261,23 @@ export async function getChannels(teamId) {
 }
 
 /**
- * Create a channel
+ * Create a new channel in a team
+ * @param {string} teamId - The team ID
+ * @param {Object} channelData - Channel creation data
+ * @param {string} channelData.displayName - Channel display name
+ * @param {string} channelData.description - Channel description
+ * @param {string} channelData.membershipType - Channel type (standard, private, shared)
  */
 export async function createChannel(teamId, channelData) {
-  if (isDemoMode) {
-    const newChannel = {
-      id: `19:channel-${Date.now()}@thread.tacv2`,
-      displayName: channelData.displayName,
-      description: channelData.description,
-      membershipType: channelData.membershipType || 'standard',
-      createdDateTime: new Date().toISOString(),
-      webUrl: `https://teams.microsoft.com/l/channel/19:channel-${Date.now()}...`
-    };
-    if (!mockChannels[teamId]) {
-      mockChannels[teamId] = [];
-    }
-    mockChannels[teamId].push(newChannel);
-    return newChannel;
-  }
-
   const response = await graphService.makeRequest(
     `/v1.0/teams/${teamId}/channels`,
     {
       method: 'POST',
-      body: JSON.stringify(channelData)
+      body: JSON.stringify({
+        displayName: channelData.displayName,
+        description: channelData.description,
+        membershipType: channelData.membershipType || 'standard'
+      })
     }
   );
 
@@ -641,18 +285,12 @@ export async function createChannel(teamId, channelData) {
 }
 
 /**
- * Update channel
+ * Update channel properties
+ * @param {string} teamId - The team ID
+ * @param {string} channelId - The channel ID
+ * @param {Object} updates - Properties to update
  */
 export async function updateChannel(teamId, channelId, updates) {
-  if (isDemoMode) {
-    const channels = mockChannels[teamId] || [];
-    const channel = channels.find(c => c.id === channelId);
-    if (channel) {
-      Object.assign(channel, updates);
-    }
-    return channel;
-  }
-
   const response = await graphService.makeRequest(
     `/v1.0/teams/${teamId}/channels/${channelId}`,
     {
@@ -665,16 +303,11 @@ export async function updateChannel(teamId, channelId, updates) {
 }
 
 /**
- * Delete channel
+ * Delete a channel
+ * @param {string} teamId - The team ID
+ * @param {string} channelId - The channel ID
  */
 export async function deleteChannel(teamId, channelId) {
-  if (isDemoMode) {
-    if (mockChannels[teamId]) {
-      mockChannels[teamId] = mockChannels[teamId].filter(c => c.id !== channelId);
-    }
-    return { success: true };
-  }
-
   await graphService.makeRequest(
     `/v1.0/teams/${teamId}/channels/${channelId}`,
     {
@@ -686,7 +319,8 @@ export async function deleteChannel(teamId, channelId) {
 }
 
 /**
- * Get team settings (included in getTeam response)
+ * Get team settings (wrapper around getTeam)
+ * @param {string} teamId - The team ID
  */
 export async function getTeamSettings(teamId) {
   return getTeam(teamId);
@@ -694,16 +328,10 @@ export async function getTeamSettings(teamId) {
 
 /**
  * Update team settings
+ * @param {string} teamId - The team ID
+ * @param {Object} settings - Settings to update (memberSettings, guestSettings, messagingSettings, funSettings)
  */
 export async function updateTeamSettings(teamId, settings) {
-  if (isDemoMode) {
-    const team = mockTeams.find(t => t.id === teamId);
-    if (team) {
-      Object.assign(team, settings);
-    }
-    return team;
-  }
-
   const response = await graphService.makeRequest(
     `/v1.0/teams/${teamId}`,
     {
@@ -716,13 +344,10 @@ export async function updateTeamSettings(teamId, settings) {
 }
 
 /**
- * Get installed apps
+ * Get installed apps in a team
+ * @param {string} teamId - The team ID
  */
 export async function getInstalledApps(teamId) {
-  if (isDemoMode) {
-    return { value: mockInstalledApps[teamId] || [] };
-  }
-
   const response = await graphService.makeRequest(
     `/v1.0/teams/${teamId}/installedApps?$expand=teamsAppDefinition`,
     {}
@@ -732,29 +357,11 @@ export async function getInstalledApps(teamId) {
 }
 
 /**
- * Install app in team
+ * Install an app in a team
+ * @param {string} teamId - The team ID
+ * @param {string} appId - The Teams app ID from the app catalog
  */
 export async function installApp(teamId, appId) {
-  if (isDemoMode) {
-    const newApp = {
-      id: `app-${Date.now()}`,
-      teamsApp: {
-        id: appId,
-        displayName: 'New App',
-        distributionMethod: 'store'
-      },
-      teamsAppDefinition: {
-        displayName: 'New App',
-        version: '1.0.0'
-      }
-    };
-    if (!mockInstalledApps[teamId]) {
-      mockInstalledApps[teamId] = [];
-    }
-    mockInstalledApps[teamId].push(newApp);
-    return newApp;
-  }
-
   const appData = {
     'teamsApp@odata.bind': `https://graph.microsoft.com/v1.0/appCatalogs/teamsApps/${appId}`
   };
@@ -771,16 +378,11 @@ export async function installApp(teamId, appId) {
 }
 
 /**
- * Uninstall app from team
+ * Uninstall an app from a team
+ * @param {string} teamId - The team ID
+ * @param {string} installationId - The installation ID
  */
 export async function uninstallApp(teamId, installationId) {
-  if (isDemoMode) {
-    if (mockInstalledApps[teamId]) {
-      mockInstalledApps[teamId] = mockInstalledApps[teamId].filter(a => a.id !== installationId);
-    }
-    return { success: true };
-  }
-
   await graphService.makeRequest(
     `/v1.0/teams/${teamId}/installedApps/${installationId}`,
     {
@@ -789,6 +391,68 @@ export async function uninstallApp(teamId, installationId) {
   );
 
   return { success: true };
+}
+
+/**
+ * Get M365 group settings templates
+ * Used to understand available group policy settings
+ */
+export async function getGroupSettingTemplates() {
+  const response = await graphService.makeRequest(
+    '/v1.0/groupSettingTemplates',
+    {}
+  );
+
+  return response;
+}
+
+/**
+ * Get specific M365 group settings
+ * @param {string} groupId - The group/team ID
+ */
+export async function getGroupSettings(groupId) {
+  const response = await graphService.makeRequest(
+    `/v1.0/groups/${groupId}/settings`,
+    {}
+  );
+
+  return response;
+}
+
+/**
+ * Create or update M365 group settings
+ * @param {string} groupId - The group/team ID
+ * @param {string} templateId - The settings template ID
+ * @param {Array} values - Array of name/value pairs for settings
+ */
+export async function updateGroupSettings(groupId, templateId, values) {
+  const settingsData = {
+    templateId: templateId,
+    values: values
+  };
+
+  const response = await graphService.makeRequest(
+    `/v1.0/groups/${groupId}/settings`,
+    {
+      method: 'POST',
+      body: JSON.stringify(settingsData)
+    }
+  );
+
+  return response;
+}
+
+/**
+ * Get tenant-wide group settings
+ * Shows organization-level M365 group policies
+ */
+export async function getTenantGroupSettings() {
+  const response = await graphService.makeRequest(
+    '/v1.0/groupSettings',
+    {}
+  );
+
+  return response;
 }
 
 export const teamsService = {
@@ -810,5 +474,9 @@ export const teamsService = {
   updateTeamSettings,
   getInstalledApps,
   installApp,
-  uninstallApp
+  uninstallApp,
+  getGroupSettingTemplates,
+  getGroupSettings,
+  updateGroupSettings,
+  getTenantGroupSettings
 };
