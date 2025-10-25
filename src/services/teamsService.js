@@ -75,7 +75,7 @@ export async function getTeams() {
  */
 export async function getTeam(teamId) {
   const response = await graphService.makeRequest(
-    /teams/${teamId}`,
+    `/teams/${teamId}`,
     {}
   );
   
@@ -112,7 +112,7 @@ export async function createTeam(teamData) {
   };
 
   const group = await graphService.makeRequest(
-    '/v1.0/groups',
+    '/groups',
     {
       method: 'POST',
       body: JSON.stringify(groupData)
@@ -165,7 +165,7 @@ export async function createTeam(teamData) {
   };
 
   await graphService.makeRequest(
-    /groups/${group.id}/team`,
+    `/groups/${group.id}/team`,
     {
       method: 'PUT',
       body: JSON.stringify(teamSettings)
@@ -181,7 +181,7 @@ export async function createTeam(teamData) {
  */
 export async function archiveTeam(teamId) {
   const response = await graphService.makeRequest(
-    /teams/${teamId}/archive`,
+    `/teams/${teamId}/archive`,
     {
       method: 'POST',
       body: JSON.stringify({
@@ -199,7 +199,7 @@ export async function archiveTeam(teamId) {
  */
 export async function deleteTeam(groupId) {
   await graphService.makeRequest(
-    /groups/${groupId}`,
+    `/groups/${groupId}`,
     {
       method: 'DELETE'
     }
@@ -214,7 +214,7 @@ export async function deleteTeam(groupId) {
  */
 export async function getMembers(teamId) {
   const response = await graphService.makeRequest(
-    /teams/${teamId}/members`,
+    `/teams/${teamId}/members`,
     {}
   );
 
@@ -232,7 +232,7 @@ export async function addMember(groupId, userId) {
   };
 
   const response = await graphService.makeRequest(
-    /groups/${groupId}/members/$ref`,
+    `/groups/${groupId}/members/$ref`,
     {
       method: 'POST',
       body: JSON.stringify(memberData)
@@ -249,7 +249,7 @@ export async function addMember(groupId, userId) {
  */
 export async function removeMember(groupId, userId) {
   await graphService.makeRequest(
-    /groups/${groupId}/members/${userId}/$ref`,
+    `/groups/${groupId}/members/${userId}/$ref`,
     {
       method: 'DELETE'
     }
@@ -264,7 +264,7 @@ export async function removeMember(groupId, userId) {
  */
 export async function getOwners(groupId) {
   const response = await graphService.makeRequest(
-    /groups/${groupId}/owners`,
+    `/groups/${groupId}/owners`,
     {}
   );
 
@@ -282,7 +282,7 @@ export async function addOwner(groupId, userId) {
   };
 
   const response = await graphService.makeRequest(
-    /groups/${groupId}/owners/$ref`,
+    `/groups/${groupId}/owners/$ref`,
     {
       method: 'POST',
       body: JSON.stringify(ownerData)
@@ -298,7 +298,7 @@ export async function addOwner(groupId, userId) {
  */
 export async function getChannels(teamId) {
   const response = await graphService.makeRequest(
-    /teams/${teamId}/channels`,
+    `/teams/${teamId}/channels`,
     {}
   );
 
@@ -315,7 +315,7 @@ export async function getChannels(teamId) {
  */
 export async function createChannel(teamId, channelData) {
   const response = await graphService.makeRequest(
-    /teams/${teamId}/channels`,
+    `/teams/${teamId}/channels`,
     {
       method: 'POST',
       body: JSON.stringify({
@@ -337,7 +337,7 @@ export async function createChannel(teamId, channelData) {
  */
 export async function updateChannel(teamId, channelId, updates) {
   const response = await graphService.makeRequest(
-    /teams/${teamId}/channels/${channelId}`,
+    `/teams/${teamId}/channels/${channelId}`,
     {
       method: 'PATCH',
       body: JSON.stringify(updates)
@@ -354,7 +354,7 @@ export async function updateChannel(teamId, channelId, updates) {
  */
 export async function deleteChannel(teamId, channelId) {
   await graphService.makeRequest(
-    /teams/${teamId}/channels/${channelId}`,
+    `/teams/${teamId}/channels/${channelId}`,
     {
       method: 'DELETE'
     }
@@ -378,7 +378,7 @@ export async function getTeamSettings(teamId) {
  */
 export async function updateTeamSettings(teamId, settings) {
   const response = await graphService.makeRequest(
-    /teams/${teamId}`,
+    `/teams/${teamId}`,
     {
       method: 'PATCH',
       body: JSON.stringify(settings)
@@ -394,7 +394,7 @@ export async function updateTeamSettings(teamId, settings) {
  */
 export async function getInstalledApps(teamId) {
   const response = await graphService.makeRequest(
-    /teams/${teamId}/installedApps?$expand=teamsAppDefinition`,
+    `/teams/${teamId}/installedApps?$expand=teamsAppDefinition`,
     {}
   );
 
@@ -412,7 +412,7 @@ export async function installApp(teamId, appId) {
   };
 
   const response = await graphService.makeRequest(
-    /teams/${teamId}/installedApps`,
+    `/teams/${teamId}/installedApps`,
     {
       method: 'POST',
       body: JSON.stringify(appData)
@@ -429,7 +429,7 @@ export async function installApp(teamId, appId) {
  */
 export async function uninstallApp(teamId, installationId) {
   await graphService.makeRequest(
-    /teams/${teamId}/installedApps/${installationId}`,
+    `/teams/${teamId}/installedApps/${installationId}`,
     {
       method: 'DELETE'
     }
@@ -444,7 +444,7 @@ export async function uninstallApp(teamId, installationId) {
  */
 export async function getGroupSettingTemplates() {
   const response = await graphService.makeRequest(
-    '/v1.0/groupSettingTemplates',
+    '/groupSettingTemplates',
     {}
   );
 
@@ -457,7 +457,7 @@ export async function getGroupSettingTemplates() {
  */
 export async function getGroupSettings(groupId) {
   const response = await graphService.makeRequest(
-    /groups/${groupId}/settings`,
+    `/groups/${groupId}/settings`,
     {}
   );
 
@@ -477,7 +477,7 @@ export async function updateGroupSettings(groupId, templateId, values) {
   };
 
   const response = await graphService.makeRequest(
-    /groups/${groupId}/settings`,
+    `/groups/${groupId}/settings`,
     {
       method: 'POST',
       body: JSON.stringify(settingsData)
@@ -493,7 +493,7 @@ export async function updateGroupSettings(groupId, templateId, values) {
  */
 export async function getTenantGroupSettings() {
   const response = await graphService.makeRequest(
-    '/v1.0/groupSettings',
+    '/groupSettings',
     {}
   );
 
@@ -525,3 +525,5 @@ export const teamsService = {
   updateGroupSettings,
   getTenantGroupSettings
 };
+
+
