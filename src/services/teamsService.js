@@ -38,20 +38,17 @@ export async function getTeams() {
             }
           );
           
-          // Get channel count
+          // Get channel count by listing channels (no $count endpoint available for channels)
+          // Use $select to minimize data transfer - we only need the count
           const channelsResponse = await graphService.makeRequest(
-            `/teams/${team.id}/channels/$count`,
-            {
-              headers: {
-                'ConsistencyLevel': 'eventual'
-              }
-            }
+            `/teams/${team.id}/channels?$select=id`,
+            {}
           );
           
           return {
             ...team,
             memberCount: typeof membersResponse === 'number' ? membersResponse : 0,
-            channelCount: typeof channelsResponse === 'number' ? channelsResponse : 0
+            channelCount: channelsResponse?.value?.length || 0
           };
         } catch (error) {
           console.warn(`Failed to get counts for team ${team.id}:`, error);
