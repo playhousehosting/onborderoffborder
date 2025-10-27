@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { graphService } from '../../services/graphService';
 import { useAuth } from '../../contexts/AuthContext';
+import { logger } from '../../utils/logger';
 import toast from 'react-hot-toast';
 import {
   UserMinusIcon,
@@ -211,7 +212,7 @@ const OffboardingWizard = () => {
       const userData = await graphService.getUserById(id);
       setSelectedUser(userData);
     } catch (error) {
-      console.error('Error fetching user:', error);
+      logger.error('Error fetching user:', error);
       toast.error('Failed to fetch user details');
     } finally {
       setLoading(false);
@@ -226,7 +227,7 @@ const OffboardingWizard = () => {
       const results = await graphService.searchUsers(searchTerm);
       setSearchResults(results.value || []);
     } catch (error) {
-      console.error('Error searching users:', error);
+      logger.error('Error searching users:', error);
       toast.error('Failed to search users');
     } finally {
       setSearching(false);
@@ -538,7 +539,7 @@ const OffboardingWizard = () => {
                 removedCount++;
               } catch (error) {
                 failedCount++;
-                console.warn(`Failed to remove from group ${group.displayName}:`, error);
+                logger.warn(`Failed to remove from group ${group.displayName}:`, error);
               }
             }
             
@@ -589,7 +590,7 @@ const OffboardingWizard = () => {
                 removedCount++;
               } catch (error) {
                 failedCount++;
-                console.warn(`Failed to remove from team ${team.displayName}:`, error);
+                logger.warn(`Failed to remove from team ${team.displayName}:`, error);
               }
             }
             
@@ -640,7 +641,7 @@ const OffboardingWizard = () => {
                 removedCount++;
               } catch (error) {
                 failedCount++;
-                console.warn(`Failed to remove from ${app.appDisplayName}:`, error);
+                logger.warn(`Failed to remove from ${app.appDisplayName}:`, error);
               }
             }
 
@@ -691,7 +692,7 @@ const OffboardingWizard = () => {
                 removedCount++;
               } catch (error) {
                 failedCount++;
-                console.warn(`Failed to remove ${method.displayName}:`, error);
+                logger.warn(`Failed to remove ${method.displayName}:`, error);
               }
             }
 
@@ -746,7 +747,7 @@ const OffboardingWizard = () => {
                 processedDevices++;
               } catch (error) {
                 failedDevices++;
-                console.warn(`Failed to process device ${device.deviceName}:`, error);
+                logger.warn(`Failed to process device ${device.deviceName}:`, error);
               }
             }
             
@@ -782,7 +783,7 @@ const OffboardingWizard = () => {
       setCurrentStep(3); // Move to results step
       toast.success('Offboarding process completed');
     } catch (error) {
-      console.error('Offboarding error:', error);
+      logger.error('Offboarding error:', error);
       toast.error('Offboarding process failed');
     } finally {
       setIsExecuting(false);
