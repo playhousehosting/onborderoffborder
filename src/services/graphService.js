@@ -1,5 +1,7 @@
 import { authService } from './authService';
 import { isDemoMode } from '../config/authConfig';
+import { apiCache, CACHE_CONFIG } from '../utils/apiCache';
+import { logger } from '../utils/logger';
 
 // Mock data for demo mode
 const MOCK_USERS = [
@@ -413,6 +415,16 @@ export class GraphService {
    * @returns {Promise<Array>} All users matching the filter
    */
   async getAllUsers(filter = '', pageSize = 100) {
+    // Check cache first
+    const cacheKey = apiCache.generateKey('/users/all', { filter, pageSize });
+    const cached = apiCache.get(cacheKey);
+    
+    if (cached) {
+      logger.debug('📦 Returning cached users:', cached.totalCount);
+      return cached;
+    }
+    
+    logger.debug('🌐 Fetching users from API...');
     const users = [];
     let endpoint = `/users?$top=${pageSize}&$select=id,displayName,userPrincipalName,mail,jobTitle,department,accountEnabled,createdDateTime,lastPasswordChangeDateTime`;
     
@@ -433,12 +445,17 @@ export class GraphService {
       
       // Log progress for large datasets
       if (endpoint) {
-        console.log(`Fetched ${users.length} users, loading more...`);
+        logger.debug(`Fetched ${users.length} users, loading more...`);
       }
     }
     
-    console.log(`Total users fetched: ${users.length}`);
-    return { value: users, totalCount: users.length };
+    const result = { value: users, totalCount: users.length };
+    
+    // Cache the result
+    apiCache.set(cacheKey, result, CACHE_CONFIG.USERS_LIST.ttl);
+    logger.success('✅ Users fetched and cached:', users.length);
+    
+    return result;
   }
 
   /**
@@ -573,10 +590,16 @@ export class GraphService {
   }
 
   async updateUser(userId, updateData) {
-    return this.makeRequest(`/users/${userId}`, {
+    const result = await this.makeRequest(`/users/${userId}`, {
       method: 'PATCH',
       body: JSON.stringify(updateData),
     });
+    
+    // Invalidate user cache after update
+    apiCache.invalidatePattern(/\/users/);
+    logger.debug('♻️ Cache invalidated after user update');
+    
+    return result;
   }
 
   async disableUser(userId) {
@@ -661,9 +684,15 @@ export class GraphService {
   }
 
   async deleteUser(userId) {
-    return this.makeRequest(`/users/${userId}`, {
+    const result = await this.makeRequest(`/users/${userId}`, {
       method: 'DELETE',
     });
+    
+    // Invalidate user cache after deletion
+    apiCache.invalidatePattern(/\/users/);
+    logger.debug('🗑️ Cache invalidated after user deletion');
+    
+    return result;
   }
 
   async updateUserManager(userId, managerEmail) {

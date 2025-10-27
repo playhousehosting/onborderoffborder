@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { graphService } from '../../services/graphService';
+import { logger } from '../../utils/logger';
+import { SkeletonDashboard } from '../common/Skeleton';
 import toast from 'react-hot-toast';
 import {
   UserGroupIcon,
@@ -43,13 +45,13 @@ const Dashboard = () => {
         // Only fetch data if user has permissions
         if (hasPermission('userManagement')) {
           // Get ALL user statistics using pagination
-          console.log('📊 Fetching all users with pagination...');
+          logger.debug('📊 Fetching all users with pagination...');
           const usersData = await graphService.getAllUsers('', 999); // Fetch 999 per page for better performance
           const totalUsers = usersData.value?.length || 0;
           const activeUsers = usersData.value?.filter(u => u.accountEnabled).length || 0;
           const disabledUsers = totalUsers - activeUsers;
           
-          console.log(`✅ Loaded ${totalUsers} total users (${activeUsers} active, ${disabledUsers} disabled)`);
+          logger.success(`✅ Loaded ${totalUsers} total users (${activeUsers} active, ${disabledUsers} disabled)`);
           
           // Get device statistics if user has device management permission
           let totalDevices = 0;
@@ -70,9 +72,9 @@ const Dashboard = () => {
                 ).length;
               }
               
-              console.log(`📱 Device Stats: ${totalDevices} total, ${compliantDevices} compliant, ${nonCompliantDevices} non-compliant`);
+              logger.debug(`📱 Device Stats: ${totalDevices} total, ${compliantDevices} compliant, ${nonCompliantDevices} non-compliant`);
             } catch (deviceError) {
-              console.warn('Could not fetch device data:', deviceError);
+              logger.warn('Could not fetch device data:', deviceError);
             }
           }
           
@@ -188,11 +190,7 @@ const Dashboard = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400"></div>
-      </div>
-    );
+    return <SkeletonDashboard />;
   }
 
   return (

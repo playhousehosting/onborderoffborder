@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { graphService } from '../../services/graphService';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDebounce } from '../../hooks/useDebounce';
+import { logger } from '../../utils/logger';
+import { SkeletonTable } from '../common/Skeleton';
 import UserDetailModal from './UserDetailModal';
 import toast from 'react-hot-toast';
 import {
@@ -21,6 +24,7 @@ const UserSearch = () => {
   const [allUsers, setAllUsers] = useState([]); // Store all users for client-side filtering
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 500); // Debounce search by 500ms
   const [currentPage, setCurrentPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -43,16 +47,16 @@ const UserSearch = () => {
   // Filter and paginate when filters/search/page changes
   useEffect(() => {
     filterAndPaginateUsers();
-  }, [currentPage, searchTerm, filters, allUsers]);
+  }, [currentPage, debouncedSearchTerm, filters, allUsers]); // Use debounced search term
 
   const fetchAllUsers = async () => {
     try {
       setLoading(true);
-      console.log('📊 Fetching all users for search...');
+      logger.debug('📊 Fetching all users for search...');
       const response = await graphService.getAllUsers('', 999); // Fetch 999 per page
       const fetchedUsers = response.value || [];
       setAllUsers(fetchedUsers);
-      console.log(`✅ Loaded ${fetchedUsers.length} users`);
+      logger.success(`✅ Loaded ${fetchedUsers.length} users`);
 
       // Extract unique departments and job titles for filters
       const departments = [...new Set(fetchedUsers.map(u => u.department).filter(Boolean))];
@@ -60,7 +64,7 @@ const UserSearch = () => {
       setAvailableDepartments(departments.sort());
       setAvailableJobTitles(jobTitles.sort());
     } catch (error) {
-      console.error('Error fetching users:', error);
+      logger.error('Error fetching users:', error);
       toast.error('Failed to fetch users');
     } finally {
       setLoading(false);
@@ -70,9 +74,9 @@ const UserSearch = () => {
   const filterAndPaginateUsers = () => {
     let filtered = [...allUsers];
 
-    // Apply search filter
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
+    // Apply search filter using debounced search term
+    if (debouncedSearchTerm) {
+      const searchLower = debouncedSearchTerm.toLowerCase();
       filtered = filtered.filter(user =>
         user.displayName?.toLowerCase().includes(searchLower) ||
         user.userPrincipalName?.toLowerCase().includes(searchLower) ||
@@ -294,9 +298,7 @@ const UserSearch = () => {
       <div className="card">
         <div className="card-body p-0">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            </div>
+            <SkeletonTable rows={10} cols={5} />
           ) : users.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
