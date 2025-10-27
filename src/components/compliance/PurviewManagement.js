@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { logger } from '../../utils/logger';
 import toast from 'react-hot-toast';
 import {
   ShieldCheckIcon,
@@ -50,9 +51,17 @@ const PurviewManagement = () => {
     try {
       const labels = await purviewService.getSensitivityLabels();
       setSensitivityLabels(labels);
+      
+      // Show info if no labels found
+      if (labels.length === 0) {
+        toast('No sensitivity labels found. This may indicate Purview is not configured.', {
+          icon: 'ℹ️',
+          duration: 5000,
+        });
+      }
     } catch (error) {
       toast.error('Failed to load sensitivity labels');
-      console.error(error);
+      logger.error('Error loading sensitivity labels:', error);
     } finally {
       setLoading(false);
     }
@@ -65,7 +74,7 @@ const PurviewManagement = () => {
       setDlpAlerts(alerts);
     } catch (error) {
       toast.error('Failed to load DLP alerts');
-      console.error(error);
+      logger.error('Error loading DLP alerts:', error);
     } finally {
       setLoading(false);
     }
@@ -78,7 +87,7 @@ const PurviewManagement = () => {
       setPolicySettings(settings);
     } catch (error) {
       toast.error('Failed to load policy settings');
-      console.error(error);
+      logger.error('Error loading policy settings:', error);
     } finally {
       setLoading(false);
     }

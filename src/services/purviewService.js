@@ -13,6 +13,7 @@
  */
 
 import { graphService } from './graphService';
+import { logger } from '../utils/logger';
 
 const isDemoMode = process.env.REACT_APP_DEMO_MODE === 'true';
 
@@ -35,7 +36,19 @@ class PurviewService {
       
       return response.value || [];
     } catch (error) {
-      console.error('Error fetching sensitivity labels:', error);
+      // Check if it's a 404 (feature not available/configured)
+      if (error.message?.includes('404')) {
+        logger.warn('⚠️ Purview Information Protection not configured or not available in this tenant');
+        return [];
+      }
+      
+      // Check if it's a 403 (permissions issue)
+      if (error.message?.includes('403')) {
+        logger.warn('⚠️ Insufficient permissions to access Purview sensitivity labels. Required: InformationProtectionPolicy.Read.All');
+        return [];
+      }
+      
+      logger.error('Error fetching sensitivity labels:', error);
       // Return empty array instead of throwing to prevent UI from breaking
       return [];
     }
@@ -57,7 +70,11 @@ class PurviewService {
       );
       return response;
     } catch (error) {
-      console.error(`Error fetching sensitivity label ${labelId}:`, error);
+      if (error.status === 404) {
+        logger.warn(`Sensitivity label ${labelId} not found. This may indicate Purview is not configured.`);
+      } else {
+        logger.error(`Error fetching sensitivity label ${labelId}:`, error);
+      }
       return null;
     }
   }
@@ -78,8 +95,12 @@ class PurviewService {
       );
       return response.value || [];
     } catch (error) {
-      console.error(`Error fetching sensitivity labels for user ${userId}:`, error);
-      throw error;
+      if (error.status === 404) {
+        logger.warn(`User sensitivity labels not available for ${userId}. This may indicate Purview is not configured or delegated permissions are required.`);
+      } else {
+        logger.error(`Error fetching sensitivity labels for user ${userId}:`, error);
+      }
+      return [];
     }
   }
 
@@ -99,7 +120,11 @@ class PurviewService {
       );
       return response;
     } catch (error) {
-      console.error('Error fetching information protection policy:', error);
+      if (error.status === 404) {
+        logger.warn('Information Protection policy not available. This may indicate Purview is not configured.');
+      } else {
+        logger.error('Error fetching information protection policy:', error);
+      }
       return null;
     }
   }
