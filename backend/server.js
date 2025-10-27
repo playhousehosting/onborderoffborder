@@ -47,7 +47,9 @@ const corsOptions = {
     const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()) || [
       'http://localhost:3000',
       'http://localhost:5000',
-      'https://onboardingoffboarding.dynamicendpoints.com'
+      'https://onboardingoffboarding.dynamicendpoints.com',
+      'http://employeelifecyclepotral.com',
+      'https://employeelifecyclepotral.com'
     ];
     
     console.log('🔍 CORS check - Origin:', origin);
