@@ -49,7 +49,9 @@ const corsOptions = {
       'http://localhost:5000',
       'https://onboardingoffboarding.dynamicendpoints.com',
       'http://employeelifecyclepotral.com',
-      'https://employeelifecyclepotral.com'
+      'https://employeelifecyclepotral.com',
+      'http://www.employeelifecyclepotral.com',
+      'https://www.employeelifecyclepotral.com'
     ];
     
     console.log('🔍 CORS check - Origin:', origin);
