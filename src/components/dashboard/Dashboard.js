@@ -27,6 +27,8 @@ const Dashboard = () => {
     activeUsers: 0,
     disabledUsers: 0,
     totalDevices: 0,
+    compliantDevices: 0,
+    nonCompliantDevices: 0,
     recentOnboarding: 0,
     recentOffboarding: 0,
   });
@@ -51,10 +53,24 @@ const Dashboard = () => {
           
           // Get device statistics if user has device management permission
           let totalDevices = 0;
+          let compliantDevices = 0;
+          let nonCompliantDevices = 0;
+          
           if (hasPermission('deviceManagement')) {
             try {
-              const devicesData = await graphService.makeRequest('/deviceManagement/managedDevices?$top=999');
+              const devicesData = await graphService.makeRequest('/deviceManagement/managedDevices?$top=999&$select=id,deviceName,complianceState');
               totalDevices = devicesData.value?.length || 0;
+              
+              // Count compliant and non-compliant devices
+              if (devicesData.value) {
+                compliantDevices = devicesData.value.filter(d => d.complianceState === 'compliant').length;
+                nonCompliantDevices = devicesData.value.filter(d => 
+                  d.complianceState === 'noncompliant' || 
+                  d.complianceState === 'nonCompliant'
+                ).length;
+              }
+              
+              console.log(`📱 Device Stats: ${totalDevices} total, ${compliantDevices} compliant, ${nonCompliantDevices} non-compliant`);
             } catch (deviceError) {
               console.warn('Could not fetch device data:', deviceError);
             }
@@ -110,6 +126,8 @@ const Dashboard = () => {
             activeUsers,
             disabledUsers,
             totalDevices,
+            compliantDevices,
+            nonCompliantDevices,
             recentOnboarding,
             recentOffboarding,
           });
@@ -258,9 +276,17 @@ const Dashboard = () => {
             <div className="p-6">
               <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.totalDevices}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('dashboard.activeDevices')}</div>
-              <div className="flex items-center mt-3 text-sm text-purple-600 dark:text-purple-400">
-                <CogIcon className="h-4 w-4 mr-1" />
-                <span>Intune managed</span>
+              <div className="flex flex-col gap-2 mt-3 text-sm">
+                <div className="flex items-center text-success-600 dark:text-success-400">
+                  <CheckCircleIcon className="h-4 w-4 mr-1" />
+                  <span>{stats.compliantDevices} Compliant</span>
+                </div>
+                {stats.nonCompliantDevices > 0 && (
+                  <div className="flex items-center text-danger-600 dark:text-danger-400">
+                    <ExclamationTriangleIcon className="h-4 w-4 mr-1" />
+                    <span>{stats.nonCompliantDevices} Non-Compliant</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

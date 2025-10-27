@@ -4,12 +4,12 @@
  * Based on Microsoft Graph API documentation for Microsoft Purview
  * 
  * API Endpoints:
- * - /security/informationProtection/sensitivityLabels (beta) - List sensitivity labels
- * - /users/{userId}/security/informationProtection/sensitivityLabels (beta) - User-specific labels
+ * - /informationProtection/policy/labels (beta) - List sensitivity labels
+ * - Beta API required as v1.0 doesn't support this resource
  * 
  * References:
- * - https://learn.microsoft.com/en-us/graph/api/resources/security-sensitivitylabel
- * - https://learn.microsoft.com/en-us/graph/security-information-protection-overview
+ * - https://learn.microsoft.com/en-us/graph/api/resources/informationprotectionlabel
+ * - https://learn.microsoft.com/en-us/graph/api/informationprotectionpolicy-list-labels
  */
 
 import { graphService } from './graphService';
@@ -20,6 +20,7 @@ class PurviewService {
   /**
    * Get all sensitivity labels for the organization
    * Returns labels available to classify and protect data
+   * Uses beta API as v1.0 doesn't support this endpoint
    */
   async getSensitivityLabels() {
     if (isDemoMode) {
@@ -27,25 +28,16 @@ class PurviewService {
     }
 
     try {
-      // Use /security/informationProtection/sensitivityLabels from beta API
-      const response = await graphService.makeRequest(
-        '/security/informationProtection/sensitivityLabels'
+      // Use beta API endpoint for information protection labels
+      const response = await graphService.makeBetaRequest(
+        '/informationProtection/policy/labels'
       );
       
       return response.value || [];
     } catch (error) {
-      // Fallback to user-specific endpoint if organization endpoint fails
-      console.warn('Organization sensitivity labels not available, falling back to user context:', error);
-      
-      try {
-        const response = await graphService.makeRequest(
-          '/me/security/informationProtection/sensitivityLabels'
-        );
-        return response.value || [];
-      } catch (fallbackError) {
-        console.error('Error fetching sensitivity labels:', fallbackError);
-        throw fallbackError;
-      }
+      console.error('Error fetching sensitivity labels:', error);
+      // Return empty array instead of throwing to prevent UI from breaking
+      return [];
     }
   }
 
@@ -60,18 +52,19 @@ class PurviewService {
     }
 
     try {
-      const response = await graphService.makeRequest(
-        `/security/informationProtection/sensitivityLabels/${labelId}`
+      const response = await graphService.makeBetaRequest(
+        `/informationProtection/policy/labels/${labelId}`
       );
       return response;
     } catch (error) {
       console.error(`Error fetching sensitivity label ${labelId}:`, error);
-      throw error;
+      return null;
     }
   }
 
   /**
    * Get user-specific sensitivity labels (respects user's permissions)
+   * Note: This endpoint requires delegated permissions and won't work with app-only auth
    * @param {string} userId - User ID or 'me' for current user
    */
   async getUserSensitivityLabels(userId = 'me') {
@@ -80,8 +73,8 @@ class PurviewService {
     }
 
     try {
-      const response = await graphService.makeRequest(
-        `/users/${userId}/security/informationProtection/sensitivityLabels`
+      const response = await graphService.makeBetaRequest(
+        `/users/${userId}/informationProtection/policy/labels`
       );
       return response.value || [];
     } catch (error) {
@@ -93,6 +86,7 @@ class PurviewService {
   /**
    * Get information protection policy settings
    * Returns default label, mandatory labeling, downgrade justification requirements
+   * Uses beta API as v1.0 doesn't support this endpoint
    */
   async getInformationProtectionPolicy() {
     if (isDemoMode) {
@@ -100,13 +94,13 @@ class PurviewService {
     }
 
     try {
-      const response = await graphService.makeRequest(
-        '/security/informationProtection/labelPolicySettings'
+      const response = await graphService.makeBetaRequest(
+        '/informationProtection/policy'
       );
       return response;
     } catch (error) {
       console.error('Error fetching information protection policy:', error);
-      throw error;
+      return null;
     }
   }
 
