@@ -129,16 +129,14 @@ export async function getSecurityRecommendations() {
 
 /**
  * Get vulnerability information
- * Note: Full vulnerability assessment requires Microsoft Defender Vulnerability Management
- * This endpoint is not available in v1.0 Graph API - returns empty data
+ * Note: Uses Microsoft Graph BETA API as v1.0 doesn't support this endpoint
  */
 export async function getVulnerabilities() {
-  // Note: This endpoint is not available in v1.0 Microsoft Graph API
-  // Vulnerability management data requires Microsoft Defender for Endpoint API directly
-  // or is available through beta endpoint (not stable for production)
+  // Note: This endpoint is only available in beta Microsoft Graph API
+  // Vulnerability management data requires Microsoft Defender Vulnerability Management license
   
   try {
-    const response = await graphService.makeRequest(
+    const response = await graphService.makeBetaRequest(
       '/security/vulnerabilities?$top=100',
       {}
     );
@@ -167,7 +165,7 @@ export async function getVulnerabilities() {
       };
     }
   } catch (error) {
-    console.warn('Vulnerability endpoint not available:', error.message);
+    console.warn('Vulnerability endpoint not available (requires beta API and proper licensing):', error.message);
   }
 
   // If endpoint not available, return empty data structure
@@ -231,19 +229,18 @@ export async function deleteQuarantinedMessage(messageId) {
 
 /**
  * Get tenant allow/block lists
- * Note: This endpoint is not available in v1.0 Graph API - returns empty data
+ * Note: Uses Microsoft Graph BETA API as v1.0 doesn't support this endpoint
  */
 export async function getTenantAllowBlockList() {
-  // Note: This endpoint is not available in v1.0 Microsoft Graph API
-  // Exchange Online allow/block lists require Exchange Admin Center or PowerShell
-  // or Microsoft Graph beta endpoint (not stable for production)
+  // Note: This endpoint is only available in beta Microsoft Graph API
+  // Exchange Online allow/block lists require proper Exchange permissions
   
   try {
     const [allowDomains, blockDomains, allowSenders, blockSenders] = await Promise.all([
-      graphService.makeRequest('/security/tenantAllowBlockList/allowedDomains?$top=100', {}),
-      graphService.makeRequest('/security/tenantAllowBlockList/blockedDomains?$top=100', {}),
-      graphService.makeRequest('/security/tenantAllowBlockList/allowedSenders?$top=100', {}),
-      graphService.makeRequest('/security/tenantAllowBlockList/blockedSenders?$top=100', {})
+      graphService.makeBetaRequest('/security/tenantAllowBlockList/allowedDomains?$top=100', {}),
+      graphService.makeBetaRequest('/security/tenantAllowBlockList/blockedDomains?$top=100', {}),
+      graphService.makeBetaRequest('/security/tenantAllowBlockList/allowedSenders?$top=100', {}),
+      graphService.makeBetaRequest('/security/tenantAllowBlockList/blockedSenders?$top=100', {})
     ]);
 
     return {
@@ -253,7 +250,7 @@ export async function getTenantAllowBlockList() {
       blockSenders: blockSenders.value || []
     };
   } catch (error) {
-    console.warn('Tenant allow/block list endpoint not available:', error.message);
+    console.warn('Tenant allow/block list endpoint not available (requires beta API and proper licensing):', error.message);
     
     // Return empty data structure
     return {

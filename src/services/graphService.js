@@ -89,6 +89,7 @@ const MOCK_DEVICES = [
 export class GraphService {
   constructor() {
     this.baseUrl = 'https://graph.microsoft.com/v1.0';
+    this.betaUrl = 'https://graph.microsoft.com/beta';
     this.maxRetries = 3;
   }
 
@@ -238,6 +239,95 @@ export class GraphService {
     } catch (error) {
       const structuredError = this.handleGraphError(error, 'complete the request');
       console.error('Graph API request error:', {
+        endpoint,
+        error: structuredError,
+        retryCount,
+        originalError: error
+      });
+      
+      // Attach structured error info to the error object
+      error.graphError = structuredError;
+      throw error;
+    }
+  }
+
+  /**
+   * Make a request to the Microsoft Graph BETA API
+   * Use this only when the v1.0 endpoint is not available
+   * @param {string} endpoint - The API endpoint (e.g., '/security/vulnerabilities')
+   * @param {Object} options - Fetch options
+   * @param {number} retryCount - Current retry attempt (internal use)
+   * @returns {Promise} API response
+   */
+  async makeBetaRequest(endpoint, options = {}, retryCount = 0) {
+    // Return mock data in demo mode
+    if (isDemoMode()) {
+      return this._getMockData(endpoint, options);
+    }
+
+    try {
+      const token = await authService.getAccessToken();
+      const url = `${this.betaUrl}${endpoint}`;
+      
+      const defaultOptions = {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      };
+
+      // Merge headers properly to avoid overwriting Authorization header
+      const mergedOptions = {
+        ...defaultOptions,
+        ...options,
+        headers: {
+          ...defaultOptions.headers,
+          ...(options.headers || {})
+        }
+      };
+
+      const response = await fetch(url, mergedOptions);
+      
+      // Handle throttling (429 Too Many Requests)
+      if (response.status === 429 && retryCount < this.maxRetries) {
+        const retryAfter = parseInt(response.headers.get('Retry-After') || '5');
+        console.warn(`Rate limited. Retrying after ${retryAfter} seconds... (Attempt ${retryCount + 1}/${this.maxRetries})`);
+        
+        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+        return this.makeBetaRequest(endpoint, options, retryCount + 1);
+      }
+      
+      // Handle server errors with exponential backoff
+      if ((response.status === 500 || response.status === 503) && retryCount < this.maxRetries) {
+        const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 10000); // Max 10 seconds
+        console.warn(`Server error (${response.status}). Retrying after ${backoffDelay}ms... (Attempt ${retryCount + 1}/${this.maxRetries})`);
+        
+        await new Promise(resolve => setTimeout(resolve, backoffDelay));
+        return this.makeBetaRequest(endpoint, options, retryCount + 1);
+      }
+      
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          errorData = { error: { message: response.statusText } };
+        }
+        const error = new Error(`Graph API (beta) error: ${response.status} - ${errorData.error?.message || response.statusText}`);
+        error.statusCode = response.status;
+        error.errorData = errorData;
+        throw error;
+      }
+      
+      // Handle empty responses (204 No Content)
+      if (response.status === 204) {
+        return { success: true };
+      }
+      
+      return await response.json();
+    } catch (error) {
+      const structuredError = this.handleGraphError(error, 'complete the beta request');
+      console.error('Graph API (beta) request error:', {
         endpoint,
         error: structuredError,
         retryCount,
