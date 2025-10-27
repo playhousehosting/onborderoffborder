@@ -201,7 +201,7 @@ export class GraphService {
       // Handle throttling (429 Too Many Requests)
       if (response.status === 429 && retryCount < this.maxRetries) {
         const retryAfter = parseInt(response.headers.get('Retry-After') || '5');
-        console.warn(`Request throttled. Retrying after ${retryAfter} seconds... (Attempt ${retryCount + 1}/${this.maxRetries})`);
+        logger.warn(`Request throttled. Retrying after ${retryAfter} seconds... (Attempt ${retryCount + 1}/${this.maxRetries})`);
         
         // Wait for the specified retry period
         await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
@@ -213,7 +213,7 @@ export class GraphService {
       // Handle server errors with exponential backoff
       if ((response.status === 500 || response.status === 503) && retryCount < this.maxRetries) {
         const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 10000); // Max 10 seconds
-        console.warn(`Server error (${response.status}). Retrying after ${backoffDelay}ms... (Attempt ${retryCount + 1}/${this.maxRetries})`);
+        logger.warn(`Server error (${response.status}). Retrying after ${backoffDelay}ms... (Attempt ${retryCount + 1}/${this.maxRetries})`);
         
         await new Promise(resolve => setTimeout(resolve, backoffDelay));
         return this.makeRequest(endpoint, options, retryCount + 1);
@@ -240,7 +240,7 @@ export class GraphService {
       return await response.json();
     } catch (error) {
       const structuredError = this.handleGraphError(error, 'complete the request');
-      console.error('Graph API request error:', {
+      logger.error('Graph API request error:', {
         endpoint,
         error: structuredError,
         retryCount,
@@ -293,7 +293,7 @@ export class GraphService {
       // Handle throttling (429 Too Many Requests)
       if (response.status === 429 && retryCount < this.maxRetries) {
         const retryAfter = parseInt(response.headers.get('Retry-After') || '5');
-        console.warn(`Rate limited. Retrying after ${retryAfter} seconds... (Attempt ${retryCount + 1}/${this.maxRetries})`);
+        logger.warn(`Rate limited. Retrying after ${retryAfter} seconds... (Attempt ${retryCount + 1}/${this.maxRetries})`);
         
         await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
         return this.makeBetaRequest(endpoint, options, retryCount + 1);
@@ -302,7 +302,7 @@ export class GraphService {
       // Handle server errors with exponential backoff
       if ((response.status === 500 || response.status === 503) && retryCount < this.maxRetries) {
         const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 10000); // Max 10 seconds
-        console.warn(`Server error (${response.status}). Retrying after ${backoffDelay}ms... (Attempt ${retryCount + 1}/${this.maxRetries})`);
+        logger.warn(`Server error (${response.status}). Retrying after ${backoffDelay}ms... (Attempt ${retryCount + 1}/${this.maxRetries})`);
         
         await new Promise(resolve => setTimeout(resolve, backoffDelay));
         return this.makeBetaRequest(endpoint, options, retryCount + 1);
@@ -329,7 +329,7 @@ export class GraphService {
       return await response.json();
     } catch (error) {
       const structuredError = this.handleGraphError(error, 'complete the beta request');
-      console.error('Graph API (beta) request error:', {
+      logger.error('Graph API (beta) request error:', {
         endpoint,
         error: structuredError,
         retryCount,
@@ -344,7 +344,7 @@ export class GraphService {
 
   // Mock data handler for demo mode
   _getMockData(endpoint, options = {}) {
-    console.log('Demo mode: returning mock data for', endpoint);
+    logger.debug('Demo mode: returning mock data for', endpoint);
     
     // Simulate async operation
     return new Promise((resolve) => {
@@ -526,7 +526,7 @@ export class GraphService {
    */
   async batchRequest(requests) {
     if (isDemoMode()) {
-      console.log('Demo mode: simulating batch request with', requests.length, 'operations');
+      logger.debug('Demo mode: simulating batch request with', requests.length, 'operations');
       // Simulate successful batch responses in demo mode
       return { 
         responses: requests.map((req, i) => ({ 
@@ -540,7 +540,7 @@ export class GraphService {
 
     // Validate batch size (Microsoft Graph limit is 20)
     if (requests.length > 20) {
-      console.warn(`Batch request has ${requests.length} requests, but limit is 20. Splitting into multiple batches...`);
+      logger.warn(`Batch request has ${requests.length} requests, but limit is 20. Splitting into multiple batches...`);
       
       // Split into chunks of 20
       const batches = [];
@@ -576,7 +576,7 @@ export class GraphService {
     // Check for failed requests and log warnings
     const failedRequests = response.responses?.filter(r => r.status >= 400) || [];
     if (failedRequests.length > 0) {
-      console.warn(`Batch request completed with ${failedRequests.length} failed operations:`, 
+      logger.warn(`Batch request completed with ${failedRequests.length} failed operations:`, 
         failedRequests.map(r => ({ id: r.id, status: r.status, error: r.body?.error?.message }))
       );
     }
@@ -823,11 +823,11 @@ export class GraphService {
       endpoint = response['@odata.nextLink'] || null;
       
       if (endpoint) {
-        console.log(`Fetched ${groups.length} groups, loading more...`);
+        logger.debug(`Fetched ${groups.length} groups, loading more...`);
       }
     }
     
-    console.log(`Total groups fetched: ${groups.length}`);
+    logger.debug(`Total groups fetched: ${groups.length}`);
     return { value: groups, totalCount: groups.length };
   }
   
@@ -849,7 +849,7 @@ export class GraphService {
         total: groups.length
       };
     } catch (error) {
-      console.error('Error fetching user groups:', error);
+      logger.error('Error fetching user groups:', error);
       throw error;
     }
   }
@@ -922,7 +922,7 @@ export class GraphService {
         `Or use Exchange Admin Center: https://admin.exchange.microsoft.com`
       );
     } catch (error) {
-      console.error('Error with shared mailbox conversion:', error);
+      logger.error('Error with shared mailbox conversion:', error);
       throw error;
     }
   }
@@ -948,7 +948,7 @@ export class GraphService {
             nonDynamicTeams.push(team);
           }
         } catch (error) {
-          console.warn(`Could not check dynamic status for team ${team.displayName}:`, error);
+          logger.warn(`Could not check dynamic status for team ${team.displayName}:`, error);
           // If we can't check, include it (better to try and fail than skip)
           nonDynamicTeams.push(team);
         }
@@ -959,7 +959,7 @@ export class GraphService {
         total: nonDynamicTeams.length
       };
     } catch (error) {
-      console.error('Error fetching user teams:', error);
+      logger.error('Error fetching user teams:', error);
       throw error;
     }
   }
@@ -992,7 +992,7 @@ export class GraphService {
               appId: servicePrincipal.appId
             };
           } catch (error) {
-            console.warn(`Could not fetch details for service principal ${assignment.resourceId}:`, error);
+            logger.warn(`Could not fetch details for service principal ${assignment.resourceId}:`, error);
             return {
               ...assignment,
               appDisplayName: 'Unknown Application',
@@ -1007,7 +1007,7 @@ export class GraphService {
         total: enrichedAssignments.length
       };
     } catch (error) {
-      console.error('Error fetching user app role assignments:', error);
+      logger.error('Error fetching user app role assignments:', error);
       throw error;
     }
   }
@@ -1034,7 +1034,7 @@ export class GraphService {
           })));
         }
       } catch (error) {
-        console.warn('Could not fetch phone methods:', error);
+        logger.warn('Could not fetch phone methods:', error);
       }
 
       // Get email authentication methods
@@ -1048,7 +1048,7 @@ export class GraphService {
           })));
         }
       } catch (error) {
-        console.warn('Could not fetch email methods:', error);
+        logger.warn('Could not fetch email methods:', error);
       }
 
       // Get FIDO2 authentication methods
@@ -1062,7 +1062,7 @@ export class GraphService {
           })));
         }
       } catch (error) {
-        console.warn('Could not fetch FIDO2 methods:', error);
+        logger.warn('Could not fetch FIDO2 methods:', error);
       }
 
       // Get Microsoft Authenticator methods
@@ -1076,7 +1076,7 @@ export class GraphService {
           })));
         }
       } catch (error) {
-        console.warn('Could not fetch Microsoft Authenticator methods:', error);
+        logger.warn('Could not fetch Microsoft Authenticator methods:', error);
       }
 
       // Get Windows Hello for Business methods
@@ -1090,7 +1090,7 @@ export class GraphService {
           })));
         }
       } catch (error) {
-        console.warn('Could not fetch Windows Hello methods:', error);
+        logger.warn('Could not fetch Windows Hello methods:', error);
       }
 
       return {
@@ -1098,7 +1098,7 @@ export class GraphService {
         total: methods.length
       };
     } catch (error) {
-      console.error('Error fetching user authentication methods:', error);
+      logger.error('Error fetching user authentication methods:', error);
       throw error;
     }
   }
@@ -1344,7 +1344,7 @@ export class GraphService {
 
       return { success: true, removedCount: skuIds.length };
     } catch (error) {
-      console.error('Error removing all licenses:', error);
+      logger.error('Error removing all licenses:', error);
       throw new Error(`Failed to remove licenses: ${error.message}`);
     }
   }
