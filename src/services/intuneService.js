@@ -779,10 +779,23 @@ export const getDeviceStatistics = async () => {
       const os = device.operatingSystem || 'Unknown';
       stats.byPlatform[os] = (stats.byPlatform[os] || 0) + 1;
       
-      // Compliance counts
-      const compliance = device.complianceState || 'unknown';
+      // Compliance counts - normalize the compliance state
+      let compliance = (device.complianceState || 'unknown').toLowerCase();
+      
+      // Map various non-compliant states to nonCompliant
+      if (compliance === 'noncompliant') {
+        compliance = 'nonCompliant';
+      } else if (compliance === 'ingraceperiod') {
+        compliance = 'inGracePeriod';
+      } else if (compliance === 'configmanager') {
+        compliance = 'configManager';
+      }
+      
+      // Increment the appropriate counter
       if (stats.byCompliance.hasOwnProperty(compliance)) {
         stats.byCompliance[compliance]++;
+      } else {
+        stats.byCompliance.unknown++;
       }
       
       // Ownership counts
