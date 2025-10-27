@@ -1224,6 +1224,28 @@ export class GraphService {
 
   // License Management
   /**
+   * Get available licenses (subscribed SKUs) for the organization
+   * @returns {Promise} Available licenses with details
+   */
+  async getAvailableLicenses() {
+    if (isDemoMode()) {
+      return {
+        value: [
+          {
+            skuId: 'demo-sku-1',
+            skuPartNumber: 'ENTERPRISEPACK',
+            servicePlans: [],
+            prepaidUnits: { enabled: 10 },
+            consumedUnits: 5,
+          },
+        ],
+      };
+    }
+
+    return this.makeRequest('/subscribedSkus');
+  }
+
+  /**
    * Get user license details
    * @param {string} userId - User ID
    * @returns {Promise} License details

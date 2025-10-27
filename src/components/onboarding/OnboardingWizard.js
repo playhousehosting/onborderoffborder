@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { graphService } from '../../services/graphService';
 import { useAuth } from '../../contexts/AuthContext';
 import { getGroupsForDepartment, hasMappedGroups } from '../../utils/departmentMappings';
+import { logger } from '../../utils/logger';
 import toast from 'react-hot-toast';
 import {
   UserPlusIcon,
@@ -111,7 +112,14 @@ const OnboardingWizard = () => {
   const checkADConfigStatus = async () => {
     try {
       const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
-      const response = await fetch(`${API_BASE_URL}/api/ad/config-status`);
+      const response = await fetch(`${API_BASE_URL}/api/ad/config-status`, {
+        signal: AbortSignal.timeout(3000), // 3 second timeout
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
       const data = await response.json();
       setAdConfigStatus({
         configured: data.configured,
@@ -120,14 +128,15 @@ const OnboardingWizard = () => {
         domain: data.domain,
       });
     } catch (error) {
-      console.error('Error checking AD config:', error);
+      // Backend not running or not configured - this is okay, just disable AD features
+      console.warn('⚠️ Backend AD service not available:', error.message);
       setAdConfigStatus({ configured: false, loading: false });
     }
   };
 
   const fetchAvailableResources = async () => {
     try {
-      console.log('📊 Fetching available licenses and groups...');
+      logger.debug('📊 Fetching available licenses and groups...');
       
       // Fetch groups
       let groupsData = { value: [] };
@@ -143,16 +152,16 @@ const OnboardingWizard = () => {
       let licensesData = { value: [] };
       try {
         licensesData = await graphService.getAvailableLicenses();
-        console.log(`✅ Loaded ${licensesData.value?.length || 0} licenses`);
+        logger.success(`✅ Loaded ${licensesData.value?.length || 0} licenses`);
       } catch (licenseError) {
-        console.error('❌ Error fetching licenses:', licenseError);
+        logger.error('❌ Error fetching licenses:', licenseError);
         toast.error('Failed to load licenses. Please check permissions.');
       }
       
       setAvailableGroups(groupsData.value || []);
       setAvailableLicenses(licensesData.value || []);
     } catch (error) {
-      console.error('❌ Error fetching available resources:', error);
+      logger.error('❌ Error fetching available resources:', error);
       toast.error('Failed to load onboarding resources');
     }
   };
