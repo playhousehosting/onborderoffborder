@@ -48,6 +48,7 @@
     "welcomeBack": "Welcome back",
     "quickActions": "Quick Actions",
     "recentActivity": "Recent Activity",
+    "noRecentActivity": "No recent activity to display",
     "statistics": "Statistics",
     "totalUsers": "Total Users",
     "activeDevices": "Active Devices",
