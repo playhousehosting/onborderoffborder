@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useConvex } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { getSessionId } from '../../services/convexService';
 import { graphService } from '../../services/graphService';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -15,6 +18,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 const ScheduledOffboarding = () => {
+  const convex = useConvex();
   const { hasPermission } = useAuth();
   const [scheduledOffboardings, setScheduledOffboardings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,13 +54,16 @@ const ScheduledOffboarding = () => {
   const fetchScheduledOffboardings = async () => {
     try {
       setLoading(true);
-      // Call backend API for persisted scheduled offboardings
-      const res = await fetch('/api/offboarding/scheduled', { credentials: 'include' });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `Failed to fetch scheduled offboardings (${res.status})`);
+      const sessionId = getSessionId();
+      
+      if (!sessionId) {
+        toast.error('Session not found. Please log in again.');
+        setScheduledOffboardings([]);
+        return;
       }
-      const data = await res.json();
+
+      // Call Convex to get scheduled offboardings
+      const data = await convex.query(api.offboarding.list, { sessionId });
       setScheduledOffboardings(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching scheduled offboardings:', error);
@@ -102,35 +109,37 @@ const ScheduledOffboarding = () => {
     }
 
       try {
+        const sessionId = getSessionId();
+        if (!sessionId) {
+          toast.error('Session not found. Please log in again.');
+          return;
+        }
+
         const scheduleData = {
-          ...scheduleForm,
-          user: selectedUser, // Include full user object
-          scheduledDateTime: `${scheduleForm.scheduledDate}T${scheduleForm.scheduledTime}:00Z`,
+          userId: scheduleForm.userId,
+          userName: selectedUser?.displayName || selectedUser?.name || '',
+          userEmail: selectedUser?.mail || selectedUser?.userPrincipalName || '',
+          scheduledDate: scheduleForm.scheduledDate,
+          scheduledTime: scheduleForm.scheduledTime,
+          template: scheduleForm.template,
+          notifyManager: scheduleForm.notifyManager,
+          notifyUser: scheduleForm.notifyUser,
+          managerEmail: scheduleForm.managerEmail || '',
+          customMessage: scheduleForm.customMessage || '',
         };
 
       if (editingSchedule) {
-        const res = await fetch(`/api/offboarding/scheduled/${editingSchedule.id}`, {
-          method: 'PUT',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(scheduleData)
+        await convex.mutation(api.offboarding.update, {
+          sessionId,
+          offboardingId: editingSchedule._id,
+          ...scheduleData,
         });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || `Failed to update schedule (${res.status})`);
-        }
         toast.success('Offboarding schedule updated successfully');
       } else {
-        const res = await fetch('/api/offboarding/scheduled', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(scheduleData)
+        await convex.mutation(api.offboarding.create, {
+          sessionId,
+          ...scheduleData,
         });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || `Failed to create schedule (${res.status})`);
-        }
         toast.success('Offboarding scheduled successfully');
       }      setShowScheduleForm(false);
       setEditingSchedule(null);
@@ -159,14 +168,16 @@ const ScheduledOffboarding = () => {
     }
 
     try {
-      const res = await fetch(`/api/offboarding/scheduled/${scheduleId}/execute`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `Failed to execute scheduled offboarding (${res.status})`);
+      const sessionId = getSessionId();
+      if (!sessionId) {
+        toast.error('Session not found. Please log in again.');
+        return;
       }
+
+      await convex.mutation(api.offboarding.execute, {
+        sessionId,
+        offboardingId: scheduleId,
+      });
       toast.success('Offboarding executed successfully');
       fetchScheduledOffboardings();
     } catch (error) {
@@ -181,14 +192,16 @@ const ScheduledOffboarding = () => {
     }
 
     try {
-      const res = await fetch(`/api/offboarding/scheduled/${scheduleId}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `Failed to delete scheduled offboarding (${res.status})`);
+      const sessionId = getSessionId();
+      if (!sessionId) {
+        toast.error('Session not found. Please log in again.');
+        return;
       }
+
+      await convex.mutation(api.offboarding.remove, {
+        sessionId,
+        offboardingId: scheduleId,
+      });
       toast.success('Scheduled offboarding deleted successfully');
       fetchScheduledOffboardings();
     } catch (error) {
