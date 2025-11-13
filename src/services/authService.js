@@ -128,7 +128,7 @@ export class AuthService {
       const azureConfig = JSON.parse(localStorage.getItem('azureConfig') || '{}');
       const { clientId, clientSecret, tenantId } = azureConfig;
 
-      console.log('🔑 Reading credentials from localStorage (user entered):');
+      console.log('🔑 Getting app-only token from Azure AD directly...');
       console.log('  - Tenant ID:', tenantId ? `${tenantId.substring(0, 8)}...` : 'MISSING');
       console.log('  - Client ID:', clientId ? `${clientId.substring(0, 8)}...` : 'MISSING');
       console.log('  - Client Secret:', clientSecret ? 'PROVIDED' : 'MISSING');
@@ -144,26 +144,23 @@ export class AuthService {
         return cachedToken;
       }
 
-      // Get new token from backend (avoids CORS issues)
-      console.log('🔑 Sending credentials to backend for token acquisition...');
+      // Get new token directly from Microsoft (client-side is fine for app-only flow)
+      console.log('🔑 Requesting token from Azure AD...');
 
-      // Import apiConfig to get the correct backend URL
-      const { apiConfig } = await import('../config/apiConfig');
+      const tokenEndpoint = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
+      
+      const params = new URLSearchParams();
+      params.append('client_id', clientId);
+      params.append('client_secret', clientSecret);
+      params.append('scope', 'https://graph.microsoft.com/.default');
+      params.append('grant_type', 'client_credentials');
 
-      console.log('🌐 Backend URL:', apiConfig.endpoints.appOnlyToken);
-
-      // Call backend endpoint instead of Azure AD directly (avoids CORS)
-      const response = await fetch(apiConfig.endpoints.appOnlyToken, {
+      const response = await fetch(tokenEndpoint, {
         method: 'POST',
-        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: JSON.stringify({
-          clientId,
-          clientSecret,
-          tenantId,
-        }),
+        body: params.toString(),
       });
 
       if (!response.ok) {
@@ -174,9 +171,9 @@ export class AuthService {
           errorData = { error: response.statusText };
         }
 
-        const errorMessage = errorData.details || errorData.error || response.statusText;
+        const errorMessage = errorData.error_description || errorData.error || response.statusText;
 
-        console.error('❌ Backend returned error:');
+        console.error('❌ Azure AD returned error:');
         console.error('  - Status:', response.status);
         console.error('  - Error:', errorData.error);
         console.error('  - Details:', errorData.details);
