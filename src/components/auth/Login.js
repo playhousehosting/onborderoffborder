@@ -5,6 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { MicrosoftIcon, ShieldCheckIcon } from '../common/Icons';
 import { isDemoMode } from '../../config/authConfig';
 import toast from 'react-hot-toast';
+import { useConvex } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { setSessionId } from '../../services/convexService';
 import {
   SparklesIcon,
   UserGroupIcon,
@@ -17,6 +20,7 @@ import {
 const Login = () => {
   const { login, loading, error } = useAuth();
   const { t } = useTranslation();
+  const convex = useConvex();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [authMode, setAuthMode] = useState(localStorage.getItem('preferredAuthMode') || 'app-only');
   const [config, setConfig] = useState({
@@ -139,41 +143,33 @@ const Login = () => {
         
         localStorage.setItem('demoUser', JSON.stringify(appUser));
         
-        console.log('✅ App-Only authentication complete, establishing backend session...');
+        console.log('✅ App-Only authentication complete, establishing Convex session...');
         
-        // First, configure the backend with credentials
+        // Configure Convex backend with credentials
         try {
-          // Step 1: Save credentials to backend session
-          const configResponse = await fetch('/api/auth/configure', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include', // Important: include session cookie
-            body: JSON.stringify(configToSave)
+          // Step 1: Configure credentials in Convex
+          console.log('🔧 Configuring credentials with Convex...');
+          const configResult = await convex.mutation(api.auth.configure, {
+            clientId: configToSave.clientId,
+            tenantId: configToSave.tenantId,
+            clientSecret: configToSave.clientSecret,
           });
           
-          if (!configResponse.ok) {
-            const errorData = await configResponse.json();
-            throw new Error(errorData.error || 'Failed to save credentials to backend');
-          }
+          console.log('✅ Convex credentials configured, session ID:', configResult.sessionId);
           
-          console.log('✅ Backend credentials configured successfully');
+          // Save session ID for future requests
+          setSessionId(configResult.sessionId);
           
           // Step 2: Establish authenticated session
-          const loginResponse = await fetch('/api/auth/login-app-only', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include' // Important: include session cookie
+          console.log('🔑 Logging in with app-only mode...');
+          const loginResult = await convex.mutation(api.auth.loginAppOnly, {
+            sessionId: configResult.sessionId,
           });
           
-          if (!loginResponse.ok) {
-            const errorData = await loginResponse.json();
-            throw new Error(errorData.error || 'Backend session establishment failed');
-          }
-          
-          console.log('✅ Backend session established successfully');
-        } catch (backendError) {
-          console.error('❌ Failed to establish backend session:', backendError);
-          toast.error('Failed to establish backend session: ' + backendError.message);
+          console.log('✅ Convex session established successfully');
+        } catch (convexError) {
+          console.error('❌ Failed to establish Convex session:', convexError);
+          toast.error('Failed to establish session: ' + convexError.message);
           setIsSaving(false);
           return;
         }
