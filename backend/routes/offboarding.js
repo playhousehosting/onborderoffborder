@@ -11,9 +11,10 @@ const requireAuth = (req, res, next) => {
 // GET /api/offboarding/scheduled
 router.get('/scheduled', requireAuth, async (req, res) => {
   try {
-    const items = offboardingService.list();
+    const items = await offboardingService.list();
     res.json(items);
   } catch (err) {
+    console.error('Error fetching scheduled offboardings:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -21,9 +22,10 @@ router.get('/scheduled', requireAuth, async (req, res) => {
 // POST /api/offboarding/scheduled
 router.post('/scheduled', requireAuth, async (req, res) => {
   try {
-    const created = offboardingService.create(req.body);
+    const created = await offboardingService.create(req.body);
     res.status(201).json(created);
   } catch (err) {
+    console.error('Error creating scheduled offboarding:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -31,10 +33,11 @@ router.post('/scheduled', requireAuth, async (req, res) => {
 // PUT /api/offboarding/scheduled/:id
 router.put('/scheduled/:id', requireAuth, async (req, res) => {
   try {
-    const updated = offboardingService.update(req.params.id, req.body);
+    const updated = await offboardingService.update(req.params.id, req.body);
     if (!updated) return res.status(404).json({ error: 'Not found' });
     res.json(updated);
   } catch (err) {
+    console.error('Error updating scheduled offboarding:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -42,10 +45,11 @@ router.put('/scheduled/:id', requireAuth, async (req, res) => {
 // DELETE /api/offboarding/scheduled/:id
 router.delete('/scheduled/:id', requireAuth, async (req, res) => {
   try {
-    const ok = offboardingService.remove(req.params.id);
+    const ok = await offboardingService.remove(req.params.id);
     if (!ok) return res.status(404).json({ error: 'Not found' });
     res.json({ success: true });
   } catch (err) {
+    console.error('Error deleting scheduled offboarding:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -53,11 +57,12 @@ router.delete('/scheduled/:id', requireAuth, async (req, res) => {
 // POST /api/offboarding/scheduled/:id/execute
 router.post('/scheduled/:id/execute', requireAuth, async (req, res) => {
   try {
-    const executed = offboardingService.execute(req.params.id);
+    const executed = await offboardingService.execute(req.params.id);
     if (!executed) return res.status(404).json({ error: 'Not found' });
     // In a real implementation this would enqueue a workflow
     res.json(executed);
   } catch (err) {
+    console.error('Error executing scheduled offboarding:', err);
     res.status(500).json({ error: err.message });
   }
 });

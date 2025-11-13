@@ -101,12 +101,12 @@ const ScheduledOffboarding = () => {
       return;
     }
 
-    try {
-      const scheduleData = {
-        ...scheduleForm,
-        userId: selectedUser.id,
-        scheduledDateTime: `${scheduleForm.scheduledDate}T${scheduleForm.scheduledTime}:00Z`,
-      };
+      try {
+        const scheduleData = {
+          ...scheduleForm,
+          user: selectedUser, // Include full user object
+          scheduledDateTime: `${scheduleForm.scheduledDate}T${scheduleForm.scheduledTime}:00Z`,
+        };
 
       if (editingSchedule) {
         const res = await fetch(`/api/offboarding/scheduled/${editingSchedule.id}`, {
@@ -115,7 +115,10 @@ const ScheduledOffboarding = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(scheduleData)
         });
-        if (!res.ok) throw new Error('Failed to update schedule');
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `Failed to update schedule (${res.status})`);
+        }
         toast.success('Offboarding schedule updated successfully');
       } else {
         const res = await fetch('/api/offboarding/scheduled', {
@@ -124,11 +127,12 @@ const ScheduledOffboarding = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(scheduleData)
         });
-        if (!res.ok) throw new Error('Failed to create schedule');
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `Failed to create schedule (${res.status})`);
+        }
         toast.success('Offboarding scheduled successfully');
-      }
-
-      setShowScheduleForm(false);
+      }      setShowScheduleForm(false);
       setEditingSchedule(null);
       setSelectedUser(null);
       setScheduleForm({
@@ -159,7 +163,10 @@ const ScheduledOffboarding = () => {
         method: 'POST',
         credentials: 'include'
       });
-      if (!res.ok) throw new Error('Failed to execute scheduled offboarding');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Failed to execute scheduled offboarding (${res.status})`);
+      }
       toast.success('Offboarding executed successfully');
       fetchScheduledOffboardings();
     } catch (error) {
@@ -178,7 +185,10 @@ const ScheduledOffboarding = () => {
         method: 'DELETE',
         credentials: 'include'
       });
-      if (!res.ok) throw new Error('Failed to delete scheduled offboarding');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Failed to delete scheduled offboarding (${res.status})`);
+      }
       toast.success('Scheduled offboarding deleted successfully');
       fetchScheduledOffboardings();
     } catch (error) {
