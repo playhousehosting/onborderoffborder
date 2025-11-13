@@ -64,7 +64,31 @@ const ScheduledOffboarding = () => {
 
       // Call Convex to get scheduled offboardings
       const data = await convex.query(api.offboarding.list, { sessionId });
-      setScheduledOffboardings(Array.isArray(data) ? data : []);
+      
+      // Transform Convex data to match frontend expectations
+      const transformed = (Array.isArray(data) ? data : []).map(record => {
+        const offboardingDate = new Date(record.offboardingDate);
+        return {
+          id: record._id,
+          user: {
+            id: record.userId,
+            displayName: record.displayName,
+            mail: record.email || record.userPrincipalName,
+          },
+          scheduledDate: offboardingDate.toISOString().split('T')[0],
+          scheduledTime: offboardingDate.toTimeString().substring(0, 5),
+          template: record.template || 'standard',
+          status: record.status,
+          notifyManager: record.notifyManager ?? true,
+          notifyUser: record.notifyUser ?? true,
+          managerEmail: record.managerEmail || '',
+          customMessage: record.notes || '',
+          createdAt: new Date(record.createdAt).toISOString(),
+          _id: record._id, // Keep for updates
+        };
+      });
+      
+      setScheduledOffboardings(transformed);
     } catch (error) {
       console.error('Error fetching scheduled offboardings:', error);
       toast.error('Failed to fetch scheduled offboardings');
