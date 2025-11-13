@@ -138,7 +138,44 @@ export const AuthProvider = ({ children }) => {
             
             if (!sessionCheck.ok) {
               console.warn('⚠️ Backend session not found, attempting to re-establish');
-              // Try to re-establish session
+              
+              // Get credentials from localStorage to re-configure backend
+              const azureConfigStr = localStorage.getItem('azureConfig');
+              if (!azureConfigStr) {
+                console.error('❌ No credentials found in localStorage');
+                // Clear auth state and force re-login
+                localStorage.removeItem('demoUser');
+                localStorage.removeItem('authMode');
+                setIsAuthenticated(false);
+                setUser(null);
+                setLoading(false);
+                return;
+              }
+              
+              const azureConfig = JSON.parse(azureConfigStr);
+              
+              // Step 1: Configure backend with credentials
+              const configResponse = await fetch('/api/auth/configure', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(azureConfig)
+              });
+              
+              if (!configResponse.ok) {
+                console.error('❌ Failed to configure backend credentials');
+                // Clear auth state and force re-login
+                localStorage.removeItem('demoUser');
+                localStorage.removeItem('authMode');
+                setIsAuthenticated(false);
+                setUser(null);
+                setLoading(false);
+                return;
+              }
+              
+              console.log('✅ Backend credentials configured');
+              
+              // Step 2: Establish authenticated session
               const loginResponse = await fetch('/api/auth/login-app-only', {
                 method: 'POST',
                 credentials: 'include'

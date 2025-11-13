@@ -141,16 +141,32 @@ const Login = () => {
         
         console.log('✅ App-Only authentication complete, establishing backend session...');
         
-        // Call backend to establish session with credentials
+        // First, configure the backend with credentials
         try {
-          const backendResponse = await fetch('/api/auth/login-app-only', {
+          // Step 1: Save credentials to backend session
+          const configResponse = await fetch('/api/auth/configure', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include', // Important: include session cookie
+            body: JSON.stringify(configToSave)
+          });
+          
+          if (!configResponse.ok) {
+            const errorData = await configResponse.json();
+            throw new Error(errorData.error || 'Failed to save credentials to backend');
+          }
+          
+          console.log('✅ Backend credentials configured successfully');
+          
+          // Step 2: Establish authenticated session
+          const loginResponse = await fetch('/api/auth/login-app-only', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include' // Important: include session cookie
           });
           
-          if (!backendResponse.ok) {
-            const errorData = await backendResponse.json();
+          if (!loginResponse.ok) {
+            const errorData = await loginResponse.json();
             throw new Error(errorData.error || 'Backend session establishment failed');
           }
           
