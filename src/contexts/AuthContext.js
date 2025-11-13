@@ -128,7 +128,40 @@ export const AuthProvider = ({ children }) => {
         // Check if we're in app-only mode (client credentials, no user)
         const authMode = localStorage.getItem('authMode');
         if (authMode === 'app-only') {
-          console.log('🔑 App-only mode detected - skipping MSAL user account checks');
+          console.log('🔑 App-only mode detected - verifying backend session');
+          
+          // Verify backend session exists
+          try {
+            const sessionCheck = await fetch('/api/auth/status', {
+              credentials: 'include'
+            });
+            
+            if (!sessionCheck.ok) {
+              console.warn('⚠️ Backend session not found, attempting to re-establish');
+              // Try to re-establish session
+              const loginResponse = await fetch('/api/auth/login-app-only', {
+                method: 'POST',
+                credentials: 'include'
+              });
+              
+              if (!loginResponse.ok) {
+                console.error('❌ Failed to establish backend session');
+                // Clear auth state and force re-login
+                localStorage.removeItem('demoUser');
+                localStorage.removeItem('authMode');
+                setIsAuthenticated(false);
+                setUser(null);
+                setLoading(false);
+                return;
+              }
+              console.log('✅ Backend session re-established');
+            } else {
+              console.log('✅ Backend session verified');
+            }
+          } catch (sessionError) {
+            console.error('❌ Backend session check failed:', sessionError);
+          }
+          
           // App-only uses application permissions, not user permissions
           // Authentication is already handled by demo mode logic above
           setLoading(false);

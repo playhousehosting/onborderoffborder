@@ -139,7 +139,28 @@ const Login = () => {
         
         localStorage.setItem('demoUser', JSON.stringify(appUser));
         
-        console.log('✅ App-Only authentication complete, notifying AuthContext...');
+        console.log('✅ App-Only authentication complete, establishing backend session...');
+        
+        // Call backend to establish session with credentials
+        try {
+          const backendResponse = await fetch('/api/auth/login-app-only', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include' // Important: include session cookie
+          });
+          
+          if (!backendResponse.ok) {
+            const errorData = await backendResponse.json();
+            throw new Error(errorData.error || 'Backend session establishment failed');
+          }
+          
+          console.log('✅ Backend session established successfully');
+        } catch (backendError) {
+          console.error('❌ Failed to establish backend session:', backendError);
+          toast.error('Failed to establish backend session: ' + backendError.message);
+          setIsSaving(false);
+          return;
+        }
         
         // Dispatch event to AuthContext and wait for state update
         const event = new Event('demoModeLogin');
