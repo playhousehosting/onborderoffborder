@@ -97,31 +97,29 @@ export const AuthProvider = ({ children }) => {
       try {
         setLoading(true);
         
-        // Check if we're in demo mode and have a demo user stored
-        if (isDemoMode()) {
-          const demoUser = localStorage.getItem('demoUser');
-          if (demoUser) {
-            try {
-              const parsedUser = JSON.parse(demoUser);
-              console.log('✅ AuthContext: Restored demo user from localStorage:', parsedUser.displayName);
-              setIsAuthenticated(true);
-              setUser(parsedUser);
-              
-              // Set all permissions to true for demo mode
-              setPermissions({
-                userManagement: true,
-                deviceManagement: true,
-                mailManagement: true,
-                sharePointManagement: true,
-                teamsManagement: true,
-                complianceManagement: true,
-                defenderManagement: true,
-              });
-              setLoading(false);
-              return;
-            } catch (e) {
-              console.error('Error parsing demo user:', e);
-            }
+        // Check if we have a stored user (app-only or demo mode)
+        const demoUser = localStorage.getItem('demoUser');
+        if (demoUser) {
+          try {
+            const parsedUser = JSON.parse(demoUser);
+            console.log('✅ AuthContext: Restored user from localStorage:', parsedUser.displayName);
+            setIsAuthenticated(true);
+            setUser(parsedUser);
+            
+            // Set all permissions to true for app-only/demo mode
+            setPermissions({
+              userManagement: true,
+              deviceManagement: true,
+              mailManagement: true,
+              sharePointManagement: true,
+              teamsManagement: true,
+              complianceManagement: true,
+              defenderManagement: true,
+            });
+            setLoading(false);
+            return;
+          } catch (e) {
+            console.error('Error parsing demo user:', e);
           }
         }
 
