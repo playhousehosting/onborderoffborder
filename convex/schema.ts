@@ -45,6 +45,12 @@ export default defineSchema({
     ),
     notes: v.optional(v.string()),
     
+    // Scheduling details
+    template: v.optional(v.string()),
+    notifyManager: v.optional(v.boolean()),
+    notifyUser: v.optional(v.boolean()),
+    managerEmail: v.optional(v.string()),
+    
     // Actions configuration
     actions: v.object({
       disableAccount: v.boolean(),

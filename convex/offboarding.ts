@@ -102,43 +102,47 @@ export const create = mutation({
   args: {
     sessionId: v.string(),
     userId: v.string(),
-    userPrincipalName: v.string(),
-    displayName: v.string(),
-    email: v.optional(v.string()),
-    department: v.optional(v.string()),
-    jobTitle: v.optional(v.string()),
-    manager: v.optional(v.string()),
-    offboardingDate: v.number(),
-    notes: v.optional(v.string()),
-    actions: v.object({
-      disableAccount: v.boolean(),
-      revokeAccess: v.boolean(),
-      removeFromGroups: v.boolean(),
-      forwardEmail: v.optional(v.string()),
-      convertToSharedMailbox: v.boolean(),
-      backupData: v.boolean(),
-      removeDevices: v.boolean(),
-    }),
+    userName: v.string(),
+    userEmail: v.string(),
+    scheduledDate: v.string(),
+    scheduledTime: v.string(),
+    template: v.string(),
+    notifyManager: v.boolean(),
+    notifyUser: v.boolean(),
+    managerEmail: v.optional(v.string()),
+    customMessage: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const session = await validateSession(ctx, args.sessionId);
 
     const now = Date.now();
+    
+    // Combine date and time into a timestamp
+    const offboardingDateTime = new Date(`${args.scheduledDate}T${args.scheduledTime}:00Z`);
+    const offboardingTimestamp = offboardingDateTime.getTime();
 
     const offboardingId = await ctx.db.insert("scheduled_offboarding", {
       tenantId: session.tenantId,
       sessionId: session.sessionId,
       userId: args.userId,
-      userPrincipalName: args.userPrincipalName,
-      displayName: args.displayName,
-      email: args.email,
-      department: args.department,
-      jobTitle: args.jobTitle,
-      manager: args.manager,
-      offboardingDate: args.offboardingDate,
+      userPrincipalName: args.userEmail,
+      displayName: args.userName,
+      email: args.userEmail,
+      offboardingDate: offboardingTimestamp,
       status: "scheduled",
-      notes: args.notes,
-      actions: args.actions,
+      notes: args.customMessage || "",
+      template: args.template,
+      notifyManager: args.notifyManager,
+      notifyUser: args.notifyUser,
+      managerEmail: args.managerEmail,
+      actions: {
+        disableAccount: true,
+        revokeAccess: true,
+        removeFromGroups: true,
+        convertToSharedMailbox: false,
+        backupData: true,
+        removeDevices: true,
+      },
       createdBy: session.userId,
       createdAt: now,
       updatedAt: now,
@@ -152,7 +156,7 @@ export const create = mutation({
       action: "schedule_offboarding",
       resourceType: "scheduled_offboarding",
       resourceId: offboardingId,
-      details: `Scheduled offboarding for ${args.displayName} on ${new Date(args.offboardingDate).toISOString()}`,
+      details: `Scheduled offboarding for ${args.userName} on ${offboardingDateTime.toISOString()}`,
       timestamp: now,
     });
 
@@ -167,23 +171,16 @@ export const update = mutation({
   args: {
     sessionId: v.string(),
     offboardingId: v.id("scheduled_offboarding"),
-    offboardingDate: v.optional(v.number()),
-    notes: v.optional(v.string()),
-    status: v.optional(v.union(
-      v.literal("scheduled"),
-      v.literal("in-progress"),
-      v.literal("completed"),
-      v.literal("failed")
-    )),
-    actions: v.optional(v.object({
-      disableAccount: v.boolean(),
-      revokeAccess: v.boolean(),
-      removeFromGroups: v.boolean(),
-      forwardEmail: v.optional(v.string()),
-      convertToSharedMailbox: v.boolean(),
-      backupData: v.boolean(),
-      removeDevices: v.boolean(),
-    })),
+    userId: v.optional(v.string()),
+    userName: v.optional(v.string()),
+    userEmail: v.optional(v.string()),
+    scheduledDate: v.optional(v.string()),
+    scheduledTime: v.optional(v.string()),
+    template: v.optional(v.string()),
+    notifyManager: v.optional(v.boolean()),
+    notifyUser: v.optional(v.boolean()),
+    managerEmail: v.optional(v.string()),
+    customMessage: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const session = await validateSession(ctx, args.sessionId);
@@ -212,17 +209,34 @@ export const update = mutation({
       updatedAt: Date.now(),
     };
 
-    if (args.offboardingDate !== undefined) {
-      updates.offboardingDate = args.offboardingDate;
+    if (args.userId !== undefined) {
+      updates.userId = args.userId;
     }
-    if (args.notes !== undefined) {
-      updates.notes = args.notes;
+    if (args.userName !== undefined) {
+      updates.displayName = args.userName;
     }
-    if (args.status !== undefined) {
-      updates.status = args.status;
+    if (args.userEmail !== undefined) {
+      updates.email = args.userEmail;
+      updates.userPrincipalName = args.userEmail;
     }
-    if (args.actions !== undefined) {
-      updates.actions = args.actions;
+    if (args.scheduledDate !== undefined && args.scheduledTime !== undefined) {
+      const offboardingDateTime = new Date(`${args.scheduledDate}T${args.scheduledTime}:00Z`);
+      updates.offboardingDate = offboardingDateTime.getTime();
+    }
+    if (args.template !== undefined) {
+      updates.template = args.template;
+    }
+    if (args.notifyManager !== undefined) {
+      updates.notifyManager = args.notifyManager;
+    }
+    if (args.notifyUser !== undefined) {
+      updates.notifyUser = args.notifyUser;
+    }
+    if (args.managerEmail !== undefined) {
+      updates.managerEmail = args.managerEmail;
+    }
+    if (args.customMessage !== undefined) {
+      updates.notes = args.customMessage;
     }
 
     await ctx.db.patch(args.offboardingId, updates);
