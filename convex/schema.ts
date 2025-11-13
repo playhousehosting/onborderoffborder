@@ -128,6 +128,47 @@ export default defineSchema({
     .index("by_executed_by", ["executedBy"])
     .index("by_status", ["status"]),
 
+  // Onboarding execution logs for detailed audit trail
+  onboarding_execution_logs: defineTable({
+    tenantId: v.string(),
+    sessionId: v.string(),
+    targetUserId: v.optional(v.string()), // User being onboarded (may not exist yet if creation failed)
+    targetUserName: v.string(),
+    targetUserEmail: v.string(),
+    executedBy: v.string(), // User who executed the onboarding
+    startTime: v.number(),
+    endTime: v.optional(v.number()),
+    status: v.union(
+      v.literal("in-progress"),
+      v.literal("completed"),
+      v.literal("partial"),
+      v.literal("failed")
+    ),
+    totalActions: v.number(),
+    successfulActions: v.number(),
+    failedActions: v.number(),
+    skippedActions: v.number(),
+    actions: v.array(v.object({
+      action: v.string(),
+      status: v.union(
+        v.literal("success"),
+        v.literal("error"),
+        v.literal("skipped"),
+        v.literal("warning")
+      ),
+      message: v.string(),
+      timestamp: v.number(),
+      details: v.optional(v.string()),
+    })),
+    error: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_tenant", ["tenantId"])
+    .index("by_tenant_and_time", ["tenantId", "startTime"])
+    .index("by_target_user", ["targetUserId"])
+    .index("by_executed_by", ["executedBy"])
+    .index("by_status", ["status"]),
+
   // Audit log for compliance
   audit_log: defineTable({
     tenantId: v.string(),

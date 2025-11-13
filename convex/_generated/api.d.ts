@@ -12,6 +12,7 @@ import type * as auth from "../auth.js";
 import type * as authMutations from "../authMutations.js";
 import type * as graph from "../graph.js";
 import type * as offboarding from "../offboarding.js";
+import type * as onboarding from "../onboarding.js";
 
 import type {
   ApiFromModules,
@@ -24,6 +25,7 @@ declare const fullApi: ApiFromModules<{
   authMutations: typeof authMutations;
   graph: typeof graph;
   offboarding: typeof offboarding;
+  onboarding: typeof onboarding;
 }>;
 
 /**

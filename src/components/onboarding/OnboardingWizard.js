@@ -5,6 +5,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { getGroupsForDepartment, hasMappedGroups } from '../../utils/departmentMappings';
 import { logger } from '../../utils/logger';
 import toast from 'react-hot-toast';
+import { useConvex } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import {
   UserPlusIcon,
   UserIcon,
@@ -26,6 +28,7 @@ const OnboardingWizard = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
+  const convex = useConvex();
   
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -567,9 +570,88 @@ const OnboardingWizard = () => {
       setExecutionProgress({ currentTask: 'Completed!', currentStep: totalSteps, totalSteps });
       setExecutionResults(results);
       setCurrentStep(4); // Move to results step
+
+      // Log execution to Convex for audit trail
+      const endTime = Date.now();
+      const startTime = endTime - 60000; // Approximate start time
+      
+      try {
+        const sessionId = localStorage.getItem('sessionId');
+        if (sessionId) {
+          // Determine overall status
+          const hasErrors = results.some(r => r.status === 'error');
+          const allSkipped = results.every(r => r.status === 'skipped');
+          const overallStatus = hasErrors ? 'partial' : allSkipped ? 'failed' : 'completed';
+
+          // Get user info for logging
+          const userName = selectedUser?.displayName || 
+                          newUserInfo.displayName || 
+                          `${newUserInfo.firstName} ${newUserInfo.lastName}`;
+          const userEmail = selectedUser?.mail || 
+                           selectedUser?.userPrincipalName || 
+                           newUserInfo.email;
+
+          // Log to Convex database
+          await convex.mutation(api.onboarding.logExecution, {
+            sessionId,
+            targetUserId: createdUserId,
+            targetUserName: userName,
+            targetUserEmail: userEmail,
+            startTime,
+            endTime,
+            status: overallStatus,
+            actions: results.map((result, index) => ({
+              action: result.action,
+              status: result.status,
+              message: result.message,
+              timestamp: startTime + (index * 5000),
+              details: result.details ? JSON.stringify(result.details) : undefined,
+            })),
+          });
+          
+          logger.info('✅ Onboarding execution logged to Convex database');
+        }
+      } catch (logError) {
+        logger.error('Failed to log onboarding execution to Convex:', logError);
+        // Don't fail the onboarding if logging fails
+      }
+
       toast.success('Onboarding process completed');
     } catch (error) {
       console.error('Onboarding error:', error);
+      
+      // Log failure to Convex
+      try {
+        const sessionId = localStorage.getItem('sessionId');
+        if (sessionId) {
+          const userName = selectedUser?.displayName || 
+                          newUserInfo.displayName || 
+                          `${newUserInfo.firstName} ${newUserInfo.lastName}`;
+          const userEmail = selectedUser?.mail || 
+                           selectedUser?.userPrincipalName || 
+                           newUserInfo.email;
+
+          await convex.mutation(api.onboarding.logExecution, {
+            sessionId,
+            targetUserId: selectedUser?.id,
+            targetUserName: userName,
+            targetUserEmail: userEmail,
+            startTime: Date.now() - 30000,
+            endTime: Date.now(),
+            status: 'failed',
+            actions: results.map((result, index) => ({
+              action: result.action,
+              status: result.status,
+              message: result.message,
+              timestamp: Date.now() - (results.length - index) * 1000,
+            })),
+            error: error.message,
+          });
+        }
+      } catch (logError) {
+        logger.error('Failed to log error to Convex:', logError);
+      }
+
       toast.error('Onboarding process failed');
     } finally {
       setIsExecuting(false);
