@@ -159,13 +159,18 @@ if (process.env.TRUST_PROXY === 'true') {
   app.set('trust proxy', 1);
 }
 
+// Multi-tenant context middleware (must be after session middleware)
+const { extractTenantContext } = require('./middleware/tenantContext');
+app.use(extractTenantContext);
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    multiTenant: true
   });
 });
 

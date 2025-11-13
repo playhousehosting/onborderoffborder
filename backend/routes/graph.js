@@ -1,14 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const graphService = require('../services/graphService');
+const { requireAuth } = require('../middleware/tenantContext');
 
-// Middleware to check authentication
-const requireAuth = (req, res, next) => {
-  if (!req.session.authenticated) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
-  next();
-};
+// Note: requireAuth middleware now comes from tenantContext
+// It provides both authentication check and tenant context extraction
 
 /**
  * GET /api/graph/me

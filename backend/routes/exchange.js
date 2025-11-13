@@ -3,6 +3,7 @@ const router = express.Router();
 const { exec } = require('child_process');
 const util = require('util');
 const execPromise = util.promisify(exec);
+const { requireAuth } = require('../middleware/tenantContext');
 
 /**
  * Hybrid Exchange Management Routes
@@ -114,7 +115,7 @@ router.get('/config-status', (req, res) => {
  * POST /api/exchange/test-connection
  * Test connectivity to on-premises Exchange Server
  */
-router.post('/test-connection', async (req, res) => {
+router.post('/test-connection', requireAuth, async (req, res) => {
   try {
     const configStatus = validateExchangeConfig();
     if (!configStatus.configured) {
@@ -146,7 +147,7 @@ router.post('/test-connection', async (req, res) => {
  * GET /api/exchange/mailbox/:identity
  * Get mailbox details (works for both on-prem and remote mailboxes)
  */
-router.get('/mailbox/:identity', async (req, res) => {
+router.get('/mailbox/:identity', requireAuth, async (req, res) => {
   try {
     const configStatus = validateExchangeConfig();
     if (!configStatus.configured) {
@@ -196,7 +197,7 @@ router.get('/mailbox/:identity', async (req, res) => {
  * POST /api/exchange/create-remote-mailbox
  * Create a remote mailbox (Exchange Online mailbox for on-prem user)
  */
-router.post('/create-remote-mailbox', async (req, res) => {
+router.post('/create-remote-mailbox', requireAuth, async (req, res) => {
   try {
     const configStatus = validateExchangeConfig();
     if (!configStatus.configured) {
@@ -248,7 +249,7 @@ router.post('/create-remote-mailbox', async (req, res) => {
  * POST /api/exchange/convert-to-shared
  * Convert on-premises mailbox to shared mailbox
  */
-router.post('/convert-to-shared', async (req, res) => {
+router.post('/convert-to-shared', requireAuth, async (req, res) => {
   try {
     const configStatus = validateExchangeConfig();
     if (!configStatus.configured) {
@@ -313,7 +314,7 @@ router.post('/convert-to-shared', async (req, res) => {
  * POST /api/exchange/set-forwarding
  * Set email forwarding for on-premises mailbox
  */
-router.post('/set-forwarding', async (req, res) => {
+router.post('/set-forwarding', requireAuth, async (req, res) => {
   try {
     const configStatus = validateExchangeConfig();
     if (!configStatus.configured) {
@@ -360,7 +361,7 @@ router.post('/set-forwarding', async (req, res) => {
  * POST /api/exchange/set-auto-reply
  * Set automatic reply (out of office) for on-premises mailbox
  */
-router.post('/set-auto-reply', async (req, res) => {
+router.post('/set-auto-reply', requireAuth, async (req, res) => {
   try {
     const configStatus = validateExchangeConfig();
     if (!configStatus.configured) {
@@ -412,7 +413,7 @@ router.post('/set-auto-reply', async (req, res) => {
  * POST /api/exchange/move-to-cloud
  * Initiate mailbox move from on-premises to Exchange Online
  */
-router.post('/move-to-cloud', async (req, res) => {
+router.post('/move-to-cloud', requireAuth, async (req, res) => {
   try {
     const configStatus = validateExchangeConfig();
     if (!configStatus.configured) {
@@ -463,7 +464,7 @@ router.post('/move-to-cloud', async (req, res) => {
  * GET /api/exchange/move-request/:identity
  * Check status of mailbox move request
  */
-router.get('/move-request/:identity', async (req, res) => {
+router.get('/move-request/:identity', requireAuth, async (req, res) => {
   try {
     const configStatus = validateExchangeConfig();
     if (!configStatus.configured) {
@@ -505,7 +506,7 @@ router.get('/move-request/:identity', async (req, res) => {
  * GET /api/exchange/mailbox-type/:identity
  * Determine if mailbox is on-premises, remote (cloud), or doesn't exist
  */
-router.get('/mailbox-type/:identity', async (req, res) => {
+router.get('/mailbox-type/:identity', requireAuth, async (req, res) => {
   try {
     const configStatus = validateExchangeConfig();
     if (!configStatus.configured) {

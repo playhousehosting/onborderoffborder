@@ -8,11 +8,24 @@ A comprehensive full-stack web application for managing the complete employee li
 
 ## ✨ Key Features
 
+### 🏢 Multi-Tenant Architecture (NEW!)
+- **Complete Data Isolation**: Each tenant/organization has fully isolated data
+- **Multi-Session Support**: Handles multiple concurrent user sessions securely
+- **Enterprise-Ready**: Scalable to thousands of tenants with optimized queries
+- **Automatic Tenant Context**: Transparent to frontend, enforced at database level
+- **Audit Trail**: Full tracking of who created/modified records
+- **Production-Ready**: Tested and deployed on Vercel with Neon PostgreSQL
+
+📖 See [MULTI_TENANT_ARCHITECTURE.md](./MULTI_TENANT_ARCHITECTURE.md) for complete architecture details.
+
 ### Authentication & Security
 - **App-Only Authentication**: Secure server-side Microsoft Graph API access using client credentials
-- **Session Management**: Encrypted sessions stored in Neon PostgreSQL with AES-256-GCM encryption
+- **OAuth2/Delegated Authentication**: Interactive user authentication via Microsoft Login
+- **Multi-Tenant Sessions**: Encrypted sessions with tenant isolation stored in Neon PostgreSQL
+- **AES-256-GCM Encryption**: All credentials encrypted at rest
 - **CORS Protection**: Configured for secure cross-origin requests
 - **Role-Based Access Control**: Permission-based feature access and routing
+- **SQL Injection Protection**: Parameterized queries throughout
 
 ### User Management
 - **Complete User Lifecycle**: Create, search, update, and disable user accounts

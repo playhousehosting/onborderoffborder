@@ -201,13 +201,23 @@ router.post('/login-app-only', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials', details: validation.error });
     }
     
+    // Extract tenant ID from credentials for multi-tenant support
+    const { decryptCredentials } = require('../utils/encryption');
+    const creds = decryptCredentials(req.session.credentials);
+    const tenantId = creds.tenantId || 'default-tenant';
+    
     // Set authenticated flag
     req.session.authenticated = true;
     req.session.authMode = 'app-only';
     req.session.user = {
+      id: `app-${tenantId}`, // Unique ID for app-only auth
+      tenantId: tenantId,
+      tid: tenantId,
       displayName: 'Application Admin',
       userPrincipalName: 'app@system',
-      authMode: 'app-only'
+      email: 'app@system',
+      authMode: 'app-only',
+      roles: ['admin']
     };
     
     req.session.save((err) => {
@@ -276,14 +286,30 @@ router.get('/callback', async (req, res) => {
     
     const tokenResponse = await acquireTokenByCode(msalInstance, code, redirectUri, scopes);
     
-    // Store user info and account in session
+    // Extract tenant ID from credentials and token response
+    const { decryptCredentials } = require('../utils/encryption');
+    const creds = decryptCredentials(req.session.credentials);
+    const tenantId = tokenResponse.account.tenantId || creds.tenantId || 'default-tenant';
+    const userId = tokenResponse.account.homeAccountId || tokenResponse.account.localAccountId || tokenResponse.account.username;
+    
+    // Store user info and account in session with tenant context
     req.session.authenticated = true;
     req.session.authMode = 'oauth2';
     req.session.account = tokenResponse.account;
     req.session.user = {
+      id: userId,
+      tenantId: tenantId,
+      tid: tenantId,
+      oid: tokenResponse.account.localAccountId,
+      sub: userId,
       displayName: tokenResponse.account.name,
+      name: tokenResponse.account.name,
       userPrincipalName: tokenResponse.account.username,
-      authMode: 'oauth2'
+      email: tokenResponse.account.username,
+      upn: tokenResponse.account.username,
+      preferred_username: tokenResponse.account.username,
+      authMode: 'oauth2',
+      roles: tokenResponse.idTokenClaims?.roles || []
     };
     
     req.session.save((err) => {

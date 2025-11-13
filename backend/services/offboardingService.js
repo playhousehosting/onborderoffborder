@@ -28,6 +28,9 @@ async function initializeTable() {
   const createTableQuery = `
     CREATE TABLE IF NOT EXISTS scheduled_offboardings (
       id VARCHAR(255) PRIMARY KEY,
+      tenant_id VARCHAR(255) NOT NULL,
+      session_id VARCHAR(255) NOT NULL,
+      created_by VARCHAR(255),
       user_id VARCHAR(255) NOT NULL,
       user_display_name VARCHAR(500),
       user_email VARCHAR(500),
@@ -42,30 +45,40 @@ async function initializeTable() {
       custom_message TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       executed_at TIMESTAMPTZ,
-      created_by VARCHAR(255)
+      updated_at TIMESTAMPTZ DEFAULT NOW()
     );
 
+    CREATE INDEX IF NOT EXISTS idx_scheduled_offboardings_tenant ON scheduled_offboardings (tenant_id);
+    CREATE INDEX IF NOT EXISTS idx_scheduled_offboardings_session ON scheduled_offboardings (session_id);
     CREATE INDEX IF NOT EXISTS idx_scheduled_offboardings_status ON scheduled_offboardings (status);
     CREATE INDEX IF NOT EXISTS idx_scheduled_offboardings_scheduled_date ON scheduled_offboardings (scheduled_date_time);
     CREATE INDEX IF NOT EXISTS idx_scheduled_offboardings_user_id ON scheduled_offboardings (user_id);
+    CREATE INDEX IF NOT EXISTS idx_scheduled_offboardings_tenant_status ON scheduled_offboardings (tenant_id, status);
   `;
 
   try {
     await pool.query(createTableQuery);
-    console.log('✅ Scheduled offboardings table initialized');
+    console.log('✅ Scheduled offboardings table initialized with multi-tenant support');
   } catch (err) {
     console.error('❌ Failed to initialize scheduled offboardings table:', err.message);
     throw err;
   }
 }
 
-async function list() {
+async function list(tenantId, sessionId) {
+  if (!tenantId || !sessionId) {
+    throw new Error('Tenant ID and Session ID are required for multi-tenant operations');
+  }
+
   const pool = getPool();
   await initializeTable();
   
   const query = `
     SELECT 
       id,
+      tenant_id,
+      session_id,
+      created_by,
       user_id,
       user_display_name,
       user_email,
@@ -79,28 +92,39 @@ async function list() {
       notify_user,
       custom_message,
       created_at,
-      executed_at
+      executed_at,
+      updated_at
     FROM scheduled_offboardings
+    WHERE tenant_id = $1 AND (session_id = $2 OR created_by = $3)
     ORDER BY scheduled_date_time ASC
   `;
 
-  const result = await pool.query(query);
+  const result = await pool.query(query, [tenantId, sessionId, sessionId]);
   return result.rows.map(formatScheduleFromDb);
 }
 
-async function get(id) {
+async function get(id, tenantId, sessionId) {
+  if (!tenantId || !sessionId) {
+    throw new Error('Tenant ID and Session ID are required for multi-tenant operations');
+  }
+
   const pool = getPool();
   await initializeTable();
   
   const query = `
-    SELECT * FROM scheduled_offboardings WHERE id = $1
+    SELECT * FROM scheduled_offboardings 
+    WHERE id = $1 AND tenant_id = $2 AND (session_id = $3 OR created_by = $4)
   `;
   
-  const result = await pool.query(query, [id]);
+  const result = await pool.query(query, [id, tenantId, sessionId, sessionId]);
   return result.rows.length > 0 ? formatScheduleFromDb(result.rows[0]) : null;
 }
 
-async function create(schedule) {
+async function create(schedule, tenantId, sessionId) {
+  if (!tenantId || !sessionId) {
+    throw new Error('Tenant ID and Session ID are required for multi-tenant operations');
+  }
+
   const pool = getPool();
   await initializeTable();
   
@@ -120,15 +144,18 @@ async function create(schedule) {
 
   const query = `
     INSERT INTO scheduled_offboardings (
-      id, user_id, user_display_name, user_email, scheduled_date, scheduled_time, 
-      scheduled_date_time, template, status, manager_email, notify_manager, 
-      notify_user, custom_message, created_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      id, tenant_id, session_id, created_by, user_id, user_display_name, user_email, 
+      scheduled_date, scheduled_time, scheduled_date_time, template, status, 
+      manager_email, notify_manager, notify_user, custom_message, created_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
     RETURNING *
   `;
 
   const values = [
     id,
+    tenantId,
+    sessionId,
+    sessionId, // created_by is the session ID
     userId,
     userDisplayName,
     userEmail,
@@ -148,14 +175,24 @@ async function create(schedule) {
   return formatScheduleFromDb(result.rows[0]);
 }
 
-async function update(id, updates) {
+async function update(id, updates, tenantId, sessionId) {
+  if (!tenantId || !sessionId) {
+    throw new Error('Tenant ID and Session ID are required for multi-tenant operations');
+  }
+
   const pool = getPool();
   await initializeTable();
   
+  // First verify the record exists and belongs to this tenant/session
+  const existing = await get(id, tenantId, sessionId);
+  if (!existing) {
+    return null;
+  }
+  
   // Build dynamic update query
   const updateFields = [];
-  const values = [id]; // $1 will be the id
-  let paramIndex = 2;
+  const values = [id, tenantId]; // $1 will be the id, $2 will be tenant_id
+  let paramIndex = 3;
 
   // Add fields that can be updated
   const allowedFields = [
@@ -176,10 +213,17 @@ async function update(id, updates) {
     throw new Error('No valid fields to update');
   }
 
+  // Add updated_at timestamp
+  updateFields.push(`updated_at = NOW()`);
+
+  // Add session validation to WHERE clause
+  values.push(sessionId); // for session_id check
+  values.push(sessionId); // for created_by check
+
   const query = `
     UPDATE scheduled_offboardings 
     SET ${updateFields.join(', ')}
-    WHERE id = $1
+    WHERE id = $1 AND tenant_id = $2 AND (session_id = $${paramIndex} OR created_by = $${paramIndex + 1})
     RETURNING *
   `;
 
@@ -187,28 +231,51 @@ async function update(id, updates) {
   return result.rows.length > 0 ? formatScheduleFromDb(result.rows[0]) : null;
 }
 
-async function remove(id) {
+async function remove(id, tenantId, sessionId) {
+  if (!tenantId || !sessionId) {
+    throw new Error('Tenant ID and Session ID are required for multi-tenant operations');
+  }
+
   const pool = getPool();
   await initializeTable();
   
-  const query = `DELETE FROM scheduled_offboardings WHERE id = $1`;
-  const result = await pool.query(query, [id]);
+  // First verify the record exists and belongs to this tenant/session
+  const existing = await get(id, tenantId, sessionId);
+  if (!existing) {
+    return false;
+  }
+  
+  const query = `
+    DELETE FROM scheduled_offboardings 
+    WHERE id = $1 AND tenant_id = $2 AND (session_id = $3 OR created_by = $4)
+  `;
+  const result = await pool.query(query, [id, tenantId, sessionId, sessionId]);
   return result.rowCount > 0;
 }
 
-async function execute(id) {
+async function execute(id, tenantId, sessionId) {
+  if (!tenantId || !sessionId) {
+    throw new Error('Tenant ID and Session ID are required for multi-tenant operations');
+  }
+
   const pool = getPool();
   await initializeTable();
+  
+  // First verify the record exists and belongs to this tenant/session
+  const existing = await get(id, tenantId, sessionId);
+  if (!existing) {
+    return null;
+  }
   
   const executedAt = new Date().toISOString();
   const query = `
     UPDATE scheduled_offboardings 
-    SET status = 'completed', executed_at = $2
-    WHERE id = $1
+    SET status = 'completed', executed_at = $2, updated_at = NOW()
+    WHERE id = $1 AND tenant_id = $3 AND (session_id = $4 OR created_by = $5)
     RETURNING *
   `;
 
-  const result = await pool.query(query, [id, executedAt]);
+  const result = await pool.query(query, [id, executedAt, tenantId, sessionId, sessionId]);
   return result.rows.length > 0 ? formatScheduleFromDb(result.rows[0]) : null;
 }
 
@@ -216,6 +283,9 @@ async function execute(id) {
 function formatScheduleFromDb(row) {
   return {
     id: row.id,
+    tenantId: row.tenant_id,
+    sessionId: row.session_id,
+    createdBy: row.created_by,
     user: {
       id: row.user_id,
       displayName: row.user_display_name,
@@ -231,7 +301,8 @@ function formatScheduleFromDb(row) {
     notifyUser: row.notify_user,
     customMessage: row.custom_message,
     createdAt: row.created_at,
-    executedAt: row.executed_at
+    executedAt: row.executed_at,
+    updatedAt: row.updated_at
   };
 }
 

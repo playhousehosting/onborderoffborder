@@ -15,6 +15,7 @@ const { exec } = require('child_process');
 const util = require('util');
 const execPromise = util.promisify(exec);
 const router = express.Router();
+const { requireAuth } = require('../middleware/tenantContext');
 
 // Environment variables for AD configuration
 const AD_SERVER = process.env.AD_SERVER;
@@ -208,7 +209,7 @@ async function executeRemotePowerShell(script) {
  * POST /api/ad/create-user
  * Create a new user in on-premises Active Directory
  */
-router.post('/create-user', async (req, res) => {
+router.post('/create-user', requireAuth, async (req, res) => {
   console.log('🔷 Create on-premises AD user request');
 
   // Validate AD configuration
@@ -310,7 +311,7 @@ router.get('/config-status', (req, res) => {
  * POST /api/ad/test-connection
  * Test connection to on-premises AD server
  */
-router.post('/test-connection', async (req, res) => {
+router.post('/test-connection', requireAuth, async (req, res) => {
   console.log('🔍 Testing on-premises AD connection');
 
   const configValidation = validateADConfig();
@@ -362,7 +363,7 @@ router.post('/test-connection', async (req, res) => {
  * GET /api/ad/check-user/:samAccountName
  * Check if user exists in on-premises AD
  */
-router.get('/check-user/:samAccountName', async (req, res) => {
+router.get('/check-user/:samAccountName', requireAuth, async (req, res) => {
   const { samAccountName } = req.params;
   
   const configValidation = validateADConfig();
