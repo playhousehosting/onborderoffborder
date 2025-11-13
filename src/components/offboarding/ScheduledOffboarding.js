@@ -50,43 +50,14 @@ const ScheduledOffboarding = () => {
   const fetchScheduledOffboardings = async () => {
     try {
       setLoading(true);
-      // In a real implementation, this would call an API to get scheduled offboardings
-      // For now, we'll use mock data
-      const mockData = [
-        {
-          id: '1',
-          user: {
-            id: 'user1',
-            displayName: 'John Doe',
-            mail: 'john.doe@company.com',
-          },
-          scheduledDate: '2024-01-15',
-          scheduledTime: '09:00',
-          template: 'standard',
-          status: 'scheduled',
-          managerEmail: 'manager@company.com',
-          notifyManager: true,
-          notifyUser: true,
-          createdAt: '2024-01-01T10:00:00Z',
-        },
-        {
-          id: '2',
-          user: {
-            id: 'user2',
-            displayName: 'Jane Smith',
-            mail: 'jane.smith@company.com',
-          },
-          scheduledDate: '2024-01-20',
-          scheduledTime: '14:00',
-          template: 'executive',
-          status: 'scheduled',
-          managerEmail: 'manager@company.com',
-          notifyManager: true,
-          notifyUser: false,
-          createdAt: '2024-01-02T11:30:00Z',
-        },
-      ];
-      setScheduledOffboardings(mockData);
+      // Call backend API for persisted scheduled offboardings
+      const res = await fetch('/api/offboarding/scheduled', { credentials: 'include' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Failed to fetch scheduled offboardings (${res.status})`);
+      }
+      const data = await res.json();
+      setScheduledOffboardings(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching scheduled offboardings:', error);
       toast.error('Failed to fetch scheduled offboardings');
@@ -138,12 +109,22 @@ const ScheduledOffboarding = () => {
       };
 
       if (editingSchedule) {
-        // Update existing schedule
-        // await graphService.updateScheduledOffboarding(editingSchedule.id, scheduleData);
+        const res = await fetch(`/api/offboarding/scheduled/${editingSchedule.id}`, {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(scheduleData)
+        });
+        if (!res.ok) throw new Error('Failed to update schedule');
         toast.success('Offboarding schedule updated successfully');
       } else {
-        // Create new schedule
-        // await graphService.scheduleOffboarding(scheduleData);
+        const res = await fetch('/api/offboarding/scheduled', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(scheduleData)
+        });
+        if (!res.ok) throw new Error('Failed to create schedule');
         toast.success('Offboarding scheduled successfully');
       }
 
@@ -174,7 +155,11 @@ const ScheduledOffboarding = () => {
     }
 
     try {
-      // await graphService.executeScheduledOffboarding(scheduleId);
+      const res = await fetch(`/api/offboarding/scheduled/${scheduleId}/execute`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Failed to execute scheduled offboarding');
       toast.success('Offboarding executed successfully');
       fetchScheduledOffboardings();
     } catch (error) {
@@ -189,7 +174,11 @@ const ScheduledOffboarding = () => {
     }
 
     try {
-      // await graphService.deleteScheduledOffboarding(scheduleId);
+      const res = await fetch(`/api/offboarding/scheduled/${scheduleId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Failed to delete scheduled offboarding');
       toast.success('Scheduled offboarding deleted successfully');
       fetchScheduledOffboardings();
     } catch (error) {
