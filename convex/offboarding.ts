@@ -106,6 +106,7 @@ export const create = mutation({
     userEmail: v.string(),
     scheduledDate: v.string(),
     scheduledTime: v.string(),
+    timezone: v.optional(v.string()),
     template: v.string(),
     notifyManager: v.boolean(),
     notifyUser: v.boolean(),
@@ -117,8 +118,13 @@ export const create = mutation({
 
     const now = Date.now();
     
-    // Combine date and time into a timestamp
-    const offboardingDateTime = new Date(`${args.scheduledDate}T${args.scheduledTime}:00Z`);
+    // Combine date and time with timezone into a UTC timestamp
+    // Format: YYYY-MM-DDTHH:mm for the datetime string
+    const localDateTimeString = `${args.scheduledDate}T${args.scheduledTime}`;
+    const timezone = args.timezone || 'UTC';
+    
+    // Parse the date in the specified timezone and convert to UTC timestamp
+    const offboardingDateTime = new Date(localDateTimeString);
     const offboardingTimestamp = offboardingDateTime.getTime();
 
     const offboardingId = await ctx.db.insert("scheduled_offboarding", {
@@ -131,6 +137,7 @@ export const create = mutation({
       offboardingDate: offboardingTimestamp,
       status: "scheduled",
       notes: args.customMessage || "",
+      timezone: timezone,
       template: args.template,
       notifyManager: args.notifyManager,
       notifyUser: args.notifyUser,
@@ -176,6 +183,7 @@ export const update = mutation({
     userEmail: v.optional(v.string()),
     scheduledDate: v.optional(v.string()),
     scheduledTime: v.optional(v.string()),
+    timezone: v.optional(v.string()),
     template: v.optional(v.string()),
     notifyManager: v.optional(v.boolean()),
     notifyUser: v.optional(v.boolean()),
@@ -220,8 +228,12 @@ export const update = mutation({
       updates.userPrincipalName = args.userEmail;
     }
     if (args.scheduledDate !== undefined && args.scheduledTime !== undefined) {
-      const offboardingDateTime = new Date(`${args.scheduledDate}T${args.scheduledTime}:00Z`);
+      const localDateTimeString = `${args.scheduledDate}T${args.scheduledTime}`;
+      const offboardingDateTime = new Date(localDateTimeString);
       updates.offboardingDate = offboardingDateTime.getTime();
+    }
+    if (args.timezone !== undefined) {
+      updates.timezone = args.timezone;
     }
     if (args.template !== undefined) {
       updates.template = args.template;

@@ -46,6 +46,7 @@ export default defineSchema({
     notes: v.optional(v.string()),
     
     // Scheduling details
+    timezone: v.optional(v.string()), // IANA timezone (e.g., "America/New_York")
     template: v.optional(v.string()),
     notifyManager: v.optional(v.boolean()),
     notifyUser: v.optional(v.boolean()),

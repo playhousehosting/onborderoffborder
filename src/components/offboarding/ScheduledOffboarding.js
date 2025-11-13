@@ -33,6 +33,7 @@ const ScheduledOffboarding = () => {
     userId: '',
     scheduledDate: '',
     scheduledTime: '',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, // Default to user's timezone
     template: 'standard',
     notifyManager: true,
     notifyUser: true,
@@ -45,6 +46,23 @@ const ScheduledOffboarding = () => {
     { id: 'executive', name: 'Executive Offboarding' },
     { id: 'contractor', name: 'Contractor Offboarding' },
     { id: 'security', name: 'Security Critical Offboarding' },
+  ];
+
+  const commonTimezones = [
+    { value: 'America/New_York', label: 'Eastern Time (ET)' },
+    { value: 'America/Chicago', label: 'Central Time (CT)' },
+    { value: 'America/Denver', label: 'Mountain Time (MT)' },
+    { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
+    { value: 'America/Anchorage', label: 'Alaska Time (AKT)' },
+    { value: 'Pacific/Honolulu', label: 'Hawaii Time (HT)' },
+    { value: 'Europe/London', label: 'London (GMT/BST)' },
+    { value: 'Europe/Paris', label: 'Paris (CET)' },
+    { value: 'Europe/Berlin', label: 'Berlin (CET)' },
+    { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
+    { value: 'Asia/Shanghai', label: 'Shanghai (CST)' },
+    { value: 'Asia/Dubai', label: 'Dubai (GST)' },
+    { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
+    { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
   ];
 
   useEffect(() => {
@@ -77,6 +95,7 @@ const ScheduledOffboarding = () => {
           },
           scheduledDate: offboardingDate.toISOString().split('T')[0],
           scheduledTime: offboardingDate.toTimeString().substring(0, 5),
+          timezone: record.timezone || 'UTC',
           template: record.template || 'standard',
           status: record.status,
           notifyManager: record.notifyManager ?? true,
@@ -145,6 +164,7 @@ const ScheduledOffboarding = () => {
           userEmail: selectedUser?.mail || selectedUser?.userPrincipalName || '',
           scheduledDate: scheduleForm.scheduledDate,
           scheduledTime: scheduleForm.scheduledTime,
+          timezone: scheduleForm.timezone,
           template: scheduleForm.template,
           notifyManager: scheduleForm.notifyManager,
           notifyUser: scheduleForm.notifyUser,
@@ -172,6 +192,7 @@ const ScheduledOffboarding = () => {
         userId: '',
         scheduledDate: '',
         scheduledTime: '',
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         template: 'standard',
         notifyManager: true,
         notifyUser: true,
@@ -241,6 +262,7 @@ const ScheduledOffboarding = () => {
       userId: schedule.user.id,
       scheduledDate: schedule.scheduledDate,
       scheduledTime: schedule.scheduledTime,
+      timezone: schedule.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
       template: schedule.template,
       notifyManager: schedule.notifyManager,
       notifyUser: schedule.notifyUser,
@@ -417,6 +439,26 @@ const ScheduledOffboarding = () => {
                     required
                   />
                 </div>
+              </div>
+
+              {/* Timezone Selection */}
+              <div>
+                <label className="form-label">Timezone</label>
+                <select
+                  className="form-input"
+                  value={scheduleForm.timezone}
+                  onChange={(e) => setScheduleForm({...scheduleForm, timezone: e.target.value})}
+                  required
+                >
+                  {commonTimezones.map((tz) => (
+                    <option key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-sm text-gray-500">
+                  Selected timezone: {scheduleForm.timezone}
+                </p>
               </div>
 
               {/* Template Selection */}
