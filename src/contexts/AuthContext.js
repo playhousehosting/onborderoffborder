@@ -103,6 +103,56 @@ export const AuthProvider = ({ children }) => {
           try {
             const parsedUser = JSON.parse(demoUser);
             console.log('✅ AuthContext: Restored user from localStorage:', parsedUser.displayName);
+            
+            // Check if we have a sessionId (required for Convex backend calls)
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) {
+              console.warn('⚠️ No sessionId found - attempting to create Convex session');
+              
+              // Try to create a session with stored credentials
+              const azureConfig = localStorage.getItem('azureConfig');
+              if (azureConfig) {
+                try {
+                  const config = JSON.parse(azureConfig);
+                  const { ConvexHttpClient } = await import('convex/browser');
+                  const { api } = await import('../convex/_generated/api');
+                  const client = new ConvexHttpClient(process.env.REACT_APP_CONVEX_URL);
+                  
+                  console.log('🔧 Creating Convex session for restored user...');
+                  const configResult = await client.action(api.auth.configure, {
+                    clientId: config.clientId,
+                    tenantId: config.tenantId,
+                    clientSecret: config.clientSecret,
+                  });
+                  
+                  localStorage.setItem('sessionId', configResult.sessionId);
+                  console.log('✅ Convex session created:', configResult.sessionId);
+                  
+                  // Validate session
+                  await client.action(api.auth.loginAppOnly, {
+                    sessionId: configResult.sessionId,
+                  });
+                } catch (sessionError) {
+                  console.error('❌ Failed to create Convex session:', sessionError);
+                  // Clear auth state and force re-login
+                  localStorage.removeItem('demoUser');
+                  localStorage.removeItem('authMode');
+                  setIsAuthenticated(false);
+                  setUser(null);
+                  setLoading(false);
+                  return;
+                }
+              } else {
+                console.error('❌ No Azure config found - clearing auth state');
+                localStorage.removeItem('demoUser');
+                localStorage.removeItem('authMode');
+                setIsAuthenticated(false);
+                setUser(null);
+                setLoading(false);
+                return;
+              }
+            }
+            
             setIsAuthenticated(true);
             setUser(parsedUser);
             
