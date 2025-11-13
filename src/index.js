@@ -1,8 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { ConvexProvider, ConvexReactClient } from "convex/react";
 import App from './App';
 import StartupHealthCheck from './components/common/StartupHealthCheck';
 import './i18n'; // Initialize i18n
+
+// Initialize Convex client
+const convex = new ConvexReactClient(process.env.REACT_APP_CONVEX_URL);
 
 // Add global error handlers
 window.addEventListener('error', (event) => {
@@ -45,9 +49,11 @@ if (!rootElement) {
   const root = ReactDOM.createRoot(rootElement);
   root.render(
     <React.StrictMode>
-      <StartupHealthCheck>
-        <App />
-      </StartupHealthCheck>
+      <ConvexProvider client={convex}>
+        <StartupHealthCheck>
+          <App />
+        </StartupHealthCheck>
+      </ConvexProvider>
     </React.StrictMode>
   );
 }

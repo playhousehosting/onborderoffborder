@@ -24,6 +24,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Convex
+.env.local
+src/convex/_generated/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
