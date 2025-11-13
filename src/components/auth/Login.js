@@ -147,9 +147,9 @@ const Login = () => {
         
         // Configure Convex backend with credentials
         try {
-          // Step 1: Configure credentials in Convex
+          // Step 1: Configure credentials in Convex (uses action for encryption)
           console.log('🔧 Configuring credentials with Convex...');
-          const configResult = await convex.mutation(api.auth.configure, {
+          const configResult = await convex.action(api.auth.configure, {
             clientId: configToSave.clientId,
             tenantId: configToSave.tenantId,
             clientSecret: configToSave.clientSecret,
@@ -160,9 +160,9 @@ const Login = () => {
           // Save session ID for future requests
           setSessionId(configResult.sessionId);
           
-          // Step 2: Establish authenticated session
+          // Step 2: Establish authenticated session (uses action for token validation)
           console.log('🔑 Logging in with app-only mode...');
-          const loginResult = await convex.mutation(api.auth.loginAppOnly, {
+          const loginResult = await convex.action(api.auth.loginAppOnly, {
             sessionId: configResult.sessionId,
           });
           

@@ -1,3 +1,10 @@
 {
-  "functions": "src/convex/"
+  "node": {
+    "externalPackages": [
+      "crypto"
+    ]
+  },
+  "generateTypes": {
+    "output": "src/convex/_generated"
+  }
 }

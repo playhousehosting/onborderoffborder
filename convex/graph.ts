@@ -1,3 +1,5 @@
+"use node";
+
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
@@ -42,7 +44,7 @@ export const searchUsers = action({
   },
   handler: async (ctx, args) => {
     // Get credentials from session
-    const credentials = await ctx.runQuery(api.auth.getCredentials, {
+    const credentials = await ctx.runQuery(api.authMutations.getCredentials, {
       sessionId: args.sessionId,
     });
 
@@ -79,7 +81,7 @@ export const getUser = action({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const credentials = await ctx.runQuery(api.auth.getCredentials, {
+    const credentials = await ctx.runQuery(api.authMutations.getCredentials, {
       sessionId: args.sessionId,
     });
 
@@ -112,7 +114,7 @@ export const disableUser = action({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const credentials = await ctx.runQuery(api.auth.getCredentials, {
+    const credentials = await ctx.runQuery(api.authMutations.getCredentials, {
       sessionId: args.sessionId,
     });
 
@@ -150,7 +152,7 @@ export const revokeUserSessions = action({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const credentials = await ctx.runQuery(api.auth.getCredentials, {
+    const credentials = await ctx.runQuery(api.authMutations.getCredentials, {
       sessionId: args.sessionId,
     });
 
@@ -184,7 +186,7 @@ export const getUserGroups = action({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const credentials = await ctx.runQuery(api.auth.getCredentials, {
+    const credentials = await ctx.runQuery(api.authMutations.getCredentials, {
       sessionId: args.sessionId,
     });
 
@@ -219,7 +221,7 @@ export const removeUserFromGroup = action({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const credentials = await ctx.runQuery(api.auth.getCredentials, {
+    const credentials = await ctx.runQuery(api.authMutations.getCredentials, {
       sessionId: args.sessionId,
     });
 
@@ -253,7 +255,7 @@ export const getMailboxSettings = action({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const credentials = await ctx.runQuery(api.auth.getCredentials, {
+    const credentials = await ctx.runQuery(api.authMutations.getCredentials, {
       sessionId: args.sessionId,
     });
 
@@ -287,7 +289,7 @@ export const setAutomaticReply = action({
     message: v.string(),
   },
   handler: async (ctx, args) => {
-    const credentials = await ctx.runQuery(api.auth.getCredentials, {
+    const credentials = await ctx.runQuery(api.authMutations.getCredentials, {
       sessionId: args.sessionId,
     });
 
