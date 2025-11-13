@@ -124,18 +124,13 @@ export class AuthService {
   // Get access token using app-only (client credentials) flow
   async getAppOnlyToken() {
     try {
-      // Get credentials from localStorage (what user entered in config form)
-      const azureConfig = JSON.parse(localStorage.getItem('azureConfig') || '{}');
-      const { clientId, clientSecret, tenantId } = azureConfig;
-
-      console.log('🔑 Getting app-only token from Azure AD directly...');
-      console.log('  - Tenant ID:', tenantId ? `${tenantId.substring(0, 8)}...` : 'MISSING');
-      console.log('  - Client ID:', clientId ? `${clientId.substring(0, 8)}...` : 'MISSING');
-      console.log('  - Client Secret:', clientSecret ? 'PROVIDED' : 'MISSING');
-
-      if (!clientId || !clientSecret || !tenantId) {
-        throw new Error('App-only credentials not configured. Please go to Settings and configure your Azure AD credentials.');
+      // Get sessionId from localStorage
+      const sessionId = localStorage.getItem('sessionId');
+      if (!sessionId) {
+        throw new Error('No session ID found. Please configure your Azure AD credentials in Settings.');
       }
+
+      console.log('🔑 Getting app-only token via Convex backend...');
 
       // Check if we have a cached token that's still valid
       const cachedToken = this._getAppOnlyCachedToken();
@@ -144,51 +139,24 @@ export class AuthService {
         return cachedToken;
       }
 
-      // Get new token directly from Microsoft (client-side is fine for app-only flow)
-      console.log('🔑 Requesting token from Azure AD...');
+      // Import Convex client and API
+      const { ConvexHttpClient } = await import('convex/browser');
+      const { api } = await import('../convex/_generated/api');
+      const client = new ConvexHttpClient(process.env.REACT_APP_CONVEX_URL);
 
-      const tokenEndpoint = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
-      
-      const params = new URLSearchParams();
-      params.append('client_id', clientId);
-      params.append('client_secret', clientSecret);
-      params.append('scope', 'https://graph.microsoft.com/.default');
-      params.append('grant_type', 'client_credentials');
+      // Get token from Convex backend (which calls Azure AD server-side)
+      console.log('🔑 Requesting token from Convex backend...');
+      const result = await client.action(api.auth.getAppOnlyToken, { sessionId });
 
-      const response = await fetch(tokenEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: params.toString(),
-      });
-
-      if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (e) {
-          errorData = { error: response.statusText };
-        }
-
-        const errorMessage = errorData.error_description || errorData.error || response.statusText;
-
-        console.error('❌ Azure AD returned error:');
-        console.error('  - Status:', response.status);
-        console.error('  - Error:', errorData.error);
-        console.error('  - Details:', errorData.details);
-        console.error('  - Full response:', errorData);
-
-        throw new Error(`Failed to get app-only token: ${errorMessage}`);
+      if (!result || !result.accessToken) {
+        throw new Error('Failed to get access token from backend');
       }
 
-      const data = await response.json();
-
       // Cache the token with expiration
-      this._cacheAppOnlyToken(data.access_token, data.expires_in);
+      this._cacheAppOnlyToken(result.accessToken, result.expiresIn);
 
-      console.log('✅ App-only access token acquired successfully from backend');
-      return data.access_token;
+      console.log('✅ App-only access token acquired successfully from Convex backend');
+      return result.accessToken;
     } catch (error) {
       console.error('❌ Error getting app-only token:', error.message);
       console.error('Full error:', error);

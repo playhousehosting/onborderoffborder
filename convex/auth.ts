@@ -133,3 +133,54 @@ export const getDecryptedCredentials = action({
     return decryptCredentials(credsData.encryptedCredentials);
   },
 });
+
+/**
+ * Get app-only access token (called from frontend to avoid CORS)
+ */
+export const getAppOnlyToken = action({
+  args: {
+    sessionId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Get encrypted credentials
+    const credsData = await ctx.runQuery(api.authMutations.getCredentials, {
+      sessionId: args.sessionId,
+    });
+
+    // Decrypt
+    const creds = decryptCredentials(credsData.encryptedCredentials);
+
+    if (!creds.clientSecret) {
+      throw new Error("Client secret required for app-only authentication");
+    }
+
+    // Get token from Microsoft Identity Platform
+    const tokenEndpoint = `https://login.microsoftonline.com/${creds.tenantId}/oauth2/v2.0/token`;
+    
+    const params = new URLSearchParams();
+    params.append('client_id', creds.clientId);
+    params.append('client_secret', creds.clientSecret);
+    params.append('scope', 'https://graph.microsoft.com/.default');
+    params.append('grant_type', 'client_credentials');
+    
+    const response = await fetch(tokenEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Token acquisition failed: ${error.error_description || error.error}`);
+    }
+
+    const tokenData = await response.json();
+    
+    return {
+      accessToken: tokenData.access_token,
+      expiresIn: tokenData.expires_in,
+    };
+  },
+});
