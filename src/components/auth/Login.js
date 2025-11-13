@@ -273,6 +273,38 @@ const Login = () => {
       // Set a flag to indicate app-only mode
       localStorage.setItem('authMode', 'app-only');
       
+      // Check if we already have a session ID
+      let existingSessionId = localStorage.getItem('sessionId');
+      console.log('🔍 Checking for existing session:', existingSessionId ? 'FOUND' : 'NOT FOUND');
+      
+      if (!existingSessionId) {
+        // Create a new Convex session with encrypted credentials
+        console.log('🔧 Creating new Convex session...');
+        try {
+          const configResult = await convex.action(api.auth.configure, {
+            clientId: config.clientId,
+            tenantId: config.tenantId,
+            clientSecret: config.clientSecret,
+          });
+          
+          console.log('✅ Convex session created:', configResult.sessionId);
+          setSessionId(configResult.sessionId);
+          existingSessionId = configResult.sessionId;
+          
+          // Validate session with login
+          await convex.action(api.auth.loginAppOnly, {
+            sessionId: existingSessionId,
+          });
+        } catch (convexError) {
+          console.error('❌ Failed to establish Convex session:', convexError);
+          toast.error('Failed to establish session: ' + convexError.message);
+          setIsLoggingIn(false);
+          return;
+        }
+      } else {
+        console.log('✅ Using existing session ID:', existingSessionId);
+      }
+      
       // Create a mock admin user for app-only mode
       const appUser = {
         displayName: 'Application Admin',
