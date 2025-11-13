@@ -387,3 +387,130 @@ export const execute = mutation({
     return { success: true, status: "in-progress" };
   },
 });
+
+/**
+ * Log offboarding execution results
+ */
+export const logExecution = mutation({
+  args: {
+    sessionId: v.string(),
+    offboardingId: v.optional(v.id("scheduled_offboarding")),
+    targetUserId: v.string(),
+    targetUserName: v.string(),
+    targetUserEmail: v.string(),
+    executionType: v.union(v.literal("immediate"), v.literal("scheduled")),
+    startTime: v.number(),
+    endTime: v.number(),
+    status: v.union(
+      v.literal("completed"),
+      v.literal("partial"),
+      v.literal("failed")
+    ),
+    actions: v.array(v.object({
+      action: v.string(),
+      status: v.union(
+        v.literal("success"),
+        v.literal("error"),
+        v.literal("skipped"),
+        v.literal("warning")
+      ),
+      message: v.string(),
+      timestamp: v.number(),
+      details: v.optional(v.string()),
+    })),
+    error: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const session = await validateSession(ctx, args.sessionId);
+
+    // Calculate statistics
+    const totalActions = args.actions.length;
+    const successfulActions = args.actions.filter(a => a.status === "success").length;
+    const failedActions = args.actions.filter(a => a.status === "error").length;
+    const skippedActions = args.actions.filter(a => a.status === "skipped").length;
+
+    // Create execution log
+    const logId = await ctx.db.insert("offboarding_execution_logs", {
+      tenantId: session.tenantId,
+      sessionId: session.sessionId,
+      offboardingId: args.offboardingId,
+      targetUserId: args.targetUserId,
+      targetUserName: args.targetUserName,
+      targetUserEmail: args.targetUserEmail,
+      executedBy: session.userId,
+      executionType: args.executionType,
+      startTime: args.startTime,
+      endTime: args.endTime,
+      status: args.status,
+      totalActions,
+      successfulActions,
+      failedActions,
+      skippedActions,
+      actions: args.actions,
+      error: args.error,
+      createdAt: Date.now(),
+    });
+
+    // If this was a scheduled offboarding, update its status
+    if (args.offboardingId) {
+      await ctx.db.patch(args.offboardingId, {
+        status: args.status === "completed" ? "completed" : "failed",
+        error: args.error,
+        updatedAt: Date.now(),
+      });
+    }
+
+    // Log audit trail
+    await ctx.db.insert("audit_log", {
+      tenantId: session.tenantId,
+      sessionId: session.sessionId,
+      userId: session.userId,
+      action: "complete_offboarding",
+      resourceType: "offboarding_execution_logs",
+      resourceId: logId,
+      details: `Completed offboarding for ${args.targetUserName} - Status: ${args.status}, Success: ${successfulActions}/${totalActions}`,
+      timestamp: Date.now(),
+    });
+
+    return { logId, success: true };
+  },
+});
+
+/**
+ * Get execution logs for a user or offboarding record
+ */
+export const getExecutionLogs = query({
+  args: {
+    sessionId: v.string(),
+    offboardingId: v.optional(v.id("scheduled_offboarding")),
+    targetUserId: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const session = await validateSession(ctx, args.sessionId);
+
+    let query = ctx.db.query("offboarding_execution_logs");
+
+    // Filter by tenant
+    const allLogs = await query.collect();
+    let filtered = allLogs.filter(log => log.tenantId === session.tenantId);
+
+    // Optional filters
+    if (args.offboardingId) {
+      filtered = filtered.filter(log => log.offboardingId === args.offboardingId);
+    }
+    if (args.targetUserId) {
+      filtered = filtered.filter(log => log.targetUserId === args.targetUserId);
+    }
+
+    // Sort by most recent first
+    filtered.sort((a, b) => b.startTime - a.startTime);
+
+    // Apply limit
+    if (args.limit) {
+      filtered = filtered.slice(0, args.limit);
+    }
+
+    return filtered;
+  },
+});

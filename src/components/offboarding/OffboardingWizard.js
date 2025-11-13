@@ -4,6 +4,8 @@ import { graphService } from '../../services/graphService';
 import { useAuth } from '../../contexts/AuthContext';
 import { logger } from '../../utils/logger';
 import toast from 'react-hot-toast';
+import { useConvex } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import {
   UserMinusIcon,
   UserIcon,
@@ -48,6 +50,7 @@ const OffboardingWizard = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
+  const convex = useConvex();
   
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -781,9 +784,74 @@ const OffboardingWizard = () => {
 
       setExecutionResults(results);
       setCurrentStep(3); // Move to results step
+
+      // Log execution to Convex for audit trail
+      const endTime = Date.now();
+      const startTime = endTime - 60000; // Approximate start time (will be more accurate in production)
+      
+      try {
+        const sessionId = localStorage.getItem('sessionId');
+        if (sessionId) {
+          // Determine overall status
+          const hasErrors = results.some(r => r.status === 'error');
+          const allSkipped = results.every(r => r.status === 'skipped');
+          const overallStatus = hasErrors ? 'partial' : allSkipped ? 'failed' : 'completed';
+
+          // Log to Convex database
+          await convex.mutation(api.offboarding.logExecution, {
+            sessionId,
+            targetUserId: selectedUser.id,
+            targetUserName: selectedUser.displayName,
+            targetUserEmail: selectedUser.mail || selectedUser.userPrincipalName,
+            executionType: 'immediate',
+            startTime,
+            endTime,
+            status: overallStatus,
+            actions: results.map((result, index) => ({
+              action: result.action,
+              status: result.status,
+              message: result.message,
+              timestamp: startTime + (index * 5000), // Approximate timestamps
+            })),
+          });
+          
+          logger.info('✅ Execution logged to Convex database');
+        }
+      } catch (logError) {
+        logger.error('Failed to log execution to Convex:', logError);
+        // Don't fail the offboarding if logging fails
+      }
+
       toast.success('Offboarding process completed');
     } catch (error) {
       logger.error('Offboarding error:', error);
+      
+      // Log failure to Convex
+      try {
+        const sessionId = localStorage.getItem('sessionId');
+        if (sessionId && selectedUser) {
+          await convex.mutation(api.offboarding.logExecution, {
+            sessionId,
+            targetUserId: selectedUser.id,
+            targetUserName: selectedUser.displayName,
+            targetUserEmail: selectedUser.mail || selectedUser.userPrincipalName,
+            executionType: 'immediate',
+            startTime: Date.now() - 30000,
+            endTime: Date.now(),
+            status: 'failed',
+            actions: results.map((result, index) => ({
+              action: result.action,
+              status: result.status,
+              message: result.message,
+              timestamp: Date.now() - (results.length - index) * 1000,
+            })),
+            error: error.message,
+          });
+        }
+      } catch (logError) {
+        logger.error('Failed to log error to Convex:', logError);
+      }
+
       toast.error('Offboarding process failed');
     } finally {
       setIsExecuting(false);
