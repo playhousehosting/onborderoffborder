@@ -108,6 +108,15 @@ export const create = mutation({
     scheduledTime: v.string(),
     timezone: v.optional(v.string()),
     template: v.string(),
+    useCustomActions: v.optional(v.boolean()),
+    actions: v.optional(v.object({
+      disableAccount: v.boolean(),
+      revokeAccess: v.boolean(),
+      removeFromGroups: v.boolean(),
+      convertToSharedMailbox: v.boolean(),
+      backupData: v.boolean(),
+      removeDevices: v.boolean(),
+    })),
     notifyManager: v.boolean(),
     notifyUser: v.boolean(),
     managerEmail: v.optional(v.string()),
@@ -142,7 +151,7 @@ export const create = mutation({
       notifyManager: args.notifyManager,
       notifyUser: args.notifyUser,
       managerEmail: args.managerEmail,
-      actions: {
+      actions: args.useCustomActions && args.actions ? args.actions : {
         disableAccount: true,
         revokeAccess: true,
         removeFromGroups: true,
@@ -185,6 +194,15 @@ export const update = mutation({
     scheduledTime: v.optional(v.string()),
     timezone: v.optional(v.string()),
     template: v.optional(v.string()),
+    useCustomActions: v.optional(v.boolean()),
+    actions: v.optional(v.object({
+      disableAccount: v.boolean(),
+      revokeAccess: v.boolean(),
+      removeFromGroups: v.boolean(),
+      convertToSharedMailbox: v.boolean(),
+      backupData: v.boolean(),
+      removeDevices: v.boolean(),
+    })),
     notifyManager: v.optional(v.boolean()),
     notifyUser: v.optional(v.boolean()),
     managerEmail: v.optional(v.string()),
@@ -237,6 +255,9 @@ export const update = mutation({
     }
     if (args.template !== undefined) {
       updates.template = args.template;
+    }
+    if (args.actions !== undefined) {
+      updates.actions = args.actions;
     }
     if (args.notifyManager !== undefined) {
       updates.notifyManager = args.notifyManager;

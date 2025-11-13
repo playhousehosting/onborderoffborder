@@ -28,6 +28,8 @@ const ScheduledOffboarding = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState(null);
+  const [executingId, setExecutingId] = useState(null);
+  const [executionProgress, setExecutionProgress] = useState(0);
 
   const [scheduleForm, setScheduleForm] = useState({
     userId: '',
@@ -35,6 +37,15 @@ const ScheduledOffboarding = () => {
     scheduledTime: '',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, // Default to user's timezone
     template: 'standard',
+    useCustomActions: false,
+    actions: {
+      disableAccount: true,
+      revokeAccess: true,
+      removeFromGroups: true,
+      convertToSharedMailbox: false,
+      backupData: true,
+      removeDevices: true,
+    },
     notifyManager: true,
     notifyUser: true,
     managerEmail: '',
@@ -86,6 +97,24 @@ const ScheduledOffboarding = () => {
       // Transform Convex data to match frontend expectations
       const transformed = (Array.isArray(data) ? data : []).map(record => {
         const offboardingDate = new Date(record.offboardingDate);
+        const timezone = record.timezone || 'UTC';
+        
+        // Convert to the scheduled timezone for display
+        const localDateString = offboardingDate.toLocaleString('en-US', {
+          timeZone: timezone,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        });
+        
+        // Parse the locale string to get date and time parts
+        const parts = localDateString.match(/(\d+)\/(\d+)\/(\d+),\s(\d+):(\d+)/);
+        const scheduledDate = parts ? `${parts[3]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}` : '';
+        const scheduledTime = parts ? `${parts[4]}:${parts[5]}` : '';
+        
         return {
           id: record._id,
           user: {
@@ -93,10 +122,18 @@ const ScheduledOffboarding = () => {
             displayName: record.displayName,
             mail: record.email || record.userPrincipalName,
           },
-          scheduledDate: offboardingDate.toISOString().split('T')[0],
-          scheduledTime: offboardingDate.toTimeString().substring(0, 5),
-          timezone: record.timezone || 'UTC',
+          scheduledDate,
+          scheduledTime,
+          timezone,
           template: record.template || 'standard',
+          actions: record.actions || {
+            disableAccount: true,
+            revokeAccess: true,
+            removeFromGroups: true,
+            convertToSharedMailbox: false,
+            backupData: true,
+            removeDevices: true,
+          },
           status: record.status,
           notifyManager: record.notifyManager ?? true,
           notifyUser: record.notifyUser ?? true,
@@ -166,6 +203,8 @@ const ScheduledOffboarding = () => {
           scheduledTime: scheduleForm.scheduledTime,
           timezone: scheduleForm.timezone,
           template: scheduleForm.template,
+          useCustomActions: scheduleForm.useCustomActions,
+          actions: scheduleForm.useCustomActions ? scheduleForm.actions : undefined,
           notifyManager: scheduleForm.notifyManager,
           notifyUser: scheduleForm.notifyUser,
           managerEmail: scheduleForm.managerEmail || '',
@@ -194,6 +233,15 @@ const ScheduledOffboarding = () => {
         scheduledTime: '',
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         template: 'standard',
+        useCustomActions: false,
+        actions: {
+          disableAccount: true,
+          revokeAccess: true,
+          removeFromGroups: true,
+          convertToSharedMailbox: false,
+          backupData: true,
+          removeDevices: true,
+        },
         notifyManager: true,
         notifyUser: true,
         managerEmail: '',
@@ -212,22 +260,41 @@ const ScheduledOffboarding = () => {
       return;
     }
 
+    setExecutingId(scheduleId);
+    setExecutionProgress(0);
+
     try {
       const sessionId = getSessionId();
       if (!sessionId) {
         toast.error('Session not found. Please log in again.');
+        setExecutingId(null);
         return;
       }
+
+      // Simulate progress for better UX
+      const progressInterval = setInterval(() => {
+        setExecutionProgress((prev) => Math.min(prev + 10, 90));
+      }, 300);
 
       await convex.mutation(api.offboarding.execute, {
         sessionId,
         offboardingId: scheduleId,
       });
-      toast.success('Offboarding executed successfully');
-      fetchScheduledOffboardings();
+
+      clearInterval(progressInterval);
+      setExecutionProgress(100);
+      
+      setTimeout(() => {
+        toast.success('Offboarding executed successfully');
+        setExecutingId(null);
+        setExecutionProgress(0);
+        fetchScheduledOffboardings();
+      }, 500);
     } catch (error) {
       console.error('Error executing scheduled offboarding:', error);
       toast.error('Failed to execute offboarding');
+      setExecutingId(null);
+      setExecutionProgress(0);
     }
   };
 
@@ -264,6 +331,15 @@ const ScheduledOffboarding = () => {
       scheduledTime: schedule.scheduledTime,
       timezone: schedule.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
       template: schedule.template,
+      useCustomActions: !!schedule.actions,
+      actions: schedule.actions || {
+        disableAccount: true,
+        revokeAccess: true,
+        removeFromGroups: true,
+        convertToSharedMailbox: false,
+        backupData: true,
+        removeDevices: true,
+      },
       notifyManager: schedule.notifyManager,
       notifyUser: schedule.notifyUser,
       managerEmail: schedule.managerEmail,
@@ -461,20 +537,147 @@ const ScheduledOffboarding = () => {
                 </p>
               </div>
 
-              {/* Template Selection */}
+              {/* Template or Custom Actions */}
               <div>
-                <label className="form-label">Offboarding Template</label>
-                <select
-                  className="form-input"
-                  value={scheduleForm.template}
-                  onChange={(e) => setScheduleForm({...scheduleForm, template: e.target.value})}
-                >
-                  {templates.map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.name}
-                    </option>
-                  ))}
-                </select>
+                <label className="form-label">Offboarding Configuration</label>
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="useTemplate"
+                      name="configType"
+                      checked={!scheduleForm.useCustomActions}
+                      onChange={() => setScheduleForm({...scheduleForm, useCustomActions: false})}
+                      className="form-radio"
+                    />
+                    <label htmlFor="useTemplate" className="ml-2 text-sm text-gray-700">
+                      Use template
+                    </label>
+                  </div>
+                  
+                  {!scheduleForm.useCustomActions && (
+                    <select
+                      className="form-input ml-6"
+                      value={scheduleForm.template}
+                      onChange={(e) => setScheduleForm({...scheduleForm, template: e.target.value})}
+                    >
+                      {templates.map((template) => (
+                        <option key={template.id} value={template.id}>
+                          {template.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="useCustomActions"
+                      name="configType"
+                      checked={scheduleForm.useCustomActions}
+                      onChange={() => setScheduleForm({...scheduleForm, useCustomActions: true})}
+                      className="form-radio"
+                    />
+                    <label htmlFor="useCustomActions" className="ml-2 text-sm text-gray-700">
+                      Custom actions
+                    </label>
+                  </div>
+
+                  {scheduleForm.useCustomActions && (
+                    <div className="ml-6 space-y-2 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="disableAccount"
+                          checked={scheduleForm.actions.disableAccount}
+                          onChange={(e) => setScheduleForm({
+                            ...scheduleForm,
+                            actions: {...scheduleForm.actions, disableAccount: e.target.checked}
+                          })}
+                          className="form-checkbox"
+                        />
+                        <label htmlFor="disableAccount" className="ml-2 text-sm text-gray-700">
+                          Disable account
+                        </label>
+                      </div>
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="revokeAccess"
+                          checked={scheduleForm.actions.revokeAccess}
+                          onChange={(e) => setScheduleForm({
+                            ...scheduleForm,
+                            actions: {...scheduleForm.actions, revokeAccess: e.target.checked}
+                          })}
+                          className="form-checkbox"
+                        />
+                        <label htmlFor="revokeAccess" className="ml-2 text-sm text-gray-700">
+                          Revoke all access
+                        </label>
+                      </div>
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="removeFromGroups"
+                          checked={scheduleForm.actions.removeFromGroups}
+                          onChange={(e) => setScheduleForm({
+                            ...scheduleForm,
+                            actions: {...scheduleForm.actions, removeFromGroups: e.target.checked}
+                          })}
+                          className="form-checkbox"
+                        />
+                        <label htmlFor="removeFromGroups" className="ml-2 text-sm text-gray-700">
+                          Remove from all groups
+                        </label>
+                      </div>
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="convertToSharedMailbox"
+                          checked={scheduleForm.actions.convertToSharedMailbox}
+                          onChange={(e) => setScheduleForm({
+                            ...scheduleForm,
+                            actions: {...scheduleForm.actions, convertToSharedMailbox: e.target.checked}
+                          })}
+                          className="form-checkbox"
+                        />
+                        <label htmlFor="convertToSharedMailbox" className="ml-2 text-sm text-gray-700">
+                          Convert to shared mailbox
+                        </label>
+                      </div>
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="backupData"
+                          checked={scheduleForm.actions.backupData}
+                          onChange={(e) => setScheduleForm({
+                            ...scheduleForm,
+                            actions: {...scheduleForm.actions, backupData: e.target.checked}
+                          })}
+                          className="form-checkbox"
+                        />
+                        <label htmlFor="backupData" className="ml-2 text-sm text-gray-700">
+                          Backup user data
+                        </label>
+                      </div>
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="removeDevices"
+                          checked={scheduleForm.actions.removeDevices}
+                          onChange={(e) => setScheduleForm({
+                            ...scheduleForm,
+                            actions: {...scheduleForm.actions, removeDevices: e.target.checked}
+                          })}
+                          className="form-checkbox"
+                        />
+                        <label htmlFor="removeDevices" className="ml-2 text-sm text-gray-700">
+                          Remove registered devices
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Notifications */}
@@ -588,62 +791,96 @@ const ScheduledOffboarding = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {scheduledOffboardings.map((schedule) => (
-                    <tr key={schedule.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
-                              <UserIcon className="h-6 w-6 text-primary-600" />
+                    <React.Fragment key={schedule.id}>
+                      <tr className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-10 w-10">
+                              <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
+                                <UserIcon className="h-6 w-6 text-primary-600" />
+                              </div>
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">{schedule.user.displayName}</div>
+                              <div className="text-sm text-gray-500">{schedule.user.mail}</div>
                             </div>
                           </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{schedule.user.displayName}</div>
-                            <div className="text-sm text-gray-500">{schedule.user.mail}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {formatDateTime(schedule.scheduledDate, schedule.scheduledTime)}
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatDateTime(schedule.scheduledDate, schedule.scheduledTime)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {templates.find(t => t.id === schedule.template)?.name || schedule.template}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(schedule.status)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(schedule.createdAt)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-2">
-                          {schedule.status === 'scheduled' && (
-                            <>
-                              <button
-                                onClick={() => executeScheduledOffboarding(schedule.id)}
-                                className="text-green-600 hover:text-green-900"
-                                title="Execute Now"
-                              >
-                                <PlayIcon className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => editScheduledOffboarding(schedule)}
-                                className="text-blue-600 hover:text-blue-900"
-                                title="Edit"
-                              >
-                                <PencilIcon className="h-4 w-4" />
-                              </button>
-                            </>
-                          )}
-                          <button
-                            onClick={() => deleteScheduledOffboarding(schedule.id)}
-                            className="text-red-600 hover:text-red-900"
-                            title="Delete"
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                          <div className="text-xs text-gray-500">
+                            {schedule.timezone}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {templates.find(t => t.id === schedule.template)?.name || schedule.template}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getStatusBadge(schedule.status)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {formatDate(schedule.createdAt)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end space-x-2">
+                            {schedule.status === 'scheduled' && (
+                              <>
+                                <button
+                                  onClick={() => executeScheduledOffboarding(schedule.id)}
+                                  disabled={executingId === schedule.id}
+                                  className="text-green-600 hover:text-green-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  title="Execute Now"
+                                >
+                                  <PlayIcon className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => editScheduledOffboarding(schedule)}
+                                  disabled={executingId === schedule.id}
+                                  className="text-blue-600 hover:text-blue-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  title="Edit"
+                                >
+                                  <PencilIcon className="h-4 w-4" />
+                                </button>
+                              </>
+                            )}
+                            <button
+                              onClick={() => deleteScheduledOffboarding(schedule.id)}
+                              disabled={executingId === schedule.id}
+                              className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Delete"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {executingId === schedule.id && (
+                        <tr>
+                          <td colSpan="6" className="px-6 py-2 bg-blue-50">
+                            <div className="flex items-center space-x-3">
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-sm font-medium text-blue-700">
+                                    Executing offboarding...
+                                  </span>
+                                  <span className="text-sm font-medium text-blue-700">
+                                    {executionProgress}%
+                                  </span>
+                                </div>
+                                <div className="w-full bg-blue-200 rounded-full h-2">
+                                  <div 
+                                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                    style={{ width: `${executionProgress}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
