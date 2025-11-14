@@ -105,7 +105,7 @@ export const getSessionByAuthUser = query({
 });
 
 /**
- * Get current authenticated user from Convex Auth
+ * Get current authenticated user from Convex Auth with tenant context
  */
 export const getCurrentUser = query({
   args: {},
@@ -128,11 +128,22 @@ export const getCurrentUser = query({
         return null;
       }
 
+      // Get the associated session for tenant context
+      const session = await ctx.db
+        .query("sessions")
+        .withIndex("by_convex_auth_user", (q) => 
+          q.eq("convexAuthUserId", userId)
+        )
+        .first();
+
       return {
         _id: user._id,
         email: user.email,
         name: user.name,
         image: user.image,
+        // Include tenant context for multi-tenant data isolation
+        tenantId: session?.tenantId || (user as any).tenantId,
+        sessionId: session?.sessionId,
       };
     } catch (error) {
       console.error('getCurrentUser error:', error);

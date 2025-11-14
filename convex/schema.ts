@@ -194,4 +194,17 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_action", ["action"])
     .index("by_resource", ["resourceType", "resourceId"]),
+
+  // Tenant consent tracking for multi-tenant admin consent
+  tenantConsents: defineTable({
+    tenantId: v.string(), // Azure AD Tenant ID
+    adminConsentGranted: v.boolean(),
+    consentedAt: v.number(), // Unix timestamp
+    consentedBy: v.optional(v.string()), // Admin who granted consent
+    scopes: v.optional(v.array(v.string())), // Permissions granted
+    lastVerified: v.optional(v.number()), // Last time consent was verified
+  })
+    .index("by_tenant", ["tenantId"])
+    .index("by_consent_status", ["adminConsentGranted"])
+    .index("by_consented_at", ["consentedAt"]),
 });

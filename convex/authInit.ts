@@ -15,7 +15,29 @@ export const { auth, signIn, signOut, store } = convexAuth({
           scope: "openid profile email User.Read offline_access",
         },
       },
-      token: `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
+      token: {
+        url: `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
+        // Token validation - ensure tokens are from Microsoft
+        async conform(response) {
+          const body = await response.json();
+          
+          // Validate issuer is from Microsoft
+          if (body.id_token) {
+            const [, payload] = body.id_token.split('.');
+            const decoded = JSON.parse(Buffer.from(payload, 'base64').toString());
+            
+            // Verify issuer is from login.microsoftonline.com
+            if (!decoded.iss || !decoded.iss.includes('login.microsoftonline.com')) {
+              throw new Error('Invalid token issuer - must be from login.microsoftonline.com');
+            }
+            
+            // Store tenant ID for multi-tenant isolation
+            body.tenant_id = decoded.tid;
+          }
+          
+          return Response.json(body);
+        },
+      },
       userinfo: `https://graph.microsoft.com/oidc/userinfo`,
       checks: ["pkce", "state"],
       profile(profile) {
@@ -23,6 +45,8 @@ export const { auth, signIn, signOut, store } = convexAuth({
           id: profile.sub || profile.oid,
           name: profile.name,
           email: profile.email || profile.preferred_username,
+          // Store tenant context for data isolation
+          tenantId: profile.tid,
         };
       },
     }),
