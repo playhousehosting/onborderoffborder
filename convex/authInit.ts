@@ -40,8 +40,13 @@ export const { auth, signIn, signOut, store } = convexAuth({
         },
       },
       userinfo: `https://graph.microsoft.com/oidc/userinfo`,
-      checks: ["pkce", "state"],
+      checks: ["state"], // Use "state" only - PKCE causes "error in response body" with Microsoft
       profile(profile) {
+        // Validate required profile data
+        if (!profile.sub && !profile.oid) {
+          throw new Error("Invalid profile data received from Microsoft Entra ID");
+        }
+        
         return {
           id: profile.sub || profile.oid,
           name: profile.name,
