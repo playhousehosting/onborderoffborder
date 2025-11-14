@@ -3,10 +3,11 @@ import AzureAD from "@auth/core/providers/azure-ad";
 
 // Configure authentication with Microsoft 365 SSO (Multi-tenant)
 // Azure AD provider will use AUTH_AZURE_AD_* environment variables
+// Note: tenantId must be explicitly set for Convex Auth
 export const { auth, signIn, signOut, store } = convexAuth({
   providers: [
     AzureAD({
-      tenantId: process.env.AUTH_AZURE_AD_TENANT_ID,
+      tenantId: "common", // Multi-tenant support
       authorization: {
         params: {
           scope: "openid profile email User.Read",
