@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { auth } from "./auth";
 
 /**
  * Create or update session after SSO login
@@ -109,24 +110,21 @@ export const getSessionByAuthUser = query({
 export const getCurrentUser = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
+    const userId = await auth.getUserId(ctx);
     
-    if (!identity) {
+    if (!userId) {
       return null;
     }
 
     // Get the user from Convex Auth tables
-    const user = await ctx.db
-      .query("users")
-      .filter((q) => q.eq(q.field("_id"), identity.subject))
-      .first();
+    const user = await ctx.db.get(userId);
 
     if (!user) {
       return null;
     }
 
     return {
-      id: user._id,
+      _id: user._id,
       email: user.email,
       name: user.name,
       image: user.image,
