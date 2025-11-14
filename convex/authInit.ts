@@ -1,22 +1,20 @@
 import { convexAuth } from "@convex-dev/auth/server";
-import AzureAD from "@auth/core/providers/azure-ad";
+import MicrosoftEntraID from "@auth/core/providers/microsoft-entra-id";
 
 // Configure authentication with Microsoft 365 SSO
-const tenantId = process.env.AUTH_AZURE_AD_TENANT_ID || "common";
+const tenantId = process.env.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID || process.env.AUTH_AZURE_AD_TENANT_ID || "common";
 
 export const { auth, signIn, signOut, store } = convexAuth({
   providers: [
-    AzureAD({
+    MicrosoftEntraID({
       clientId: process.env.AUTH_AZURE_AD_ID,
       clientSecret: process.env.AUTH_AZURE_AD_SECRET,
-      // Use wellKnown for automatic discovery - handles multi-tenant issuer validation
-      wellKnown: `https://login.microsoftonline.com/${tenantId}/v2.0/.well-known/openid-configuration`,
       authorization: {
         params: {
           scope: "openid profile email User.Read offline_access",
         },
       },
-      checks: ["state"], // Use "state" only - PKCE causes "error in response body" with Microsoft
+      checks: ["state"],
       profile(profile) {
         // Validate required profile data
         if (!profile.sub && !profile.oid) {
