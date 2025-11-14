@@ -24,7 +24,8 @@ export const { auth, signIn, signOut, store } = convexAuth({
           // Validate issuer is from Microsoft
           if (body.id_token) {
             const [, payload] = body.id_token.split('.');
-            const decoded = JSON.parse(Buffer.from(payload, 'base64').toString());
+            // Use atob for base64 decoding (works in all JS runtimes)
+            const decoded = JSON.parse(atob(payload));
             
             // Verify issuer is from login.microsoftonline.com
             if (!decoded.iss || !decoded.iss.includes('login.microsoftonline.com')) {

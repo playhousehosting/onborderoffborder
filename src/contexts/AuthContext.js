@@ -34,20 +34,22 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const handleStorageChange = () => {
       const newSessionId = getSessionId();
-      console.log('🔄 Session ID changed:', newSessionId);
-      setSessionIdState(newSessionId);
+      if (newSessionId !== sessionId) {
+        console.log('🔄 Session ID changed:', newSessionId);
+        setSessionIdState(newSessionId);
+      }
     };
     
     window.addEventListener('storage', handleStorageChange);
     
-    // Also check periodically in case same-window changes aren't caught
-    const interval = setInterval(handleStorageChange, 500);
+    // Also check periodically in case same-window changes aren't caught (less frequent)
+    const interval = setInterval(handleStorageChange, 2000);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       clearInterval(interval);
     };
-  }, []);
+  }, [sessionId]);
   const [permissions, setPermissions] = useState({
     userManagement: true,
     deviceManagement: true,
