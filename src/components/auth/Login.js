@@ -35,10 +35,10 @@ const Login = () => {
 
   const handleSSOLogin = async () => {
     try {
-      console.log('🔑 Starting SSO login with Azure AD');
+      console.log('🔑 Starting SSO login with Microsoft Entra ID');
       // Store intended redirect location
       sessionStorage.setItem('auth_redirect', '/dashboard');
-      await signIn("azure-ad");
+      await signIn("microsoft-entra-id");
     } catch (error) {
       console.error('❌ SSO login error:', error);
       toast.error(t('login.error') || 'SSO login failed. Please try again.');
