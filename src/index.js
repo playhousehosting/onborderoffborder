@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { ConvexReactClient } from "convex/react";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import App from './App';
 import StartupHealthCheck from './components/common/StartupHealthCheck';
@@ -50,13 +50,11 @@ if (!rootElement) {
   const root = ReactDOM.createRoot(rootElement);
   root.render(
     <React.StrictMode>
-      <ConvexProvider client={convex}>
-        <ConvexAuthProvider>
-          <StartupHealthCheck>
-            <App />
-          </StartupHealthCheck>
-        </ConvexAuthProvider>
-      </ConvexProvider>
+      <ConvexAuthProvider client={convex}>
+        <StartupHealthCheck>
+          <App />
+        </StartupHealthCheck>
+      </ConvexAuthProvider>
     </React.StrictMode>
   );
 }
