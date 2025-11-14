@@ -47,7 +47,7 @@ export const ConvexAuthProvider = ({ children }) => {
         console.log('🔑 Checking session status with Convex...');
 
         // Check session status with Convex
-        const status = await convex.query(api.auth.getStatus, { sessionId });
+        const status = await convex.query(api.authMutations.getStatus, { sessionId });
 
         if (status.authenticated) {
           console.log('✅ Session valid, user authenticated');
@@ -92,7 +92,7 @@ export const ConvexAuthProvider = ({ children }) => {
     try {
       console.log('🔧 Configuring credentials with Convex...');
       
-      const result = await convex.mutation(api.auth.configure, {
+      const result = await convex.action(api.auth.configure, {
         clientId,
         tenantId,
         clientSecret,
@@ -120,7 +120,7 @@ export const ConvexAuthProvider = ({ children }) => {
 
       console.log('🔑 Logging in with app-only mode...');
       
-      const result = await convex.mutation(api.auth.loginAppOnly, { sessionId });
+      const result = await convex.action(api.auth.loginAppOnly, { sessionId });
 
       console.log('✅ App-only login successful');
       
@@ -155,7 +155,7 @@ export const ConvexAuthProvider = ({ children }) => {
 
       console.log('🔑 Logging in with OAuth2 mode...');
       
-      const result = await convex.mutation(api.auth.loginOAuth2, {
+      const result = await convex.mutation(api.authMutations.loginOAuth2, {
         sessionId,
         userId: userInfo.localAccountId,
         email: userInfo.username,
@@ -192,7 +192,7 @@ export const ConvexAuthProvider = ({ children }) => {
     try {
       const sessionId = getSessionId();
       if (sessionId) {
-        await convex.mutation(api.auth.logout, { sessionId });
+        await convex.mutation(api.authMutations.logout, { sessionId });
       }
     } catch (error) {
       console.error('❌ Logout error:', error);
