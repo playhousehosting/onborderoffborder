@@ -24,18 +24,25 @@ const Login = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !loading) {
-      console.log('✅ User authenticated, redirecting to dashboard');
-      navigate('/dashboard');
+      // Check for stored redirect location (from SSO callback)
+      const redirectTo = sessionStorage.getItem('auth_redirect') || '/dashboard';
+      sessionStorage.removeItem('auth_redirect');
+      
+      console.log('✅ User authenticated, redirecting to:', redirectTo);
+      navigate(redirectTo, { replace: true });
     }
   }, [isAuthenticated, loading, navigate]);
 
   const handleSSOLogin = async () => {
     try {
       console.log('🔑 Starting SSO login with Azure AD');
+      // Store intended redirect location
+      sessionStorage.setItem('auth_redirect', '/dashboard');
       await signIn("azure-ad");
     } catch (error) {
       console.error('❌ SSO login error:', error);
       toast.error(t('login.error') || 'SSO login failed. Please try again.');
+      sessionStorage.removeItem('auth_redirect');
     }
   };
 

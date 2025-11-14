@@ -9,6 +9,7 @@ import './index.css';
 // Components
 import Layout from './components/common/Layout';
 import Login from './components/auth/Login';
+import OAuthCallback from './components/auth/OAuthCallback';
 import Dashboard from './components/dashboard/Dashboard';
 import UserSearch from './components/users/UserSearch';
 import OnboardingWizard from './components/onboarding/OnboardingWizard';
@@ -65,6 +66,7 @@ function App() {
                 <Routes>
                   {/* Public Routes - Always accessible */}
                   <Route path="/login" element={<Login />} />
+                  <Route path="/oauth-callback" element={<OAuthCallback />} />
                   <Route path="/configure" element={<ConfigurationForm />} />
                   <Route path="/faq" element={<FAQ />} />
                   

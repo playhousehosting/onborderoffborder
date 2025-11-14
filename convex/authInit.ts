@@ -13,6 +13,8 @@ export const { auth, signIn, signOut, store } = convexAuth({
         url: `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize`,
         params: {
           scope: "openid profile email User.Read offline_access",
+          // Add redirect_uri parameter for explicit control
+          redirect_uri: process.env.CONVEX_SITE_URL ? `${process.env.CONVEX_SITE_URL}/api/auth/callback/azure-ad` : undefined,
         },
       },
       token: {
