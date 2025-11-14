@@ -60,10 +60,11 @@ export default function TeamsManagement() {
     setLoading(true);
     try {
       const response = await teamsService.getTeams();
-      setTeams(response.value || []);
+      setTeams(response?.value || []);
     } catch (error) {
-      toast.error('Failed to load teams');
+      toast.error('Failed to load teams. You may need additional Teams permissions.');
       console.error(error);
+      setTeams([]);
     } finally {
       setLoading(false);
     }
@@ -74,10 +75,11 @@ export default function TeamsManagement() {
     setLoading(true);
     try {
       const response = await teamsService.getMembers(selectedTeam.id);
-      setMembers(response.value || []);
+      setMembers(response?.value || []);
     } catch (error) {
-      toast.error('Failed to load members');
+      toast.error('Failed to load members. You may need additional Teams permissions.');
       console.error(error);
+      setMembers([]);
     } finally {
       setLoading(false);
     }
@@ -88,10 +90,11 @@ export default function TeamsManagement() {
     setLoading(true);
     try {
       const response = await teamsService.getChannels(selectedTeam.id);
-      setChannels(response.value || []);
+      setChannels(response?.value || []);
     } catch (error) {
-      toast.error('Failed to load channels');
+      toast.error('Failed to load channels. You may need additional Teams permissions.');
       console.error(error);
+      setChannels([]);
     } finally {
       setLoading(false);
     }
@@ -102,10 +105,11 @@ export default function TeamsManagement() {
     setLoading(true);
     try {
       const response = await teamsService.getInstalledApps(selectedTeam.id);
-      setInstalledApps(response.value || []);
+      setInstalledApps(response?.value || []);
     } catch (error) {
-      toast.error('Failed to load apps');
+      toast.error('Failed to load apps. You may need additional Teams permissions.');
       console.error(error);
+      setInstalledApps([]);
     } finally {
       setLoading(false);
     }
@@ -115,11 +119,12 @@ export default function TeamsManagement() {
     if (!selectedTeam) return;
     setLoading(true);
     try {
-      const response = await teamsService.getTeamSettings(selectedTeam.id);
-      setTeamSettings(response);
+      const response = await teamsService.getTeam(selectedTeam.id);
+      setTeamSettings(response || null);
     } catch (error) {
-      toast.error('Failed to load settings');
+      toast.error('Failed to load settings. You may need additional Teams permissions.');
       console.error(error);
+      setTeamSettings(null);
     } finally {
       setLoading(false);
     }
