@@ -1,4 +1,6 @@
-import { internalAction, internalMutation, internalQuery } from "./_generated/server";
+"use node";
+
+import { internalAction, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { decryptCredentials } from "./credentialUtils";
@@ -47,30 +49,25 @@ async function fetchWithGraphToken(accessToken: string, path: string, init: Requ
 }
 
 async function loadCredentials(ctx: any, schedule: any) {
-  const session = await ctx.db
-    .query("sessions")
-    .withIndex("by_session_id", (q: any) => q.eq("sessionId", schedule.sessionId))
-    .first();
+  // Try session-specific credentials first
+  const sessionCreds = await ctx.runQuery(internal.offboardingQueries.getSessionCredentials, {
+    sessionId: schedule.sessionId,
+  });
 
-  if (session?.credentials) {
-    return decryptCredentials(session.credentials);
+  if (sessionCreds) {
+    return decryptCredentials(sessionCreds);
   }
 
-  const tenantSessions = await ctx.db
-    .query("sessions")
-    .withIndex("by_tenant", (q: any) => q.eq("tenantId", schedule.tenantId))
-    .collect();
+  // Fall back to tenant credentials
+  const tenantCreds = await ctx.runQuery(internal.offboardingQueries.getTenantCredentials, {
+    tenantId: schedule.tenantId,
+  });
 
-  if (!tenantSessions.length) {
+  if (!tenantCreds) {
     throw new Error("No saved credentials for tenant");
   }
 
-  const latest = tenantSessions.sort((a: any, b: any) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
-  if (!latest.credentials) {
-    throw new Error("Stored tenant credentials are missing secrets");
-  }
-
-  return decryptCredentials(latest.credentials);
+  return decryptCredentials(tenantCreds);
 }
 
 function buildActionResult(action: string, status: "success" | "error" | "skipped" | "warning", message: string, details?: string) {
@@ -153,30 +150,16 @@ async function performGraphActions(accessToken: string, record: any) {
   };
 }
 
-export const getDueOffboardings = internalQuery({
-  args: {
-    now: v.number(),
-    limit: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const scheduled = await ctx.db
-      .query("scheduled_offboarding")
-      .withIndex("by_status", (q: any) => q.eq("status", "scheduled"))
-      .collect();
-
-    return scheduled
-      .filter((record: any) => record.offboardingDate <= args.now)
-      .sort((a: any, b: any) => a.offboardingDate - b.offboardingDate)
-      .slice(0, args.limit);
-  },
-});
-
-export const executeScheduledOffboarding = internalMutation({
+export const executeScheduledOffboarding = internalAction({
   args: {
     offboardingId: v.id("scheduled_offboarding"),
   },
   handler: async (ctx, args) => {
-    const schedule = await ctx.db.get(args.offboardingId);
+    // Fetch schedule data via query
+    const schedule = await ctx.runQuery(internal.offboardingQueries.getOffboardingById, {
+      offboardingId: args.offboardingId,
+    });
+
     if (!schedule) {
       return { status: "missing" };
     }
@@ -186,11 +169,13 @@ export const executeScheduledOffboarding = internalMutation({
     }
 
     const startTime = Date.now();
-    await ctx.db.patch(args.offboardingId, {
+    
+    // Update status to in-progress via mutation
+    await ctx.runMutation(internal.offboardingMutations.updateOffboardingStatus, {
+      offboardingId: args.offboardingId,
       status: "in-progress",
       executedAt: startTime,
       executedBy: SYSTEM_EXECUTOR,
-      updatedAt: startTime,
     });
 
     const actionsAttempted: Array<ReturnType<typeof buildActionResult>> = [];
@@ -204,13 +189,15 @@ export const executeScheduledOffboarding = internalMutation({
       const endTime = Date.now();
       const finalStatus = hasFailures ? "failed" : "completed";
 
-      await ctx.db.patch(args.offboardingId, {
-        status: finalStatus,
-        updatedAt: endTime,
+      // Update final status via mutation
+      await ctx.runMutation(internal.offboardingMutations.updateOffboardingStatus, {
+        offboardingId: args.offboardingId,
+        status: finalStatus as "completed" | "failed",
         error: hasFailures ? "One or more actions failed" : undefined,
       });
 
-      await ctx.db.insert("offboarding_execution_logs", {
+      // Log execution via mutation
+      await ctx.runMutation(internal.offboardingMutations.logOffboardingExecution, {
         tenantId: schedule.tenantId,
         sessionId: schedule.sessionId,
         offboardingId: args.offboardingId,
@@ -218,28 +205,16 @@ export const executeScheduledOffboarding = internalMutation({
         targetUserName: schedule.displayName,
         targetUserEmail: schedule.email || schedule.userPrincipalName,
         executedBy: SYSTEM_EXECUTOR,
-        executionType: "scheduled",
+        executionType: "scheduled" as const,
         startTime,
         endTime,
-        status: hasFailures ? "failed" : "completed",
+        status: (hasFailures ? "failed" : "completed") as "completed" | "failed",
         totalActions: actionsAttempted.length,
         successfulActions: actionsAttempted.filter((a) => a.status === "success").length,
         failedActions: actionsAttempted.filter((a) => a.status === "error").length,
         skippedActions: actionsAttempted.filter((a) => a.status === "skipped").length,
         actions: actionsAttempted,
         error: hasFailures ? "One or more Graph operations failed" : undefined,
-        createdAt: endTime,
-      });
-
-      await ctx.db.insert("audit_log", {
-        tenantId: schedule.tenantId,
-        sessionId: schedule.sessionId,
-        userId: SYSTEM_EXECUTOR,
-        action: "execute_offboarding",
-        resourceType: "scheduled_offboarding",
-        resourceId: args.offboardingId,
-        details: `Automated offboarding ${finalStatus} for ${schedule.displayName}`,
-        timestamp: endTime,
       });
 
       return { status: finalStatus };
@@ -247,13 +222,13 @@ export const executeScheduledOffboarding = internalMutation({
       const endTime = Date.now();
       const errorMessage = (error as Error).message || "Unknown error";
 
-      await ctx.db.patch(args.offboardingId, {
+      await ctx.runMutation(internal.offboardingMutations.updateOffboardingStatus, {
+        offboardingId: args.offboardingId,
         status: "failed",
         error: errorMessage,
-        updatedAt: endTime,
       });
 
-      await ctx.db.insert("offboarding_execution_logs", {
+      await ctx.runMutation(internal.offboardingMutations.logOffboardingExecution, {
         tenantId: schedule.tenantId,
         sessionId: schedule.sessionId,
         offboardingId: args.offboardingId,
@@ -261,28 +236,16 @@ export const executeScheduledOffboarding = internalMutation({
         targetUserName: schedule.displayName,
         targetUserEmail: schedule.email || schedule.userPrincipalName,
         executedBy: SYSTEM_EXECUTOR,
-        executionType: "scheduled",
+        executionType: "scheduled" as const,
         startTime,
         endTime,
-        status: "failed",
+        status: "failed" as const,
         totalActions: actionsAttempted.length,
         successfulActions: actionsAttempted.filter((a) => a.status === "success").length,
         failedActions: actionsAttempted.filter((a) => a.status === "error").length,
         skippedActions: actionsAttempted.filter((a) => a.status === "skipped").length,
         actions: actionsAttempted,
         error: errorMessage,
-        createdAt: endTime,
-      });
-
-      await ctx.db.insert("audit_log", {
-        tenantId: schedule.tenantId,
-        sessionId: schedule.sessionId,
-        userId: SYSTEM_EXECUTOR,
-        action: "execute_offboarding",
-        resourceType: "scheduled_offboarding",
-        resourceId: args.offboardingId,
-        details: `Automated offboarding failed for ${schedule.displayName}: ${errorMessage}`,
-        timestamp: endTime,
       });
 
       return { status: "failed", error: errorMessage };
@@ -296,13 +259,13 @@ export const scanAndProcessDueOffboardings = internalAction({
   },
   handler: async (ctx, args) => {
     const limit = args.limit ?? DEFAULT_LIMIT;
-    const due = await ctx.runQuery(internal.offboardingAutomation.getDueOffboardings, {
+    const due = await ctx.runQuery(internal.offboardingQueries.getDueOffboardings, {
       now: Date.now(),
       limit,
     });
 
     for (const record of due) {
-      await ctx.runMutation(internal.offboardingAutomation.executeScheduledOffboarding, {
+      await ctx.runAction(internal.offboardingAutomation.executeScheduledOffboarding, {
         offboardingId: record._id,
       });
     }
