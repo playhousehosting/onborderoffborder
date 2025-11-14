@@ -1,5 +1,6 @@
 import { InteractionRequiredAuthError } from '@azure/msal-browser';
 import { loginRequest, offboardingScopes, onboardingScopes } from '../config/authConfig';
+import { getSessionId } from './convexService';
 
 export class AuthService {
   constructor(msalInstance = null) {
@@ -125,7 +126,7 @@ export class AuthService {
   async getAppOnlyToken() {
     try {
       // Get sessionId from localStorage
-      const sessionId = localStorage.getItem('sessionId');
+      const sessionId = getSessionId();
       if (!sessionId) {
         throw new Error('No session ID found. Please configure your Azure AD credentials in Settings.');
       }

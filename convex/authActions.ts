@@ -3,44 +3,10 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
-import crypto from "crypto";
+import { encryptCredentials, decryptCredentials } from "./credentialUtils";
 
 // Re-export Convex Auth SSO functions to make them available as public functions
 export { signIn, signOut, auth } from "./authInit.js";
-
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "default-dev-key-change-in-production";
-
-/**
- * Encrypt credentials for secure storage
- */
-function encryptCredentials(credentials: any): string {
-  const algorithm = "aes-256-cbc";
-  const key = Buffer.from(ENCRYPTION_KEY.slice(0, 32).padEnd(32, '0'));
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv(algorithm, key, iv);
-  
-  let encrypted = cipher.update(JSON.stringify(credentials), "utf8", "hex");
-  encrypted += cipher.final("hex");
-  
-  return iv.toString("hex") + ":" + encrypted;
-}
-
-/**
- * Decrypt credentials from storage
- */
-function decryptCredentials(encryptedData: string): any {
-  const algorithm = "aes-256-cbc";
-  const key = Buffer.from(ENCRYPTION_KEY.slice(0, 32).padEnd(32, '0'));
-  const parts = encryptedData.split(":");
-  const iv = Buffer.from(parts[0], "hex");
-  const encrypted = parts[1];
-  
-  const decipher = crypto.createDecipheriv(algorithm, key, iv);
-  let decrypted = decipher.update(encrypted, "hex", "utf8");
-  decrypted += decipher.final("utf8");
-  
-  return JSON.parse(decrypted);
-}
 
 /**
  * Configure credentials (encrypts on server-side)

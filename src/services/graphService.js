@@ -177,14 +177,23 @@ export class GraphService {
     }
 
     try {
-      // Try to get token from app-only auth first, fallback to MSAL
+      const authMode = localStorage.getItem('authMode');
+      const useAppOnly = authMode === 'app-only';
+
       let token;
       try {
-        token = await getAppOnlyToken();
-        logger.debug('🔑 Using app-only token for Graph API');
-      } catch (appOnlyError) {
-        logger.debug('🔑 App-only token failed, trying MSAL token');
-        token = await authService.getAccessToken();
+        if (useAppOnly) {
+          token = await getAppOnlyToken();
+          logger.debug('🔑 Using app-only token for Graph API');
+        } else {
+          token = await authService.getAccessToken();
+          logger.debug('🔑 Using SSO token for Graph API');
+        }
+      } catch (tokenError) {
+        if (useAppOnly) {
+          logger.error('❌ App-only token acquisition failed');
+        }
+        throw tokenError;
       }
       
       const url = `${this.baseUrl}${endpoint}`;
@@ -278,7 +287,11 @@ export class GraphService {
     }
 
     try {
-      const token = await authService.getAccessToken();
+      const authMode = localStorage.getItem('authMode');
+      const useAppOnly = authMode === 'app-only';
+      const token = useAppOnly 
+        ? await getAppOnlyToken()
+        : await authService.getAccessToken();
       const url = `${this.betaUrl}${endpoint}`;
       
       const defaultOptions = {

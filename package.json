@@ -36,7 +36,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "npx convex codegen --typecheck=disable && react-scripts build",
+    "build": "react-scripts build",
     "vercel-build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

@@ -3,12 +3,13 @@
  */
 
 const SESSION_ID_KEY = 'convex_session_id';
+const LEGACY_SESSION_ID_KEY = 'sessionId';
 
 /**
  * Get the current session ID from localStorage
  */
 export function getSessionId() {
-  return localStorage.getItem(SESSION_ID_KEY);
+  return localStorage.getItem(SESSION_ID_KEY) || localStorage.getItem(LEGACY_SESSION_ID_KEY);
 }
 
 /**
@@ -17,8 +18,10 @@ export function getSessionId() {
 export function setSessionId(sessionId) {
   if (sessionId) {
     localStorage.setItem(SESSION_ID_KEY, sessionId);
+    localStorage.setItem(LEGACY_SESSION_ID_KEY, sessionId);
   } else {
     localStorage.removeItem(SESSION_ID_KEY);
+    localStorage.removeItem(LEGACY_SESSION_ID_KEY);
   }
 }
 
@@ -27,6 +30,7 @@ export function setSessionId(sessionId) {
  */
 export function clearSessionId() {
   localStorage.removeItem(SESSION_ID_KEY);
+  localStorage.removeItem(LEGACY_SESSION_ID_KEY);
 }
 
 /**

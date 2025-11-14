@@ -3,36 +3,7 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
-
-/**
- * Get access token for Microsoft Graph API
- * This uses the stored credentials to acquire an app-only access token
- */
-async function getAccessToken(credentials: any): Promise<string> {
-  const tokenEndpoint = `https://login.microsoftonline.com/${credentials.tenantId}/oauth2/v2.0/token`;
-  
-  const params = new URLSearchParams();
-  params.append('client_id', credentials.clientId);
-  params.append('client_secret', credentials.clientSecret);
-  params.append('scope', 'https://graph.microsoft.com/.default');
-  params.append('grant_type', 'client_credentials');
-  
-  const response = await fetch(tokenEndpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: params.toString(),
-  });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`Failed to get access token: ${error.error_description || error.error}`);
-  }
-  
-  const data = await response.json();
-  return data.access_token;
-}
+import { getAccessTokenFromCredentials } from "./graphUtils";
 
 /**
  * Search for users in Microsoft Graph
@@ -44,12 +15,12 @@ export const searchUsers = action({
   },
   handler: async (ctx, args) => {
     // Get credentials from session
-    const credentials = await ctx.runQuery(api.authMutations.getCredentials, {
+    const credentials = await ctx.runAction(api.authActions.getDecryptedCredentials, {
       sessionId: args.sessionId,
     });
 
     // Get access token
-    const accessToken = await getAccessToken(credentials);
+    const accessToken = await getAccessTokenFromCredentials(credentials);
 
     // Search users via Microsoft Graph
     const searchQuery = encodeURIComponent(args.query);
@@ -81,11 +52,11 @@ export const getUser = action({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const credentials = await ctx.runQuery(api.authMutations.getCredentials, {
+    const credentials = await ctx.runAction(api.authActions.getDecryptedCredentials, {
       sessionId: args.sessionId,
     });
 
-    const accessToken = await getAccessToken(credentials);
+    const accessToken = await getAccessTokenFromCredentials(credentials);
 
     const response = await fetch(
       `https://graph.microsoft.com/v1.0/users/${args.userId}`,
@@ -114,11 +85,11 @@ export const disableUser = action({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const credentials = await ctx.runQuery(api.authMutations.getCredentials, {
+    const credentials = await ctx.runAction(api.authActions.getDecryptedCredentials, {
       sessionId: args.sessionId,
     });
 
-    const accessToken = await getAccessToken(credentials);
+    const accessToken = await getAccessTokenFromCredentials(credentials);
 
     const response = await fetch(
       `https://graph.microsoft.com/v1.0/users/${args.userId}`,
@@ -152,11 +123,11 @@ export const revokeUserSessions = action({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const credentials = await ctx.runQuery(api.authMutations.getCredentials, {
+    const credentials = await ctx.runAction(api.authActions.getDecryptedCredentials, {
       sessionId: args.sessionId,
     });
 
-    const accessToken = await getAccessToken(credentials);
+    const accessToken = await getAccessTokenFromCredentials(credentials);
 
     const response = await fetch(
       `https://graph.microsoft.com/v1.0/users/${args.userId}/revokeSignInSessions`,
@@ -186,11 +157,11 @@ export const getUserGroups = action({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const credentials = await ctx.runQuery(api.authMutations.getCredentials, {
+    const credentials = await ctx.runAction(api.authActions.getDecryptedCredentials, {
       sessionId: args.sessionId,
     });
 
-    const accessToken = await getAccessToken(credentials);
+    const accessToken = await getAccessTokenFromCredentials(credentials);
 
     const response = await fetch(
       `https://graph.microsoft.com/v1.0/users/${args.userId}/memberOf`,
@@ -221,11 +192,11 @@ export const removeUserFromGroup = action({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const credentials = await ctx.runQuery(api.authMutations.getCredentials, {
+    const credentials = await ctx.runAction(api.authActions.getDecryptedCredentials, {
       sessionId: args.sessionId,
     });
 
-    const accessToken = await getAccessToken(credentials);
+    const accessToken = await getAccessTokenFromCredentials(credentials);
 
     const response = await fetch(
       `https://graph.microsoft.com/v1.0/groups/${args.groupId}/members/${args.userId}/$ref`,
@@ -255,7 +226,7 @@ export const getMailboxSettings = action({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const credentials = await ctx.runQuery(api.authMutations.getCredentials, {
+    const credentials = await ctx.runAction(api.authActions.getDecryptedCredentials, {
       sessionId: args.sessionId,
     });
 
@@ -289,7 +260,7 @@ export const setAutomaticReply = action({
     message: v.string(),
   },
   handler: async (ctx, args) => {
-    const credentials = await ctx.runQuery(api.authMutations.getCredentials, {
+    const credentials = await ctx.runAction(api.authActions.getDecryptedCredentials, {
       sessionId: args.sessionId,
     });
 
