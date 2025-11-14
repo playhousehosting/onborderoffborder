@@ -6,6 +6,7 @@ import AzureAD from "@auth/core/providers/azure-ad";
 export const { auth, signIn, signOut, store } = convexAuth({
   providers: [
     AzureAD({
+      tenantId: "common",
       authorization: {
         params: {
           scope: "openid profile email User.Read",
