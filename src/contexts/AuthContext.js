@@ -19,14 +19,35 @@ export const AuthProvider = ({ children }) => {
   const { signOut: convexSignOut } = useAuthActions();
   const currentUser = useQuery(api.ssoAuth.getCurrentUser);
   
+  // Track session ID in state so it re-renders when changed
+  const [sessionId, setSessionIdState] = useState(getSessionId());
+  
   // Check app-only auth session
-  const sessionId = getSessionId();
   const sessionStatus = useQuery(api.authMutations.getStatus, sessionId ? { sessionId } : "skip");
   
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Listen for storage changes (session ID updates)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const newSessionId = getSessionId();
+      console.log('🔄 Session ID changed:', newSessionId);
+      setSessionIdState(newSessionId);
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check periodically in case same-window changes aren't caught
+    const interval = setInterval(handleStorageChange, 500);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
   const [permissions, setPermissions] = useState({
     userManagement: true,
     deviceManagement: true,
@@ -107,6 +128,7 @@ export const AuthProvider = ({ children }) => {
       clearSessionId();
       localStorage.clear();
       
+      setSessionIdState(null); // Update state
       setIsAuthenticated(false);
       setUser(null);
     } catch (err) {

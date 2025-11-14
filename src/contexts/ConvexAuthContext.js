@@ -124,6 +124,9 @@ export const ConvexAuthProvider = ({ children }) => {
 
       console.log('✅ App-only login successful');
       
+      // Trigger storage event so AuthContext picks up the authenticated session
+      window.dispatchEvent(new Event('storage'));
+      
       setIsAuthenticated(true);
       setUser(result.user);
       setPermissions({
