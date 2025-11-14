@@ -1,62 +1,15 @@
 const axios = require('axios');
-const { createMsalInstance, getAccessToken } = require('./authService');
 
 const GRAPH_API_BASE = 'https://graph.microsoft.com/v1.0';
 const GRAPH_API_BETA = 'https://graph.microsoft.com/beta';
 
 /**
- * Make a request to Microsoft Graph API
- * @param {Object} session - User session containing credentials
- * @param {string} endpoint - Graph API endpoint (e.g., '/users')
- * @param {string} method - HTTP method (GET, POST, PUT, PATCH, DELETE)
- * @param {Object} data - Request body (optional)
- * @param {boolean} useBeta - Use beta endpoint (default: false)
- * @returns {Promise<Object>} - API response
+ * DEPRECATED: Make a request to Microsoft Graph API
+ * All Graph API calls now go through Convex backend
+ * This backend is no longer used for authentication
  */
 async function makeGraphRequest(session, endpoint, method = 'GET', data = null, useBeta = false) {
-  try {
-    // Get credentials from session
-    if (!session.credentials) {
-      throw new Error('No credentials found in session');
-    }
-    
-    // Create MSAL instance with user's credentials
-    const msalInstance = createMsalInstance(session.credentials);
-    
-    // Get access token
-    const accessToken = await getAccessToken(
-      msalInstance,
-      ['https://graph.microsoft.com/.default'],
-      session.account || null
-    );
-    
-    // Make request to Graph API
-    const baseUrl = useBeta ? GRAPH_API_BETA : GRAPH_API_BASE;
-    const url = `${baseUrl}${endpoint}`;
-    
-    const config = {
-      method: method,
-      url: url,
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      }
-    };
-    
-    if (data && ['POST', 'PUT', 'PATCH'].includes(method.toUpperCase())) {
-      config.data = data;
-    }
-    
-    const response = await axios(config);
-    return response.data;
-  } catch (error) {
-    console.error('Graph API request error:', error.response?.data || error.message);
-    throw {
-      status: error.response?.status || 500,
-      message: error.response?.data?.error?.message || error.message,
-      code: error.response?.data?.error?.code || 'UnknownError'
-    };
-  }
+  throw new Error('Backend Graph API service deprecated. Use Convex backend actions for Graph API calls.');
 }
 
 /**

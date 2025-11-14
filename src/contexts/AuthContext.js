@@ -17,7 +17,6 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   // Convex Auth hooks
-  const { isAuthenticated: convexAuthAuthenticated, isLoading: convexAuthLoading } = useConvexAuth();
   const { signOut } = useAuthActions();
   const convex = useConvex();
   
@@ -25,6 +24,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [convexAuthUser, setConvexAuthUser] = useState(null);
   const [permissions, setPermissions] = useState({
     userManagement: false,
     deviceManagement: false,
@@ -96,40 +96,38 @@ export const AuthProvider = ({ children }) => {
         setLoading(true);
         
         // Check Convex Auth first (SSO)
-        if (convexAuthAuthenticated && !convexAuthLoading) {
-          console.log('✅ Convex Auth: User authenticated via SSO');
-          
-          // Get user info from Convex
-          try {
-            const convexUser = await convex.query(api.ssoAuth.getCurrentUser);
-            if (convexUser) {
-              console.log('✅ Retrieved user from Convex:', convexUser.email);
-              setIsAuthenticated(true);
-              setUser({
-                displayName: convexUser.name || convexUser.email,
-                name: convexUser.name,
-                email: convexUser.email,
-                userPrincipalName: convexUser.email,
-                username: convexUser.email,
-                authMode: 'sso'
-              });
-              
-              // SSO users get full permissions
-              setPermissions({
-                userManagement: true,
-                deviceManagement: true,
-                mailManagement: true,
-                sharePointManagement: true,
-                teamsManagement: true,
-                complianceManagement: true,
-                defenderManagement: true,
-              });
-              setLoading(false);
-              return;
-            }
-          } catch (convexError) {
-            console.error('Error fetching Convex user:', convexError);
+        try {
+          const convexUser = await convex.query(api.ssoAuth.getCurrentUser);
+          if (convexUser) {
+            console.log('✅ Convex Auth: User authenticated via SSO');
+            console.log('✅ Retrieved user from Convex:', convexUser.email);
+            setConvexAuthUser(convexUser);
+            setIsAuthenticated(true);
+            setUser({
+              displayName: convexUser.name || convexUser.email,
+              name: convexUser.name,
+              email: convexUser.email,
+              userPrincipalName: convexUser.email,
+              username: convexUser.email,
+              authMode: 'sso'
+            });
+            
+            // SSO users get full permissions
+            setPermissions({
+              userManagement: true,
+              deviceManagement: true,
+              mailManagement: true,
+              sharePointManagement: true,
+              teamsManagement: true,
+              complianceManagement: true,
+              defenderManagement: true,
+            });
+            setLoading(false);
+            return;
           }
+        } catch (convexError) {
+          // No Convex user - not authenticated via SSO
+          console.log('No Convex Auth user found');
         }
         
         // Check if we have a stored user (app-only or demo mode)
@@ -232,7 +230,7 @@ export const AuthProvider = ({ children }) => {
     return () => {
       window.removeEventListener('demoModeLogin', handleDemoLogin);
     };
-  }, [convexAuthAuthenticated, convexAuthLoading, convex]);
+  }, [convex]);
 
   // Check user permissions for different operations
   // In SSO and app-only mode, we grant all permissions
@@ -264,7 +262,7 @@ export const AuthProvider = ({ children }) => {
       const authMode = localStorage.getItem('authMode');
 
       // Handle SSO logout
-      if (authMode === 'sso' || convexAuthAuthenticated) {
+      if (authMode === 'sso' || convexAuthUser) {
         console.log('🔓 Logging out from SSO mode');
         await signOut();
       }
@@ -281,6 +279,7 @@ export const AuthProvider = ({ children }) => {
 
       setIsAuthenticated(false);
       setUser(null);
+      setConvexAuthUser(null);
       setPermissions({
         userManagement: false,
         deviceManagement: false,
@@ -294,7 +293,7 @@ export const AuthProvider = ({ children }) => {
       console.error('Logout error:', err);
       setError(err.message);
     }
-  }, [convexAuthAuthenticated, signOut]);
+  }, [convexAuthUser, signOut]);
 
   // Request additional permissions - not needed with SSO
   const requestPermissions = useCallback(async (scopes) => {
@@ -319,24 +318,25 @@ export const AuthProvider = ({ children }) => {
       if (!isAuthenticated || !user) return;
       
       // For SSO users, refresh from Convex
-      if (convexAuthAuthenticated) {
-        const convexUser = await convex.query(api.ssoAuth.getCurrentUser);
-        if (convexUser) {
+      if (convexAuthUser) {
+        const updatedUser = await convex.query(api.ssoAuth.getCurrentUser);
+        if (updatedUser) {
           setUser({
-            displayName: convexUser.name || convexUser.email,
-            name: convexUser.name,
-            email: convexUser.email,
-            userPrincipalName: convexUser.email,
-            username: convexUser.email,
+            displayName: updatedUser.name || updatedUser.email,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            userPrincipalName: updatedUser.email,
+            username: updatedUser.email,
             authMode: 'sso'
           });
+          setConvexAuthUser(updatedUser);
         }
       }
     } catch (err) {
       console.error('User info refresh error:', err);
       setError(err.message);
     }
-  }, [isAuthenticated, user, convexAuthAuthenticated, convex]);
+  }, [isAuthenticated, user, convexAuthUser, convex]);
 
   // Check if user has specific permission
   const hasPermission = useCallback((permission) => {
