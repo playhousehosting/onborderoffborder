@@ -8,6 +8,8 @@ import toast from 'react-hot-toast';
 import { useConvex } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { setSessionId } from '../../services/convexService';
+import { SSOLoginButton } from './SSOLogin';
+import { useAuthActions } from "@convex-dev/auth/react";
 import {
   SparklesIcon,
   UserGroupIcon,
@@ -535,6 +537,31 @@ const Login = () => {
                 <p className="text-gray-600 dark:text-gray-400">{t('auth.pleaseSignIn')}</p>
               </div>
               
+              {/* SSO Login Button - Primary Option */}
+              <div className="mb-6">
+                <SSOLoginButton 
+                  onSuccess={() => {
+                    toast.success('Successfully signed in!');
+                    navigate('/dashboard');
+                  }}
+                  onError={(error) => {
+                    toast.error('Sign in failed: ' + error.message);
+                  }}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
+                  🎉 New! Sign in with your Microsoft 365 work account
+                </p>
+              </div>
+              
+              <div className="relative mb-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">Or configure manually</span>
+                </div>
+              </div>
+              
               {demoMode && (
                 <div className="mb-6 p-4 border border-amber-200 dark:border-amber-700 rounded-lg bg-amber-50 dark:bg-amber-900/20">
                   <div className="flex items-start">
@@ -686,7 +713,21 @@ const Login = () => {
                 </div>
                 
                 {/* Alternative Authentication Options */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-4 gap-3">
+                  {/* SSO Login with Microsoft 365 */}
+                  <button
+                    onClick={() => {
+                      // Will be handled by SSOLoginButton component
+                      window.dispatchEvent(new CustomEvent('triggerSSOLogin'));
+                    }}
+                    className="flex flex-col items-center justify-center p-4 border-2 border-green-200 dark:border-green-700 rounded-lg hover:border-green-400 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/30 transition-all bg-white dark:bg-gray-800"
+                    title="Microsoft 365 SSO - Sign in with your work account"
+                  >
+                    <MicrosoftIcon className="h-8 w-8 text-green-600 dark:text-green-400 mb-2" />
+                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">M365 SSO</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">Recommended</span>
+                  </button>
+
                   {/* OAuth2 Interactive Sign-In */}
                   <button
                     onClick={handleInteractiveLogin}

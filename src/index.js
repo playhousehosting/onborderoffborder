@@ -1,11 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import App from './App';
 import StartupHealthCheck from './components/common/StartupHealthCheck';
 import './i18n'; // Initialize i18n
 
-// Initialize Convex client
+// Initialize Convex client with auth support
 const convex = new ConvexReactClient(process.env.REACT_APP_CONVEX_URL);
 
 // Add global error handlers
@@ -50,9 +51,11 @@ if (!rootElement) {
   root.render(
     <React.StrictMode>
       <ConvexProvider client={convex}>
-        <StartupHealthCheck>
-          <App />
-        </StartupHealthCheck>
+        <ConvexAuthProvider>
+          <StartupHealthCheck>
+            <App />
+          </StartupHealthCheck>
+        </ConvexAuthProvider>
       </ConvexProvider>
     </React.StrictMode>
   );

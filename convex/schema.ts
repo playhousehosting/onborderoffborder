@@ -1,21 +1,27 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
 
 /**
  * Convex Schema for Employee Offboarding Portal
  * Multi-tenant architecture with tenant isolation
+ * Now with Microsoft 365 SSO support via Convex Auth
  */
 export default defineSchema({
-  // User sessions for authentication
+  // Convex Auth tables for SSO (authSessions, authAccounts, authVerificationCodes, etc.)
+  ...authTables,
+
+  // User sessions for authentication (existing app-only + new SSO-linked sessions)
   sessions: defineTable({
     tenantId: v.string(),
     sessionId: v.string(),
     userId: v.string(),
     email: v.optional(v.string()),
     displayName: v.optional(v.string()),
-    authMode: v.union(v.literal("app-only"), v.literal("oauth2")),
+    authMode: v.union(v.literal("app-only"), v.literal("oauth2"), v.literal("sso")),
     roles: v.array(v.string()),
-    credentials: v.optional(v.string()), // Encrypted Azure credentials
+    credentials: v.optional(v.string()), // Encrypted Azure credentials for app-only mode
+    convexAuthUserId: v.optional(v.id("users")), // Link to Convex Auth user for SSO
     expiresAt: v.number(), // Unix timestamp
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -23,7 +29,8 @@ export default defineSchema({
     .index("by_session_id", ["sessionId"])
     .index("by_tenant_and_session", ["tenantId", "sessionId"])
     .index("by_tenant", ["tenantId"])
-    .index("by_expires", ["expiresAt"]),
+    .index("by_expires", ["expiresAt"])
+    .index("by_convex_auth_user", ["convexAuthUserId"]),
 
   // Scheduled offboarding records
   scheduled_offboarding: defineTable({

@@ -11,8 +11,10 @@
 import type * as auth from "../auth.js";
 import type * as authMutations from "../authMutations.js";
 import type * as graph from "../graph.js";
+import type * as http from "../http.js";
 import type * as offboarding from "../offboarding.js";
 import type * as onboarding from "../onboarding.js";
+import type * as ssoAuth from "../ssoAuth.js";
 
 import type {
   ApiFromModules,
@@ -24,8 +26,10 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   authMutations: typeof authMutations;
   graph: typeof graph;
+  http: typeof http;
   offboarding: typeof offboarding;
   onboarding: typeof onboarding;
+  ssoAuth: typeof ssoAuth;
 }>;
 
 /**
