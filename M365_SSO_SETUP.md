@@ -4,7 +4,13 @@
 
 If you're seeing SSO login errors like `[CONVEX A(auth:signIn)] Server Error`, this means the Convex Auth environment variables are **not yet configured**.
 
-**👉 Please follow the complete setup guide: [CONVEX_SSO_CONFIGURATION.md](./CONVEX_SSO_CONFIGURATION.md)**
+### 🚀 Quick Fix (5 Minutes)
+**👉 [QUICK_FIX_SSO_ERRORS.md](./QUICK_FIX_SSO_ERRORS.md)** - Fast, step-by-step fix for the error
+
+### 📖 Complete Guides
+- **[CONVEX_SSO_CONFIGURATION.md](./CONVEX_SSO_CONFIGURATION.md)** - Comprehensive setup with explanations
+- **[SSO_TROUBLESHOOTING.md](./SSO_TROUBLESHOOTING.md)** - Troubleshooting common issues
+- **[SSO_CONFIGURATION_CHECKLIST.md](./.github/SSO_CONFIGURATION_CHECKLIST.md)** - Printable checklist
 
 ## Quick Start
 

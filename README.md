@@ -2,6 +2,12 @@
 
 A production-ready, enterprise-grade SaaS platform for managing the complete employee lifecycle with Microsoft 365 integration. Built with React, Convex serverless backend, and Microsoft Graph API.
 
+## 🚨 SSO Login Issues?
+
+If you're seeing `[CONVEX A(auth:signIn)] Server Error`, the Convex Auth environment variables need to be configured.
+
+**Quick Fix (5 min)**: [QUICK_FIX_SSO_ERRORS.md](./QUICK_FIX_SSO_ERRORS.md)
+
 ## 🚀 Live Application
 
 **Production URL**: [https://www.employeelifecyclepotral.com](https://www.employeelifecyclepotral.com)
