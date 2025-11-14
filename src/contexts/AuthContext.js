@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useConvexAuth, useAuthActions } from '@convex-dev/auth/react';
-import { useQuery, useMutation } from 'convex/react';
+import { useAuthActions, useAuthToken } from '@convex-dev/auth/react';
+import { useQuery } from 'convex/react';
 import { api } from '../convex/_generated/api';
-import { isDemoMode } from '../config/authConfig';
 
 const AuthContext = createContext();
 
@@ -15,7 +14,7 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const { isLoading: convexAuthLoading, isAuthenticated: convexAuthAuthenticated } = useConvexAuth();
+  const token = useAuthToken();
   const { signOut: convexSignOut } = useAuthActions();
   const currentUser = useQuery(api.ssoAuth.getCurrentUser);
   
@@ -35,14 +34,17 @@ export const AuthProvider = ({ children }) => {
 
   // Sync Convex Auth state with local state
   useEffect(() => {
-    console.log('🔄 Convex Auth state:', { convexAuthLoading, convexAuthAuthenticated, currentUser });
+    const isAuthenticated = token !== undefined && token !== null;
+    const isLoading = currentUser === undefined;
     
-    if (convexAuthLoading) {
+    console.log('🔄 Convex Auth state:', { token: !!token, currentUser, isLoading });
+    
+    if (isLoading) {
       setLoading(true);
       return;
     }
     
-    if (convexAuthAuthenticated && currentUser) {
+    if (isAuthenticated && currentUser) {
       console.log('✅ Convex Auth user authenticated:', currentUser);
       setIsAuthenticated(true);
       setUser({
@@ -58,7 +60,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setLoading(false);
     }
-  }, [convexAuthLoading, convexAuthAuthenticated, currentUser]);
+  }, [token, currentUser]);
 
   // Logout function
   const logout = useCallback(async () => {
