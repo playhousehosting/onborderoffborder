@@ -5,6 +5,9 @@ import { v } from "convex/values";
 import { api } from "./_generated/api";
 import crypto from "crypto";
 
+// Re-export Convex Auth SSO functions to make them available as public functions
+export { signIn, signOut, auth } from "./authInit.js";
+
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "default-dev-key-change-in-production";
 
 /**
