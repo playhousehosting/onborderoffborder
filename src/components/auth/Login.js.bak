@@ -1,0 +1,129 @@
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { SignIn, useAuth } from '@clerk/clerk-react';
+import { useTranslation } from 'react-i18next';
+
+const Login = () => {
+  const { isSignedIn, isLoaded } = useAuth();
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isSignedIn && isLoaded) {
+      console.log('✅ User authenticated, redirecting to dashboard');
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isSignedIn, isLoaded, navigate]);
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="text-gray-600 dark:text-gray-400">{t('login.loading') || 'Loading...'}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
+      <div className="max-w-md w-full">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-white">
+            <div className="flex justify-center mb-4">
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
+                <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold text-center mb-2">
+              Employee Life Cycle Portal
+            </h1>
+            <p className="text-blue-100 text-center text-sm">
+              Sign in with your Microsoft 365 account
+            </p>
+          </div>
+
+          {/* Login Content */}
+          <div className="p-8">
+            <SignIn 
+              routing="path"
+              path="/login"
+              signUpUrl="/sign-up"
+              afterSignInUrl="/dashboard"
+              appearance={{
+                elements: {
+                  rootBox: "mx-auto",
+                  card: "shadow-none"
+                    >
+                      {isConfiguring ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Authenticating...
+                        </span>
+                      ) : (
+                        'Sign in with App Credentials'
+                      )}
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* Features */}
+              <div className="mt-8 space-y-3">
+                <div className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400">
+                  <svg className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Secure single sign-on with Azure AD</span>
+                </div>
+                <div className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400">
+                  <svg className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Manage employee onboarding & offboarding</span>
+                </div>
+                <div className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400">
+                  <svg className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Automated workflows and compliance</span>
+                </div>
+              </div>
+
+              {/* Info Banner */}
+              <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <svg className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div className="text-sm text-blue-700 dark:text-blue-300">
+                    <p className="font-medium mb-1">First time signing in?</p>
+                    <p>You may need to consent to required permissions. An administrator may need to approve these permissions for your organization.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="mt-8 text-center text-xs text-gray-500 dark:text-gray-400 space-y-1">
+              <p>© 2025 Employee Life Cycle Portal</p>
+              <p>Powered by Microsoft Graph API</p>
+              <p>Built by Kameron McCain</p>
+              <p className="mt-2">
+                <a href="/faq" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
+                  View FAQ & Documentation
+                </a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Login;

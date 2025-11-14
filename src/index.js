@@ -1,13 +1,21 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ConvexReactClient } from "convex/react";
-import { ConvexAuthProvider } from "@convex-dev/auth/react";
+import { ConvexProvider } from "convex/react";
+import { ClerkProvider } from '@clerk/clerk-react';
 import App from './App';
 import StartupHealthCheck from './components/common/StartupHealthCheck';
 import './i18n'; // Initialize i18n
 
-// Initialize Convex client with auth support
+// Initialize Convex client
 const convex = new ConvexReactClient(process.env.REACT_APP_CONVEX_URL);
+
+// Get Clerk publishable key
+const clerkPubKey = process.env.REACT_APP_CLERK_PUBLISHABLE_KEY;
+
+if (!clerkPubKey) {
+  throw new Error("Missing Clerk Publishable Key. Please add REACT_APP_CLERK_PUBLISHABLE_KEY to your .env.local file.");
+}
 
 // Add global error handlers
 window.addEventListener('error', (event) => {
@@ -50,11 +58,13 @@ if (!rootElement) {
   const root = ReactDOM.createRoot(rootElement);
   root.render(
     <React.StrictMode>
-      <ConvexAuthProvider client={convex}>
-        <StartupHealthCheck>
-          <App />
-        </StartupHealthCheck>
-      </ConvexAuthProvider>
+      <ClerkProvider publishableKey={clerkPubKey}>
+        <ConvexProvider client={convex}>
+          <StartupHealthCheck>
+            <App />
+          </StartupHealthCheck>
+        </ConvexProvider>
+      </ClerkProvider>
     </React.StrictMode>
   );
 }

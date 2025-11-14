@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { ConvexAuthProvider } from './contexts/ConvexAuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Toaster } from 'react-hot-toast';
 import './index.css';
@@ -60,7 +59,6 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider>
         <AuthProvider>
-          <ConvexAuthProvider>
             <Router>
               <div className="App">
                 <Routes>
@@ -244,7 +242,6 @@ function App() {
               />
               </div>
             </Router>
-          </ConvexAuthProvider>
         </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>
