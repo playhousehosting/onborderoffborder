@@ -2,6 +2,7 @@ import { authService } from './authService';
 import { isDemoMode } from '../config/authConfig';
 import { apiCache, CACHE_CONFIG } from '../utils/apiCache';
 import { logger } from '../utils/logger';
+import { getAppOnlyToken } from './convexService';
 
 // Mock data for demo mode
 const MOCK_USERS = [
@@ -176,7 +177,16 @@ export class GraphService {
     }
 
     try {
-      const token = await authService.getAccessToken();
+      // Try to get token from app-only auth first, fallback to MSAL
+      let token;
+      try {
+        token = await getAppOnlyToken();
+        logger.debug('🔑 Using app-only token for Graph API');
+      } catch (appOnlyError) {
+        logger.debug('🔑 App-only token failed, trying MSAL token');
+        token = await authService.getAccessToken();
+      }
+      
       const url = `${this.baseUrl}${endpoint}`;
       
       const defaultOptions = {

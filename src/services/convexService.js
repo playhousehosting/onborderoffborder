@@ -46,3 +46,27 @@ export function requireSessionId() {
   }
   return sessionId;
 }
+
+/**
+ * Get app-only access token from Convex
+ * This token can be used for Microsoft Graph API calls
+ */
+export async function getAppOnlyToken() {
+  const sessionId = getSessionId();
+  if (!sessionId) {
+    throw new Error('No session ID found. Not authenticated with app credentials.');
+  }
+
+  // Dynamically import convex client to avoid circular dependencies
+  const { ConvexReactClient } = await import('convex/react');
+  const { api } = await import('../convex/_generated/api');
+  
+  const convex = new ConvexReactClient(process.env.REACT_APP_CONVEX_URL);
+  
+  try {
+    const result = await convex.action(api.auth.getAppOnlyToken, { sessionId });
+    return result.accessToken;
+  } catch (error) {
+    throw new Error(`Failed to get app-only token: ${error.message}`);
+  }
+}
