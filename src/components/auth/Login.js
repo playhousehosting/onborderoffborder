@@ -55,10 +55,10 @@ const Login = () => {
               </div>
             </div>
             <h1 className="text-3xl font-bold text-center mb-2">
-              {t('login.title') || 'Employee Life Cycle Portal'}
+              Employee Life Cycle Portal
             </h1>
             <p className="text-blue-100 text-center text-sm">
-              {t('login.subtitle') || 'Sign in with your Microsoft 365 account'}
+              Sign in with your Microsoft 365 account
             </p>
           </div>
 
@@ -72,7 +72,7 @@ const Login = () => {
                 className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-medium hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
               >
                 <MicrosoftIcon className="h-6 w-6" />
-                <span>{t('login.sso') || 'Sign in with Microsoft 365'}</span>
+                <span>Sign in with Microsoft 365</span>
               </button>
 
               {/* Features */}
@@ -81,19 +81,19 @@ const Login = () => {
                   <svg className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span>{t('login.feature1') || 'Secure single sign-on with Azure AD'}</span>
+                  <span>Secure single sign-on with Azure AD</span>
                 </div>
                 <div className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400">
                   <svg className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span>{t('login.feature2') || 'Manage employee onboarding & offboarding'}</span>
+                  <span>Manage employee onboarding & offboarding</span>
                 </div>
                 <div className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400">
                   <svg className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span>{t('login.feature3') || 'Automated workflows and compliance'}</span>
+                  <span>Automated workflows and compliance</span>
                 </div>
               </div>
 
@@ -104,8 +104,8 @@ const Login = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <div className="text-sm text-blue-700 dark:text-blue-300">
-                    <p className="font-medium mb-1">{t('login.firstTime') || 'First time signing in?'}</p>
-                    <p>{t('login.consent') || 'You may need to consent to required permissions. An administrator may need to approve these permissions for your organization.'}</p>
+                    <p className="font-medium mb-1">First time signing in?</p>
+                    <p>You may need to consent to required permissions. An administrator may need to approve these permissions for your organization.</p>
                   </div>
                 </div>
               </div>
