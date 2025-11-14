@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as authActions from "../authActions.js";
 import type * as authInit from "../authInit.js";
 import type * as authMutations from "../authMutations.js";
 import type * as graph from "../graph.js";
@@ -25,6 +26,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  authActions: typeof authActions;
   authInit: typeof authInit;
   authMutations: typeof authMutations;
   graph: typeof graph;

@@ -64,7 +64,7 @@ export async function getAppOnlyToken() {
   const convex = new ConvexReactClient(process.env.REACT_APP_CONVEX_URL);
   
   try {
-    const result = await convex.action(api.auth.getAppOnlyToken, { sessionId });
+    const result = await convex.action(api.authActions.getAppOnlyToken, { sessionId });
     return result.accessToken;
   } catch (error) {
     throw new Error(`Failed to get app-only token: ${error.message}`);

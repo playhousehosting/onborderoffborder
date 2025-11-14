@@ -146,7 +146,7 @@ export class AuthService {
 
       // Get token from Convex backend (which calls Azure AD server-side)
       console.log('🔑 Requesting token from Convex backend...');
-      const result = await client.action(api.auth.getAppOnlyToken, { sessionId });
+      const result = await client.action(api.authActions.getAppOnlyToken, { sessionId });
 
       if (!result || !result.accessToken) {
         throw new Error('Failed to get access token from backend');

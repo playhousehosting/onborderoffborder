@@ -1,9 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-// Re-export the store mutation from Convex Auth
-export { store } from "./authInit.js";
-
 const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
 /**

@@ -92,7 +92,7 @@ export const ConvexAuthProvider = ({ children }) => {
     try {
       console.log('🔧 Configuring credentials with Convex...');
       
-      const result = await convex.action(api.auth.configure, {
+      const result = await convex.action(api.authActions.configure, {
         clientId,
         tenantId,
         clientSecret,
@@ -120,7 +120,7 @@ export const ConvexAuthProvider = ({ children }) => {
 
       console.log('🔑 Logging in with app-only mode...');
       
-      const result = await convex.action(api.auth.loginAppOnly, { sessionId });
+      const result = await convex.action(api.authActions.loginAppOnly, { sessionId });
 
       console.log('✅ App-only login successful');
       
