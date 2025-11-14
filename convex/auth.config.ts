@@ -2,11 +2,11 @@ import { convexAuth } from "@convex-dev/auth/server";
 import AzureAD from "@auth/core/providers/azure-ad";
 
 // Configure authentication with Microsoft 365 SSO (Multi-tenant)
-// Azure AD provider will use AUTH_AZURE_AD_* environment variables
-// Note: tenantId must be explicitly set for Convex Auth
 export const { auth, signIn, signOut, store } = convexAuth({
   providers: [
     AzureAD({
+      clientId: process.env.AUTH_AZURE_AD_ID,
+      clientSecret: process.env.AUTH_AZURE_AD_SECRET,
       tenantId: "common", // Multi-tenant support
       authorization: {
         params: {
@@ -17,5 +17,12 @@ export const { auth, signIn, signOut, store } = convexAuth({
   ],
 });
 
-// Required default export for Convex Auth
-export default { providers: [] };
+// Required default export with providers list for Convex Auth
+export default {
+  providers: [
+    {
+      domain: process.env.SITE_URL,
+      applicationID: process.env.AUTH_AZURE_AD_ID,
+    },
+  ],
+};
