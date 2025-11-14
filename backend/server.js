@@ -15,6 +15,7 @@ const diagnosticRoutes = require('./routes/diagnostic');
 const adRoutes = require('./routes/ad');
 const exchangeRoutes = require('./routes/exchange');
 const offboardingRoutes = require('./routes/offboarding');
+const clerkProxyRoutes = require('./routes/clerk-proxy');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -181,6 +182,7 @@ app.use('/api/diagnostic', diagnosticRoutes);
 app.use('/api/ad', adRoutes);
 app.use('/api/exchange', exchangeRoutes);
 app.use('/api/offboarding', offboardingRoutes);
+app.use('/api/clerk-proxy', clerkProxyRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

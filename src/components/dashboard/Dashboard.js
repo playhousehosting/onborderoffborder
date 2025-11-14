@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { graphService } from '../../services/graphService';
+import { useClerkGraphService } from '../../services/clerkGraphService';
 import { logger } from '../../utils/logger';
 import { SkeletonDashboard } from '../common/Skeleton';
 import toast from 'react-hot-toast';
@@ -22,7 +23,8 @@ import {
 } from '@heroicons/react/24/outline';
 
 const Dashboard = () => {
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermission, authMode } = useAuth();
+  const clerkGraphService = useClerkGraphService();
   const { t } = useTranslation();
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -41,12 +43,15 @@ const Dashboard = () => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
+
+        // Select appropriate service based on auth mode
+        const service = authMode === 'clerk' ? clerkGraphService : graphService;
         
         // Only fetch data if user has permissions
         if (hasPermission('userManagement')) {
           // Get ALL user statistics using pagination
           logger.debug('📊 Fetching all users with pagination...');
-          const usersData = await graphService.getAllUsers('', 999); // Fetch 999 per page for better performance
+          const usersData = await service.getAllUsers('', 999); // Fetch 999 per page for better performance
           const totalUsers = usersData.value?.length || 0;
           const activeUsers = usersData.value?.filter(u => u.accountEnabled).length || 0;
           const disabledUsers = totalUsers - activeUsers;
@@ -60,7 +65,7 @@ const Dashboard = () => {
           
           if (hasPermission('deviceManagement')) {
             try {
-              const devicesData = await graphService.makeRequest('/deviceManagement/managedDevices?$top=999&$select=id,deviceName,complianceState');
+              const devicesData = await service.makeRequest('/deviceManagement/managedDevices?$top=999&$select=id,deviceName,complianceState');
               totalDevices = devicesData.value?.length || 0;
               
               // Count compliant and non-compliant devices
@@ -83,7 +88,7 @@ const Dashboard = () => {
           try {
             // Get directory audit logs (user creation, password changes, etc.)
             // Note: directoryAudits endpoint doesn't support $orderby, results are returned in descending order by default
-            const auditLogs = await graphService.makeRequest('/auditLogs/directoryAudits?$top=50');
+            const auditLogs = await service.makeRequest('/auditLogs/directoryAudits?$top=50');
             
             if (auditLogs.value && auditLogs.value.length > 0) {
               auditActivity = auditLogs.value.slice(0, 10).map((log, idx) => {
