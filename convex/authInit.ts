@@ -17,31 +17,10 @@ export const { auth, signIn, signOut, store } = convexAuth({
           redirect_uri: process.env.CONVEX_SITE_URL ? `${process.env.CONVEX_SITE_URL}/api/auth/callback/azure-ad` : undefined,
         },
       },
-      token: {
-        url: `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
-        // Token validation - ensure tokens are from Microsoft
-        async conform(response) {
-          const body = await response.json();
-          
-          // Validate issuer is from Microsoft
-          if (body.id_token) {
-            const [, payload] = body.id_token.split('.');
-            // Use atob for base64 decoding (works in all JS runtimes)
-            const decoded = JSON.parse(atob(payload));
-            
-            // Verify issuer is from login.microsoftonline.com
-            if (!decoded.iss || !decoded.iss.includes('login.microsoftonline.com')) {
-              throw new Error('Invalid token issuer - must be from login.microsoftonline.com');
-            }
-            
-            // Store tenant ID for multi-tenant isolation
-            body.tenant_id = decoded.tid;
-          }
-          
-          return Response.json(body);
-        },
-      },
+      token: `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
       userinfo: `https://graph.microsoft.com/oidc/userinfo`,
+      // Configure issuer for multi-tenant support
+      issuer: `https://login.microsoftonline.com/${tenantId}/v2.0`,
       checks: ["state"], // Use "state" only - PKCE causes "error in response body" with Microsoft
       profile(profile) {
         // Validate required profile data
