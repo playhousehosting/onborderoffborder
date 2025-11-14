@@ -7,7 +7,7 @@ export const { auth, signIn, signOut, store } = convexAuth({
     AzureAD({
       clientId: process.env.AUTH_AZURE_AD_ID,
       clientSecret: process.env.AUTH_AZURE_AD_SECRET,
-      tenantId: "common", // Multi-tenant support
+      tenantId: "0851dcd0-904e-4381-b82d-c14fe29159e3", // Your tenant ID
       authorization: {
         params: {
           scope: "openid profile email User.Read",
