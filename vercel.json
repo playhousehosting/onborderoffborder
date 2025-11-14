@@ -15,19 +15,20 @@
   ],
   "routes": [
     {
+      "src": "/manifest.json",
+      "headers": {
+        "Content-Type": "application/manifest+json",
+        "Cache-Control": "public, max-age=3600"
+      },
+      "dest": "/manifest.json"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "backend/server.js"
     },
     {
       "src": "/health",
       "dest": "backend/server.js"
-    },
-    {
-      "src": "/manifest.json",
-      "headers": {
-        "Content-Type": "application/manifest+json",
-        "Cache-Control": "public, max-age=3600"
-      }
     },
     {
       "src": "/static/(.*)",
