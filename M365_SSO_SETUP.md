@@ -11,16 +11,16 @@ This application now supports **Microsoft 365 Single Sign-On (SSO)** via Convex 
 Update your existing Azure AD app registration to support OAuth redirects:
 
 1. Go to [Azure Portal](https://portal.azure.com) → Azure Active Directory → App registrations
-2. Select your application
+2. Select your application (ID: 3f4637ee-e352-4273-96a6-3996a4a7f8c0)
 3. Go to **Authentication** → **Add a platform** → **Web**
-4. Add redirect URIs:
+4. Add this redirect URI:
    ```
-   http://localhost:3000/api/auth/callback/microsoft
-   https://your-production-domain.com/api/auth/callback/microsoft
-   https://neighborly-manatee-845.convex.site/api/auth/callback/microsoft
+   https://neighborly-manatee-845.convex.site/api/auth/callback/azure-ad
    ```
-5. Enable **ID tokens** checkbox
+5. Enable **ID tokens** and **Access tokens** checkboxes under **Implicit grant and hybrid flows**
 6. Click **Save**
+
+**CRITICAL**: The redirect URI must be **exactly** as shown above. This is your Convex deployment's OAuth callback endpoint.
 
 ### 2. Update API Permissions
 

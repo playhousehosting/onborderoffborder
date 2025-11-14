@@ -110,25 +110,34 @@ export const getSessionByAuthUser = query({
 export const getCurrentUser = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await auth.getUserId(ctx);
-    
-    if (!userId) {
+    try {
+      const userId = await auth.getUserId(ctx);
+      console.log('getCurrentUser - userId:', userId);
+      
+      if (!userId) {
+        console.log('getCurrentUser - No userId found');
+        return null;
+      }
+
+      // Get the user from Convex Auth tables
+      const user = await ctx.db.get(userId);
+      console.log('getCurrentUser - user from db:', user);
+
+      if (!user) {
+        console.log('getCurrentUser - No user in database');
+        return null;
+      }
+
+      return {
+        _id: user._id,
+        email: user.email,
+        name: user.name,
+        image: user.image,
+      };
+    } catch (error) {
+      console.error('getCurrentUser error:', error);
       return null;
     }
-
-    // Get the user from Convex Auth tables
-    const user = await ctx.db.get(userId);
-
-    if (!user) {
-      return null;
-    }
-
-    return {
-      _id: user._id,
-      email: user.email,
-      name: user.name,
-      image: user.image,
-    };
   },
 });
 
