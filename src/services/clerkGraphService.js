@@ -7,7 +7,7 @@ import { useAuth } from '@clerk/clerk-react';
  */
 class ClerkGraphService {
   constructor() {
-    this.baseUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+    this.baseUrl = process.env.REACT_APP_BACKEND_URL || 'https://employee-offboarding-portal-backend.vercel.app';
     this.proxyPath = '/api/clerk-proxy/graph';
   }
 

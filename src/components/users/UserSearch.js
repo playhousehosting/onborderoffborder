@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { graphService } from '../../services/graphService';
+import { useClerkGraphService } from '../../services/clerkGraphService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDebounce } from '../../hooks/useDebounce';
 import { logger } from '../../utils/logger';
@@ -19,7 +20,9 @@ import {
 } from '@heroicons/react/24/outline';
 
 const UserSearch = () => {
-  const { hasPermission } = useAuth();
+  const { hasPermission, authMode } = useAuth();
+  const clerkGraphService = useClerkGraphService();
+  const service = authMode === 'clerk' ? clerkGraphService : graphService;
   const [users, setUsers] = useState([]);
   const [allUsers, setAllUsers] = useState([]); // Store all users for client-side filtering
   const [loading, setLoading] = useState(false);
@@ -53,7 +56,7 @@ const UserSearch = () => {
     try {
       setLoading(true);
       logger.debug('📊 Fetching all users for search...');
-      const response = await graphService.getAllUsers('', 999); // Fetch 999 per page
+      const response = await service.getAllUsers('', 999); // Fetch 999 per page
       const fetchedUsers = response.value || [];
       setAllUsers(fetchedUsers);
       logger.success(`✅ Loaded ${fetchedUsers.length} users`);
