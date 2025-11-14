@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
 import { useTranslation } from 'react-i18next';
 import { MicrosoftIcon } from '../common/Icons';
 import toast from 'react-hot-toast';
@@ -8,9 +9,17 @@ import { useAuthActions } from "@convex-dev/auth/react";
 
 const Login = () => {
   const { isAuthenticated, loading } = useAuth();
+  const convexAuth = useConvexAuth();
   const { signIn } = useAuthActions();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [showAppAuth, setShowAppAuth] = useState(false);
+  const [configForm, setConfigForm] = useState({
+    clientId: '',
+    tenantId: '',
+    clientSecret: ''
+  });
+  const [isConfiguring, setIsConfiguring] = useState(false);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -27,6 +36,31 @@ const Login = () => {
     } catch (error) {
       console.error('❌ SSO login error:', error);
       toast.error(t('login.error') || 'SSO login failed. Please try again.');
+    }
+  };
+
+  const handleAppLogin = async (e) => {
+    e.preventDefault();
+    setIsConfiguring(true);
+    
+    try {
+      // First configure credentials
+      await convexAuth.configure(
+        configForm.clientId,
+        configForm.tenantId,
+        configForm.clientSecret
+      );
+      
+      // Then login with app-only mode
+      await convexAuth.loginAppOnly();
+      
+      toast.success('Successfully authenticated with app credentials');
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('❌ App authentication error:', error);
+      toast.error(error.message || 'Authentication failed. Please check your credentials.');
+    } finally {
+      setIsConfiguring(false);
     }
   };
 
@@ -74,6 +108,100 @@ const Login = () => {
                 <MicrosoftIcon className="h-6 w-6" />
                 <span>Sign in with Microsoft 365</span>
               </button>
+
+              {/* Divider */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                    Or
+                  </span>
+                </div>
+              </div>
+
+              {/* App Authentication Toggle */}
+              {!showAppAuth ? (
+                <button
+                  onClick={() => setShowAppAuth(true)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                  <span>Use App Credentials</span>
+                </button>
+              ) : (
+                <div className="border-2 border-gray-300 dark:border-gray-600 rounded-xl p-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-semibold text-gray-700 dark:text-gray-300">App Authentication</h3>
+                    <button
+                      onClick={() => setShowAppAuth(false)}
+                      className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <form onSubmit={handleAppLogin} className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Client ID
+                      </label>
+                      <input
+                        type="text"
+                        value={configForm.clientId}
+                        onChange={(e) => setConfigForm({ ...configForm, clientId: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="00000000-0000-0000-0000-000000000000"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Tenant ID
+                      </label>
+                      <input
+                        type="text"
+                        value={configForm.tenantId}
+                        onChange={(e) => setConfigForm({ ...configForm, tenantId: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="00000000-0000-0000-0000-000000000000"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Client Secret
+                      </label>
+                      <input
+                        type="password"
+                        value={configForm.clientSecret}
+                        onChange={(e) => setConfigForm({ ...configForm, clientSecret: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter client secret"
+                        required
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={isConfiguring}
+                      className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isConfiguring ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Authenticating...
+                        </span>
+                      ) : (
+                        'Sign in with App Credentials'
+                      )}
+                    </button>
+                  </form>
+                </div>
+              )}
 
               {/* Features */}
               <div className="mt-8 space-y-3">

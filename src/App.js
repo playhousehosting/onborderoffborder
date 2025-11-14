@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ConvexAuthProvider } from './contexts/ConvexAuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Toaster } from 'react-hot-toast';
 import './index.css';
@@ -58,8 +59,9 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider>
         <AuthProvider>
-          <Router>
-            <div className="App">
+          <ConvexAuthProvider>
+            <Router>
+              <div className="App">
                 <Routes>
                   {/* Public Routes - Always accessible */}
                   <Route path="/login" element={<Login />} />
@@ -238,8 +240,9 @@ function App() {
                   },
                 }}
               />
-            </div>
-          </Router>
+              </div>
+            </Router>
+          </ConvexAuthProvider>
         </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>
