@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useAuthActions, useAuthToken } from '@convex-dev/auth/react';
 import { useQuery } from 'convex/react';
 import { api } from '../convex/_generated/api';
+import { getSessionId } from '../services/convexService';
 
 const AuthContext = createContext();
 
@@ -18,6 +19,10 @@ export const AuthProvider = ({ children }) => {
   const { signOut: convexSignOut } = useAuthActions();
   const currentUser = useQuery(api.ssoAuth.getCurrentUser);
   
+  // Check app-only auth session
+  const sessionId = getSessionId();
+  const sessionStatus = useQuery(api.authMutations.getStatus, sessionId ? { sessionId } : "skip");
+  
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,20 +37,29 @@ export const AuthProvider = ({ children }) => {
     defenderManagement: true,
   });
 
-  // Sync Convex Auth state with local state
+  // Sync both SSO and App-only auth states
   useEffect(() => {
-    const isAuthenticated = token !== undefined && token !== null;
-    const isLoading = currentUser === undefined;
+    const hasSSOToken = token !== undefined && token !== null;
+    const isSSOLoading = currentUser === undefined;
+    const hasAppSession = sessionStatus?.authenticated === true;
+    const isAppLoading = sessionId && sessionStatus === undefined;
     
-    console.log('🔄 Convex Auth state:', { token: !!token, currentUser, isLoading });
+    console.log('🔄 Auth state:', { 
+      ssoToken: !!token, 
+      ssoUser: currentUser, 
+      appSession: hasAppSession,
+      sessionId 
+    });
     
-    if (isLoading) {
+    // If either auth method is still loading
+    if (isSSOLoading || isAppLoading) {
       setLoading(true);
       return;
     }
     
-    if (isAuthenticated && currentUser) {
-      console.log('✅ Convex Auth user authenticated:', currentUser);
+    // Check SSO authentication first
+    if (hasSSOToken && currentUser) {
+      console.log('✅ SSO authenticated:', currentUser);
       setIsAuthenticated(true);
       setUser({
         displayName: currentUser.name || currentUser.email,
@@ -54,13 +68,27 @@ export const AuthProvider = ({ children }) => {
         ...currentUser
       });
       setLoading(false);
-    } else {
-      console.log('❌ Not authenticated via Convex Auth');
+    } 
+    // Check app-only authentication
+    else if (hasAppSession && sessionStatus.user) {
+      console.log('✅ App-only authenticated:', sessionStatus.user);
+      setIsAuthenticated(true);
+      setUser({
+        displayName: sessionStatus.user.displayName || sessionStatus.user.email,
+        email: sessionStatus.user.email,
+        id: sessionStatus.user.id,
+        ...sessionStatus.user
+      });
+      setLoading(false);
+    } 
+    // Not authenticated by either method
+    else {
+      console.log('❌ Not authenticated');
       setIsAuthenticated(false);
       setUser(null);
       setLoading(false);
     }
-  }, [token, currentUser]);
+  }, [token, currentUser, sessionId, sessionStatus]);
 
   // Logout function
   const logout = useCallback(async () => {
