@@ -18,7 +18,7 @@ Complete these steps in the Azure Portal to support the new admin consent featur
 ### ✅ Step 2: Verify Existing Redirect URIs
 
 Your Web redirect URIs should now include:
-- ✅ `https://neighborly-manatee-845.convex.site/api/auth/callback/azure-ad`
+- ✅ `https://neighborly-manatee-845.convex.site/api/auth/callback/microsoft-entra-id`
 - ✅ `https://neighborly-manatee-845.convex.site/admin-consent-callback`
 
 ### ✅ Step 3: Verify API Permissions
