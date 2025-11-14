@@ -2,15 +2,16 @@ import { convexAuth } from "@convex-dev/auth/server";
 import MicrosoftEntraID from "@auth/core/providers/microsoft-entra-id";
 
 // Configure authentication with Microsoft 365 SSO
-const tenantId = process.env.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID || process.env.AUTH_AZURE_AD_TENANT_ID || "common";
+const tenantId =
+  process.env.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID ||
+  process.env.AUTH_AZURE_AD_TENANT_ID ||
+  "organizations"; // default to work/school multi-tenant authority
 
 export const { auth, signIn, signOut, store } = convexAuth({
   providers: [
     MicrosoftEntraID({
       clientId: process.env.AUTH_AZURE_AD_ID,
       clientSecret: process.env.AUTH_AZURE_AD_SECRET,
-      // Set explicit issuer to match what Microsoft sends
-      issuer: `https://login.microsoftonline.com/${tenantId}/v2.0`,
       authorization: {
         url: `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize`,
         params: {

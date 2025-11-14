@@ -37,7 +37,10 @@ Under **Authentication**:
 - **Allow public client flows**: `No` (we use PKCE for security)
 
 Under **Overview**:
-- **Tenant ID**: Should show as "common" for multi-tenant support
+- **Sign-in audience**: `Accounts in any organizational directory (AzureADMultipleOrgs)`
+- **Tenant ID**: Will show your home tenant; this is expected even though sign-in is multi-tenant
+
+> ℹ️ Convex is configured to use the Microsoft `organizations` authority so any work/school (AAD) tenant can complete admin consent without changing the issuer.
 
 ### ✅ Step 5: Verify Client Secret
 
@@ -75,6 +78,7 @@ Once all checklist items are complete:
 
 ### Error: "Admin consent not granted"
 - **Solution**: User must be a Global Administrator or Application Administrator to grant consent
+- You do **not** need to add optional claims unless downstream services require extra token fields; the default `openid profile email User.Read offline_access` scopes already cover the Convex SSO flow.
 
 ## Additional Resources
 

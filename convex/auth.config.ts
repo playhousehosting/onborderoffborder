@@ -3,7 +3,9 @@
 export default {
   providers: [
     {
-      domain: process.env.AUTH_AZURE_AD_ISSUER || "https://login.microsoftonline.com/common/v2.0",
+      domain:
+        process.env.AUTH_AZURE_AD_ISSUER ||
+        "https://login.microsoftonline.com/organizations/v2.0",
       applicationID: process.env.AUTH_AZURE_AD_ID || "",
     },
   ],
