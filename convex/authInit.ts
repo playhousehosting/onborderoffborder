@@ -9,7 +9,6 @@ export const { auth, signIn, signOut, store } = convexAuth({
     AzureAD({
       clientId: process.env.AUTH_AZURE_AD_ID,
       clientSecret: process.env.AUTH_AZURE_AD_SECRET,
-      issuer: `https://login.microsoftonline.com/${tenantId}/v2.0`,
       authorization: {
         url: `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize`,
         params: {
@@ -18,6 +17,7 @@ export const { auth, signIn, signOut, store } = convexAuth({
       },
       token: `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
       userinfo: `https://graph.microsoft.com/oidc/userinfo`,
+      checks: ["pkce", "state"],
       profile(profile) {
         return {
           id: profile.sub || profile.oid,
