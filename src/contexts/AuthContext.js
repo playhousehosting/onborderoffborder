@@ -93,8 +93,20 @@ export const AuthProvider = ({ children }) => {
   // Logout function
   const logout = useCallback(async () => {
     try {
-      console.log('🔓 Logging out from Convex Auth');
-      await convexSignOut();
+      console.log('🔓 Logging out...');
+      
+      // Try SSO logout (may fail if not using SSO)
+      try {
+        await convexSignOut();
+      } catch (ssoErr) {
+        console.log('⚠️ SSO logout not applicable:', ssoErr.message);
+      }
+      
+      // Clear app-only session
+      const { clearSessionId } = await import('../services/convexService');
+      clearSessionId();
+      localStorage.clear();
+      
       setIsAuthenticated(false);
       setUser(null);
     } catch (err) {
