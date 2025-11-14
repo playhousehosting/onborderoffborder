@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as adminConsent from "../adminConsent.js";
 import type * as auth from "../auth.js";
 import type * as authActions from "../authActions.js";
 import type * as authInit from "../authInit.js";
@@ -25,6 +26,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  adminConsent: typeof adminConsent;
   auth: typeof auth;
   authActions: typeof authActions;
   authInit: typeof authInit;

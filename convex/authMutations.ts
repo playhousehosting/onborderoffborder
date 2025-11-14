@@ -165,19 +165,31 @@ export const getStatus = query({
     sessionId: v.string(),
   },
   handler: async (ctx, args) => {
+    console.log('🔍 getStatus called with sessionId:', args.sessionId);
+    
     const session = await ctx.db
       .query("sessions")
       .withIndex("by_session_id", (q) => q.eq("sessionId", args.sessionId))
       .first();
 
+    console.log('🔍 Found session:', session ? 'YES' : 'NO', session);
+
     if (!session) {
+      console.log('❌ No session found');
       return { authenticated: false };
     }
 
     // Check if session has expired
     if (session.expiresAt < Date.now()) {
+      console.log('⏰ Session expired');
       return { authenticated: false, reason: "Session expired" };
     }
+
+    console.log('✅ Session authenticated:', {
+      authMode: session.authMode,
+      userId: session.userId,
+      displayName: session.displayName,
+    });
 
     return {
       authenticated: true,
