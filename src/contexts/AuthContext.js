@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useMsal } from '@azure/msal-react';
+import { useAuthActions, useConvexAuth } from "@convex-dev/auth/react";
+import { useConvex } from "convex/react";
+import { api } from "../convex/_generated/api";
 import { authService } from '../services/authService';
-import { graphService } from '../services/graphService';
 import { isDemoMode } from '../config/authConfig';
 
 const AuthContext = createContext();
@@ -15,11 +16,15 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const { instance: msalInstance } = useMsal();
+  // Convex Auth hooks
+  const { signOut } = useAuthActions();
+  const convex = useConvex();
+  
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [convexAuthUser, setConvexAuthUser] = useState(null);
   const [permissions, setPermissions] = useState({
     userManagement: false,
     deviceManagement: false,
@@ -29,13 +34,6 @@ export const AuthProvider = ({ children }) => {
     complianceManagement: false,
     defenderManagement: false,
   });
-
-  // Initialize authService with MSAL instance
-  useEffect(() => {
-    if (msalInstance) {
-      authService.setMsalInstance(msalInstance);
-    }
-  }, [msalInstance]);
 
   // Handle demo mode login event (from Login component)
   // Set a flag when demoModeLogin event fires
@@ -91,11 +89,46 @@ export const AuthProvider = ({ children }) => {
     setDemoModeLoginTriggered(false);
   }, [demoModeLoginTriggered]);
 
-  // Check authentication status on mount
+  // Check authentication status on mount and when Convex auth state changes
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
         setLoading(true);
+        
+        // Check Convex Auth first (SSO)
+        try {
+          const convexUser = await convex.query(api.ssoAuth.getCurrentUser);
+          if (convexUser) {
+            console.log('✅ Convex Auth: User authenticated via SSO');
+            console.log('✅ Retrieved user from Convex:', convexUser.email);
+            setConvexAuthUser(convexUser);
+            setIsAuthenticated(true);
+            setUser({
+              displayName: convexUser.name || convexUser.email,
+              name: convexUser.name,
+              email: convexUser.email,
+              userPrincipalName: convexUser.email,
+              username: convexUser.email,
+              authMode: 'sso'
+            });
+            
+            // SSO users get full permissions
+            setPermissions({
+              userManagement: true,
+              deviceManagement: true,
+              mailManagement: true,
+              sharePointManagement: true,
+              teamsManagement: true,
+              complianceManagement: true,
+              defenderManagement: true,
+            });
+            setLoading(false);
+            return;
+          }
+        } catch (convexError) {
+          // No Convex user - not authenticated via SSO
+          console.log('No Convex Auth user found');
+        }
         
         // Check if we have a stored user (app-only or demo mode)
         const demoUser = localStorage.getItem('demoUser');
@@ -104,37 +137,45 @@ export const AuthProvider = ({ children }) => {
             const parsedUser = JSON.parse(demoUser);
             console.log('✅ AuthContext: Restored user from localStorage:', parsedUser.displayName);
             
-            // Check if we have a sessionId (required for Convex backend calls)
-            const sessionId = localStorage.getItem('sessionId');
-            if (!sessionId) {
-              console.warn('⚠️ No sessionId found - attempting to create Convex session');
-              
-              // Try to create a session with stored credentials
-              const azureConfig = localStorage.getItem('azureConfig');
-              if (azureConfig) {
-                try {
-                  const config = JSON.parse(azureConfig);
-                  const { ConvexHttpClient } = await import('convex/browser');
-                  const { api } = await import('../convex/_generated/api');
-                  const client = new ConvexHttpClient(process.env.REACT_APP_CONVEX_URL);
-                  
-                  console.log('🔧 Creating Convex session for restored user...');
-                  const configResult = await client.action(api.auth.configure, {
-                    clientId: config.clientId,
-                    tenantId: config.tenantId,
-                    clientSecret: config.clientSecret,
-                  });
-                  
-                  localStorage.setItem('sessionId', configResult.sessionId);
-                  console.log('✅ Convex session created:', configResult.sessionId);
-                  
-                  // Validate session
-                  await client.action(api.auth.loginAppOnly, {
-                    sessionId: configResult.sessionId,
-                  });
-                } catch (sessionError) {
-                  console.error('❌ Failed to create Convex session:', sessionError);
-                  // Clear auth state and force re-login
+            // Check if we have a sessionId (required for Convex backend calls in app-only mode)
+            const authMode = localStorage.getItem('authMode');
+            if (authMode === 'app-only') {
+              const sessionId = localStorage.getItem('sessionId');
+              if (!sessionId) {
+                console.warn('⚠️ No sessionId found - attempting to create Convex session');
+                
+                // Try to create a session with stored credentials
+                const azureConfig = localStorage.getItem('azureConfig');
+                if (azureConfig) {
+                  try {
+                    const config = JSON.parse(azureConfig);
+                    
+                    console.log('🔧 Creating Convex session for restored user...');
+                    const configResult = await convex.action(api.auth.configure, {
+                      clientId: config.clientId,
+                      tenantId: config.tenantId,
+                      clientSecret: config.clientSecret,
+                    });
+                    
+                    localStorage.setItem('sessionId', configResult.sessionId);
+                    console.log('✅ Convex session created:', configResult.sessionId);
+                    
+                    // Validate session
+                    await convex.action(api.auth.loginAppOnly, {
+                      sessionId: configResult.sessionId,
+                    });
+                  } catch (sessionError) {
+                    console.error('❌ Failed to create Convex session:', sessionError);
+                    // Clear auth state and force re-login
+                    localStorage.removeItem('demoUser');
+                    localStorage.removeItem('authMode');
+                    setIsAuthenticated(false);
+                    setUser(null);
+                    setLoading(false);
+                    return;
+                  }
+                } else {
+                  console.error('❌ No Azure config found - clearing auth state');
                   localStorage.removeItem('demoUser');
                   localStorage.removeItem('authMode');
                   setIsAuthenticated(false);
@@ -142,14 +183,6 @@ export const AuthProvider = ({ children }) => {
                   setLoading(false);
                   return;
                 }
-              } else {
-                console.error('❌ No Azure config found - clearing auth state');
-                localStorage.removeItem('demoUser');
-                localStorage.removeItem('authMode');
-                setIsAuthenticated(false);
-                setUser(null);
-                setLoading(false);
-                return;
               }
             }
             
@@ -173,119 +206,10 @@ export const AuthProvider = ({ children }) => {
           }
         }
 
-        // Check if we're in app-only mode (client credentials, no user)
-        const authMode = localStorage.getItem('authMode');
-        if (authMode === 'app-only') {
-          console.log('🔑 App-only mode detected - verifying backend session');
-          
-          // Verify backend session exists
-          try {
-            const sessionCheck = await fetch('/api/auth/status', {
-              credentials: 'include'
-            });
-            
-            if (!sessionCheck.ok) {
-              console.warn('⚠️ Backend session not found, attempting to re-establish');
-              
-              // Get credentials from localStorage to re-configure backend
-              const azureConfigStr = localStorage.getItem('azureConfig');
-              if (!azureConfigStr) {
-                console.error('❌ No credentials found in localStorage');
-                // Clear auth state and force re-login
-                localStorage.removeItem('demoUser');
-                localStorage.removeItem('authMode');
-                setIsAuthenticated(false);
-                setUser(null);
-                setLoading(false);
-                return;
-              }
-              
-              const azureConfig = JSON.parse(azureConfigStr);
-              
-              // Step 1: Configure backend with credentials
-              const configResponse = await fetch('/api/auth/configure', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify(azureConfig)
-              });
-              
-              if (!configResponse.ok) {
-                console.error('❌ Failed to configure backend credentials');
-                // Clear auth state and force re-login
-                localStorage.removeItem('demoUser');
-                localStorage.removeItem('authMode');
-                setIsAuthenticated(false);
-                setUser(null);
-                setLoading(false);
-                return;
-              }
-              
-              console.log('✅ Backend credentials configured');
-              
-              // Step 2: Establish authenticated session
-              const loginResponse = await fetch('/api/auth/login-app-only', {
-                method: 'POST',
-                credentials: 'include'
-              });
-              
-              if (!loginResponse.ok) {
-                console.error('❌ Failed to establish backend session');
-                // Clear auth state and force re-login
-                localStorage.removeItem('demoUser');
-                localStorage.removeItem('authMode');
-                setIsAuthenticated(false);
-                setUser(null);
-                setLoading(false);
-                return;
-              }
-              console.log('✅ Backend session re-established');
-            } else {
-              console.log('✅ Backend session verified');
-            }
-          } catch (sessionError) {
-            console.error('❌ Backend session check failed:', sessionError);
-          }
-          
-          // App-only uses application permissions, not user permissions
-          // Authentication is already handled by demo mode logic above
-          setLoading(false);
-          return;
-        }
-
-        // OAuth2 user authentication mode - use MSAL
-        console.log('👤 OAuth2 user mode - checking MSAL account');
-
-        // Wait for authService to be initialized
-        if (!authService.msalInstance) {
-          console.log('⏳ MSAL instance not ready yet');
-          setLoading(false);
-          return;
-        }
-
-        const account = authService.getCurrentAccount();
-        console.log('🔍 Current MSAL account:', account?.username || 'none');
-
-        if (account) {
-          console.log('✅ Found MSAL account, setting authenticated state');
-          setIsAuthenticated(true);
-          setUser(account);
-
-          // Get detailed user info from Graph API
-          try {
-            const userInfo = await graphService.getUserById(account.homeAccountId);
-            setUser({ ...account, ...userInfo });
-          } catch (userInfoError) {
-            console.warn('Could not fetch detailed user info:', userInfoError);
-          }
-
-          // Check permissions (OAuth2 delegated permissions)
-          await checkPermissions();
-        } else {
-          console.log('❌ No MSAL account found');
-          setIsAuthenticated(false);
-          setUser(null);
-        }
+        // No authentication found
+        console.log('❌ No authentication found');
+        setIsAuthenticated(false);
+        setUser(null);
       } catch (err) {
         console.error('Auth status check error:', err);
         setError(err.message);
@@ -306,109 +230,56 @@ export const AuthProvider = ({ children }) => {
     return () => {
       window.removeEventListener('demoModeLogin', handleDemoLogin);
     };
-  }, [msalInstance]);
+  }, [convex]);
 
   // Check user permissions for different operations
+  // In SSO and app-only mode, we grant all permissions
+  // This can be enhanced later with role-based access control
   const checkPermissions = useCallback(async () => {
-    try {
-      const [
-        userMgmt,
-        deviceMgmt,
-        mailMgmt,
-        sharePointMgmt,
-        teamsMgmt,
-        complianceMgmt,
-        defenderMgmt,
-      ] = await Promise.all([
-        authService.hasPermissions(['User.ReadWrite.All']),
-        authService.hasPermissions(['DeviceManagementManagedDevices.ReadWrite.All']),
-        authService.hasPermissions(['MailboxSettings.ReadWrite']),
-        authService.hasPermissions(['Sites.ReadWrite.All']),
-        authService.hasPermissions(['Team.ReadWrite.All']),
-        authService.hasPermissions(['InformationProtectionPolicy.Read']), // Compliance/Purview
-        authService.hasPermissions(['SecurityEvents.Read.All']), // Microsoft Defender
-      ]);
-
-      setPermissions({
-        userManagement: userMgmt,
-        deviceManagement: deviceMgmt,
-        mailManagement: mailMgmt,
-        sharePointManagement: sharePointMgmt,
-        teamsManagement: teamsMgmt,
-        complianceManagement: complianceMgmt,
-        defenderManagement: defenderMgmt,
-      });
-    } catch (error) {
-      console.error('Permission check error:', error);
-    }
+    // For now, all authenticated users have all permissions
+    // Future enhancement: implement role-based access control
+    setPermissions({
+      userManagement: true,
+      deviceManagement: true,
+      mailManagement: true,
+      sharePointManagement: true,
+      teamsManagement: true,
+      complianceManagement: true,
+      defenderManagement: true,
+    });
   }, []);
 
-  // Login function
-  const login = useCallback(async (usePopup = true) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      let response;
-      if (usePopup) {
-        response = await authService.loginPopup();
-      } else {
-        authService.loginRedirect();
-        return;
-      }
-      
-      if (response && response.account) {
-        setIsAuthenticated(true);
-        setUser(response.account);
-        
-        // Get detailed user info
-        try {
-          const userInfo = await graphService.getUserById(response.account.homeAccountId);
-          setUser({ ...response.account, ...userInfo });
-        } catch (userInfoError) {
-          console.warn('Could not fetch detailed user info:', userInfoError);
-        }
-        
-        await checkPermissions();
-        
-        // Dispatch event to notify Login component that state is ready
-        // Use requestAnimationFrame to ensure state update is complete
-        requestAnimationFrame(() => {
-          console.log('✅ OAuth2 login state updated, dispatching oauthLoginStateUpdated');
-          window.dispatchEvent(new CustomEvent('oauthLoginStateUpdated', { 
-            detail: { isAuthenticated: true, user: response.account }
-          }));
-        });
-      }
-    } catch (err) {
-      console.error('Login error:', err);
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [checkPermissions]);
+  // Login function - not needed as Convex Auth handles SSO login via SSOLoginButton
+  // Keeping for compatibility but it won't be called directly
+  const login = useCallback(async () => {
+    console.warn('Direct login() called - should use SSOLoginButton instead');
+    throw new Error('Please use the SSO login button for authentication');
+  }, []);
 
   // Logout function
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     try {
       const authMode = localStorage.getItem('authMode');
 
+      // Handle SSO logout
+      if (authMode === 'sso' || convexAuthUser) {
+        console.log('🔓 Logging out from SSO mode');
+        await signOut();
+      }
+      
       // Handle app-only mode logout
       if (authMode === 'app-only' || isDemoMode()) {
         console.log('🔓 Logging out from app-only/demo mode');
         localStorage.removeItem('demoUser');
         localStorage.removeItem('authMode');
         localStorage.removeItem('appOnlyToken'); // Clear cached app-only token
+        localStorage.removeItem('sessionId'); // Clear session
         // Don't clear azureConfig - user might want to log in again
-      } else {
-        // OAuth2 mode - use MSAL logout
-        console.log('🔓 Logging out from OAuth2 mode');
-        authService.logout();
       }
 
       setIsAuthenticated(false);
       setUser(null);
+      setConvexAuthUser(null);
       setPermissions({
         userManagement: false,
         deviceManagement: false,
@@ -422,19 +293,13 @@ export const AuthProvider = ({ children }) => {
       console.error('Logout error:', err);
       setError(err.message);
     }
-  }, []);
+  }, [convexAuthUser, signOut]);
 
-  // Request additional permissions
+  // Request additional permissions - not needed with SSO
   const requestPermissions = useCallback(async (scopes) => {
-    try {
-      await authService.requestAdditionalPermissions(scopes);
-      await checkPermissions();
-    } catch (err) {
-      console.error('Permission request error:', err);
-      setError(err.message);
-      throw err;
-    }
-  }, [checkPermissions]);
+    console.log('Permission request not needed with SSO authentication');
+    // Permissions are granted via Azure AD app registration
+  }, []);
 
   // Get access token for specific operations
   const getAccessToken = useCallback(async (scopes) => {
@@ -452,13 +317,26 @@ export const AuthProvider = ({ children }) => {
     try {
       if (!isAuthenticated || !user) return;
       
-      const userInfo = await graphService.getUserById(user.homeAccountId);
-      setUser({ ...user, ...userInfo });
+      // For SSO users, refresh from Convex
+      if (convexAuthUser) {
+        const updatedUser = await convex.query(api.ssoAuth.getCurrentUser);
+        if (updatedUser) {
+          setUser({
+            displayName: updatedUser.name || updatedUser.email,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            userPrincipalName: updatedUser.email,
+            username: updatedUser.email,
+            authMode: 'sso'
+          });
+          setConvexAuthUser(updatedUser);
+        }
+      }
     } catch (err) {
       console.error('User info refresh error:', err);
       setError(err.message);
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, convexAuthUser, convex]);
 
   // Check if user has specific permission
   const hasPermission = useCallback((permission) => {

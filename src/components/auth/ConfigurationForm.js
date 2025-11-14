@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { resetMsalInstance } from '../../App';
 import { CogIcon, EyeIcon, EyeSlashIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -58,9 +57,6 @@ const ConfigurationForm = () => {
       
       // Save to localStorage
       localStorage.setItem('azureConfig', JSON.stringify(configToSave));
-
-      // Reset MSAL instance to pick up new configuration
-      resetMsalInstance();
 
       toast.success('Configuration saved! Signing you in...');
       
