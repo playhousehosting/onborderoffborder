@@ -124,6 +124,10 @@ export const ConvexAuthProvider = ({ children }) => {
 
       console.log('✅ App-only login successful');
       
+      // Set authMode to app-only so Graph API uses correct token acquisition
+      localStorage.setItem('authMode', 'app-only');
+      console.log('✅ Set authMode to app-only');
+      
       // Trigger storage event so AuthContext picks up the authenticated session
       window.dispatchEvent(new Event('storage'));
       

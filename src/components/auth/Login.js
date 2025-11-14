@@ -36,6 +36,8 @@ const Login = () => {
   const handleSSOLogin = async () => {
     try {
       console.log('🔑 Starting SSO login with Microsoft Entra ID');
+      // Set authMode to SSO before sign-in
+      localStorage.setItem('authMode', 'sso');
       // Store intended redirect location
       sessionStorage.setItem('auth_redirect', '/dashboard');
       await signIn("microsoft-entra-id");
