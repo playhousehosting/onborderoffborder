@@ -1,80 +1,15 @@
-import { InteractionRequiredAuthError } from '@azure/msal-browser';
-import { loginRequest, offboardingScopes, onboardingScopes } from '../config/authConfig';
-
+/**
+ * Auth Service for handling access tokens
+ * Uses Convex backend for app-only authentication
+ * SSO authentication is handled by Convex Auth directly
+ */
 export class AuthService {
-  constructor(msalInstance = null) {
-    this.msalInstance = msalInstance;
-    this.account = null;
-  }
-
-  // Set MSAL instance (called from App.js after initialization)
-  setMsalInstance(msalInstance) {
-    this.msalInstance = msalInstance;
-    // Update account if there's one signed in
-    const accounts = this.msalInstance?.getAllAccounts() || [];
-    if (accounts.length > 0) {
-      this.account = accounts[0];
-    }
-  }
-
-  // Get current account
-  getCurrentAccount() {
-    if (!this.msalInstance) {
-      return null;
-    }
-    const accounts = this.msalInstance.getAllAccounts();
-    return accounts.length > 0 ? accounts[0] : null;
-  }
-
-  // Check if user is authenticated
-  isAuthenticated() {
-    return this.getCurrentAccount() !== null;
-  }
-
-  // Login using redirect
-  loginRedirect(scopes = loginRequest.scopes) {
-    if (!this.msalInstance) {
-      throw new Error('MSAL instance not initialized');
-    }
-    const request = {
-      ...loginRequest,
-      scopes,
-    };
-    this.msalInstance.loginRedirect(request);
-  }
-
-  // Login using popup
-  async loginPopup(scopes = loginRequest.scopes) {
-    if (!this.msalInstance) {
-      throw new Error('MSAL instance not initialized');
-    }
-    try {
-      const request = {
-        ...loginRequest,
-        scopes,
-      };
-      const response = await this.msalInstance.loginPopup(request);
-      this.account = response.account;
-      return response;
-    } catch (error) {
-      console.error('Login popup error:', error);
-      throw error;
-    }
-  }
-
-  // Logout
-  logout() {
-    if (!this.msalInstance) {
-      return;
-    }
-    const logoutRequest = {
-      account: this.getCurrentAccount(),
-    };
-    this.msalInstance.logoutRedirect(logoutRequest);
+  constructor() {
+    // No MSAL instance needed
   }
 
   // Get access token for Graph API
-  async getAccessToken(scopes = loginRequest.scopes) {
+  async getAccessToken() {
     // Check if we're using app-only authentication (client credentials flow)
     const authMode = localStorage.getItem('authMode');
 
@@ -82,43 +17,10 @@ export class AuthService {
       return this.getAppOnlyToken();
     }
 
-    // Standard OAuth2 flow with MSAL
-    try {
-      const account = this.getCurrentAccount();
-      if (!account) {
-        throw new Error('No account found');
-      }
-
-      const request = {
-        scopes,
-        account: account,
-      };
-
-      // Try to get token from cache first
-      const response = await this.msalInstance.acquireTokenSilent(request);
-      return response.accessToken;
-    } catch (error) {
-      // If silent acquisition fails, try interactive method
-      if (error instanceof InteractionRequiredAuthError) {
-        // acquireTokenRedirect does not return a value - it redirects the page
-        // The token will be available after redirect via handleRedirectPromise()
-        const request = {
-          scopes,
-          account: this.getCurrentAccount(),
-        };
-
-        console.log('Interactive authentication required - redirecting...');
-        // This will redirect the page and not return
-        await this.msalInstance.acquireTokenRedirect(request);
-
-        // Code after redirect will never execute
-        // Token will be acquired on page load via handleRedirectPromise()
-        throw new Error('Redirecting for authentication');
-      } else {
-        console.error('Token acquisition error:', error);
-        throw error;
-      }
-    }
+    // For SSO mode, tokens are managed by Convex Auth
+    // This method shouldn't be called for SSO users
+    // Graph API calls should use Convex backend actions instead
+    throw new Error('Token access not available. Use Convex backend actions for Graph API calls.');
   }
 
   // Get access token using app-only (client credentials) flow
@@ -192,90 +94,33 @@ export class AuthService {
     localStorage.setItem('appOnlyToken', JSON.stringify({ token, expiresAt }));
   }
 
-  // Get token with specific scopes for offboarding
+  // Legacy methods - kept for compatibility but redirected to getAccessToken
   async getOffboardingToken() {
-    return this.getAccessToken(offboardingScopes);
+    return this.getAccessToken();
   }
 
-  // Get token with specific scopes for onboarding
   async getOnboardingToken() {
-    return this.getAccessToken(onboardingScopes);
+    return this.getAccessToken();
   }
 
-  // Get token for user management
   async getUserManagementToken() {
-    return this.getAccessToken(['User.Read.All', 'User.ReadWrite.All']);
+    return this.getAccessToken();
   }
 
-  // Get token for device management (Intune)
   async getDeviceManagementToken() {
-    return this.getAccessToken([
-      'DeviceManagementManagedDevices.ReadWrite.All',
-      'DeviceManagementApps.ReadWrite.All'
-    ]);
+    return this.getAccessToken();
   }
 
-  // Get token for mail management
   async getMailManagementToken() {
-    return this.getAccessToken([
-      'MailboxSettings.ReadWrite',
-      'Mail.ReadWrite'
-    ]);
+    return this.getAccessToken();
   }
 
-  // Get token for SharePoint/OneDrive
   async getSharePointToken() {
-    return this.getAccessToken(['Sites.ReadWrite.All']);
+    return this.getAccessToken();
   }
 
-  // Get token for Teams
   async getTeamsToken() {
-    return this.getAccessToken(['Team.ReadWrite.All']);
-  }
-
-  // Request additional permissions
-  async requestAdditionalPermissions(scopes) {
-    try {
-      const request = {
-        scopes,
-        prompt: 'consent',
-      };
-      await this.msalInstance.acquireTokenRedirect(request);
-    } catch (error) {
-      console.error('Permission request error:', error);
-      throw error;
-    }
-  }
-
-  // Check if user has specific permissions
-  async hasPermissions(scopes) {
-    try {
-      await this.getAccessToken(scopes);
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  // Get user info from Graph API
-  async getUserInfo() {
-    try {
-      const token = await this.getAccessToken(['User.Read']);
-      const response = await fetch('https://graph.microsoft.com/v1.0/me', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch user info');
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching user info:', error);
-      throw error;
-    }
+    return this.getAccessToken();
   }
 }
 

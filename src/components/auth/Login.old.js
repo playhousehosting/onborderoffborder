@@ -9,6 +9,7 @@ import { useConvex } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { setSessionId } from '../../services/convexService';
 import { SSOLoginButton } from './SSOLogin';
+import { useAuthActions } from "@convex-dev/auth/react";
 import {
   SparklesIcon,
   UserGroupIcon,
@@ -19,10 +20,11 @@ import {
 } from '@heroicons/react/24/outline';
 
 const Login = () => {
-  const { loading, error } = useAuth();
+  const { login, loading, error } = useAuth();
   const { t } = useTranslation();
   const convex = useConvex();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [authMode, setAuthMode] = useState(localStorage.getItem('preferredAuthMode') || 'app-only');
   const [config, setConfig] = useState({
     clientId: '',
     tenantId: '',
@@ -36,8 +38,10 @@ const Login = () => {
     try {
       const config = JSON.parse(localStorage.getItem('azureConfig') || '{}');
       const hasValidConfig = !!(config.tenantId && config.clientId);
+      console.log('Login - hasConfig check:', { config, hasValidConfig });
       return hasValidConfig;
     } catch (e) {
+      console.error('Login - hasConfig error:', e);
       return false;
     }
   };
@@ -45,6 +49,8 @@ const Login = () => {
   // Check if we're in demo mode
   const demoMode = isDemoMode();
   const isConfigured = hasConfig() || demoMode;
+  
+  console.log('Login - isConfigured:', isConfigured, 'demoMode:', demoMode, 'hasConfig:', hasConfig());
 
   // Load existing config on mount and check for auto-login flag
   React.useEffect(() => {
@@ -67,7 +73,21 @@ const Login = () => {
         // Use the specified auth mode
         if (autoLoginMode === 'app-only') {
           handleAppOnlyLogin();
+        } else {
+          handleLogin();
         }
+      }
+      
+      // Check if we should trigger interactive login after page reload
+      const pendingInteractiveLogin = sessionStorage.getItem('pendingInteractiveLogin');
+      if (pendingInteractiveLogin === 'true' && isConfigured) {
+        sessionStorage.removeItem('pendingInteractiveLogin');
+        console.log('✅ Backend MSAL config loaded, triggering interactive login...');
+        
+        // Trigger the actual MSAL login now that config is loaded
+        setTimeout(() => {
+          triggerMsalLogin();
+        }, 500);
       }
     } catch (e) {
       console.error('Error loading config:', e);
@@ -97,6 +117,10 @@ const Login = () => {
       console.log('Saving Azure config:', configToSave);
       localStorage.setItem('azureConfig', JSON.stringify(configToSave));
       
+      // Verify it was saved
+      const savedConfig = localStorage.getItem('azureConfig');
+      console.log('Verified saved config:', savedConfig);
+      
       toast.success('Configuration saved! Signing you in...');
       
       // Determine which auth mode to use based on whether secret is provided
@@ -104,6 +128,8 @@ const Login = () => {
         // App-Only mode - authenticate directly with client credentials
         console.log('Using App-Only authentication with client secret');
         
+        // Enable demo mode for app-only authentication (uses localStorage auth)
+        localStorage.setItem('demoMode', 'true');
         localStorage.setItem('authMode', 'app-only');
         
         // Create a mock admin user for app-only mode
@@ -138,7 +164,7 @@ const Login = () => {
           
           // Step 2: Establish authenticated session (uses action for token validation)
           console.log('🔑 Logging in with app-only mode...');
-          await convex.action(api.auth.loginAppOnly, {
+          const loginResult = await convex.action(api.auth.loginAppOnly, {
             sessionId: configResult.sessionId,
           });
           
@@ -158,6 +184,7 @@ const Login = () => {
         toast.success('Successfully authenticated! Redirecting to dashboard...');
         
         // Wait for AuthContext to update state via authStateUpdated event
+        // This ensures isAuthenticated is true before ProtectedRoute checks
         const handleAuthStateUpdated = () => {
           console.log('✅ Auth state updated in context, navigating to dashboard');
           setIsSaving(false);
@@ -175,14 +202,55 @@ const Login = () => {
           navigate('/dashboard', { replace: true });
         }, 500);
       } else {
-        // No client secret - user should use SSO login button instead
-        toast.info('Configuration saved! Please use the SSO login button above.');
-        setIsSaving(false);
+        // OAuth2 mode - requires page reload to reinitialize MSAL
+        sessionStorage.setItem('autoLogin', 'true');
+        sessionStorage.setItem('autoLoginMode', 'oauth2');
+        window.location.href = window.location.origin;
       }
     } catch (error) {
       console.error('Error saving config:', error);
       toast.error('Failed to save configuration');
       setIsSaving(false);
+    }
+  };
+
+  const handleLogin = async () => {
+    console.log('handleLogin (OAuth2) called - isConfigured:', isConfigured);
+    
+    if (!isConfigured) {
+      toast.error('Please configure Azure AD credentials first');
+      return;
+    }
+    
+    try {
+      setIsLoggingIn(true);
+      console.log('Attempting OAuth2 interactive login...');
+      await login(true);
+      toast.success('Successfully signed in with Microsoft!');
+      
+      // Wait for oauthLoginStateUpdated event before navigating
+      // This ensures isAuthenticated is true in context
+      const handleOAuthStateUpdated = () => {
+        console.log('✅ OAuth2 state updated in context, navigating to dashboard');
+        setIsLoggingIn(false);
+        navigate('/dashboard', { replace: true });
+        window.removeEventListener('oauthLoginStateUpdated', handleOAuthStateUpdated);
+      };
+      
+      window.addEventListener('oauthLoginStateUpdated', handleOAuthStateUpdated, { once: true });
+      
+      // Fallback timeout in case event doesn't fire
+      setTimeout(() => {
+        window.removeEventListener('oauthLoginStateUpdated', handleOAuthStateUpdated);
+        console.log('Timeout: Navigating to dashboard anyway');
+        setIsLoggingIn(false);
+        navigate('/dashboard', { replace: true });
+      }, 1000);
+    } catch (err) {
+      console.error('OAuth2 login failed:', err);
+      toast.error(`Sign in failed: ${err.message || 'Please try again.'}`);
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -267,6 +335,119 @@ const Login = () => {
     }
   };
 
+  // Trigger MSAL login (called after page reload with backend config)
+  const triggerMsalLogin = async () => {
+    try {
+      setIsLoggingIn(true);
+      console.log('🔄 Initiating MSAL popup login with backend config...');
+      
+      // Set auth mode to interactive
+      localStorage.setItem('authMode', 'interactive');
+      localStorage.removeItem('demoMode');
+      
+      // Wait for login to complete and auth state to update
+      await new Promise((resolve, reject) => {
+        const handleSuccess = () => {
+          console.log('✅ OAuth2 login state updated');
+          window.removeEventListener('oauthLoginStateUpdated', handleSuccess);
+          resolve();
+        };
+        
+        window.addEventListener('oauthLoginStateUpdated', handleSuccess, { once: true });
+        
+        // Call the login function from AuthContext which uses MSAL
+        login().catch(reject);
+        
+        // Timeout after 60 seconds
+        setTimeout(() => {
+          window.removeEventListener('oauthLoginStateUpdated', handleSuccess);
+          reject(new Error('Login timeout - popup may have been blocked'));
+        }, 60000);
+      });
+      
+      toast.success('Successfully signed in with Microsoft account!');
+      console.log('✅ Navigating to dashboard...');
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('❌ Interactive login failed:', err);
+      
+      // Provide specific error messages
+      let errorMessage = err.message || 'Unknown error occurred';
+      
+      if (errorMessage.includes('popup_window_error') || errorMessage.includes('blocked')) {
+        errorMessage = 'Popup was blocked. Please allow popups for this site and try again.';
+      } else if (errorMessage.includes('AADSTS')) {
+        errorMessage = `Azure AD error: ${errorMessage}. Check your app registration settings.`;
+      } else if (errorMessage.includes('timeout')) {
+        errorMessage = 'Login timed out. Please check your popup blocker and try again.';
+      }
+      
+      toast.error(`Sign in failed: ${errorMessage}`);
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleInteractiveLogin = async () => {
+    try {
+      setIsLoggingIn(true);
+      console.log('🔵 Attempting Interactive (OAuth2) login with backend MSAL config...');
+      
+      // Import the fetchMsalConfigFromBackend function dynamically
+      const { fetchMsalConfigFromBackend } = await import('../../config/authConfig');
+      
+      // Fetch MSAL configuration from backend environment variables
+      console.log('🔍 Fetching MSAL config from backend Vercel environment...');
+      const backendConfig = await fetchMsalConfigFromBackend();
+      
+      if (!backendConfig || !backendConfig.clientId || !backendConfig.tenantId) {
+        console.error('❌ Backend MSAL config not available');
+        toast.error('Interactive authentication not configured on backend. Please set AZURE_CLIENT_ID and AZURE_TENANT_ID in Vercel environment variables.');
+        return;
+      }
+      
+      console.log('✅ Backend MSAL config received:', {
+        clientId: backendConfig.clientId.substring(0, 8) + '...',
+        tenantId: backendConfig.tenantId.substring(0, 8) + '...',
+        isMultiTenant: backendConfig.isMultiTenant,
+        authority: backendConfig.authority
+      });
+      
+      // Store backend config in localStorage for MSAL initialization
+      const msalConfig = {
+        clientId: backendConfig.clientId,
+        tenantId: backendConfig.tenantId,
+        authority: backendConfig.authority,  // Use authority from backend
+        isMultiTenant: backendConfig.isMultiTenant
+      };
+      localStorage.setItem('azureConfig', JSON.stringify(msalConfig));
+      
+      // Set auth mode to interactive
+      localStorage.setItem('authMode', 'interactive');
+      localStorage.removeItem('demoMode');
+      
+      // Reset MSAL instance to pick up new configuration
+      console.log('🔄 Resetting MSAL instance with backend config...');
+      const { resetMsalInstance } = await import('../../App');
+      resetMsalInstance();
+      
+      // Reload the page to reinitialize MSAL with new config
+      console.log('🔄 Reloading page to apply new MSAL configuration...');
+      toast.success('Configuration loaded from backend. Initializing authentication...');
+      
+      // Set a flag to auto-trigger login after reload
+      sessionStorage.setItem('pendingInteractiveLogin', 'true');
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } catch (err) {
+      console.error('❌ Failed to load backend config:', err);
+      toast.error(`Failed to load configuration: ${err.message || 'Please try again.'}`);
+      setIsLoggingIn(false);
+    }
+  };
+
   const handleDemoLogin = () => {
     // Enable demo mode
     localStorage.setItem('demoMode', 'true');
@@ -294,6 +475,12 @@ const Login = () => {
     setTimeout(() => {
       navigate('/dashboard');
     }, 100);
+  };
+
+  const toggleAuthMode = () => {
+    const newMode = authMode === 'app-only' ? 'interactive' : 'app-only';
+    setAuthMode(newMode);
+    localStorage.setItem('preferredAuthMode', newMode);
   };
 
   return (
@@ -362,7 +549,7 @@ const Login = () => {
                   }}
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
-                  🎉 Recommended: Sign in with your Microsoft 365 work account
+                  🎉 New! Sign in with your Microsoft 365 work account
                 </p>
               </div>
               
@@ -424,10 +611,10 @@ const Login = () => {
               )}
               
               <div className="space-y-6">
-                {/* Azure AD Configuration - For App-Only Mode */}
+                {/* Azure AD Configuration - Always Visible */}
                 <div className="space-y-4 border-2 border-primary-200 dark:border-primary-700 rounded-lg p-5 bg-gradient-to-br from-white to-primary-50 dark:from-gray-800 dark:to-gray-800">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">App-Only Credentials (Optional)</h3>
+                    <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Azure AD Credentials</h3>
                     {isConfigured && (
                       <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded flex items-center">
                         <CheckCircleIcon className="h-3 w-3 mr-1" />
@@ -468,7 +655,7 @@ const Login = () => {
 
                   <div>
                     <label htmlFor="clientSecret" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Client Secret <span className="text-gray-500 dark:text-gray-400 text-xs">(Required for App-Only mode)</span>
+                      Client Secret <span className="text-gray-500 dark:text-gray-400 text-xs">(Optional - required for App-Only mode)</span>
                     </label>
                     <input
                       type="password"
@@ -477,10 +664,10 @@ const Login = () => {
                       value={config.clientSecret}
                       onChange={handleConfigChange}
                       className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      placeholder="Enter client secret for automated authentication"
+                      placeholder="Enter client secret (optional)"
                     />
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      💡 Provide secret for automated/background authentication
+                      💡 Provide secret for automated/background authentication, leave blank for interactive login
                     </p>
                   </div>
 
@@ -497,7 +684,7 @@ const Login = () => {
                     ) : (
                       <>
                         <CheckCircleIcon className="h-5 w-5 mr-2" />
-                        Save & Login (App-Only)
+                        Save & Login to Dashboard
                       </>
                     )}
                   </button>
@@ -507,22 +694,31 @@ const Login = () => {
                   </p>
                 </div>
                 
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-3">
+                  <div className="flex items-start">
+                    <InformationCircleIcon className="h-4 w-4 text-blue-500 dark:text-blue-400 mt-0.5 mr-2 flex-shrink-0" />
+                    <div className="text-xs text-blue-700 dark:text-blue-300">
+                      <strong>Interactive Sign-In:</strong> Uses multi-tenant app credentials from Vercel backend environment (AZURE_CLIENT_ID, AZURE_TENANT_ID)
+                    </div>
+                  </div>
+                </div>
+                
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">Quick access</span>
+                    <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">Or choose authentication mode</span>
                   </div>
                 </div>
                 
                 {/* Alternative Authentication Options */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-4 gap-3">
                   {/* SSO Login with Microsoft 365 */}
                   <button
                     onClick={() => {
-                      // Trigger SSO login button
-                      document.querySelector('button[class*="bg-blue-600"]')?.click();
+                      // Will be handled by SSOLoginButton component
+                      window.dispatchEvent(new CustomEvent('triggerSSOLogin'));
                     }}
                     className="flex flex-col items-center justify-center p-4 border-2 border-green-200 dark:border-green-700 rounded-lg hover:border-green-400 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/30 transition-all bg-white dark:bg-gray-800"
                     title="Microsoft 365 SSO - Sign in with your work account"
@@ -530,6 +726,18 @@ const Login = () => {
                     <MicrosoftIcon className="h-8 w-8 text-green-600 dark:text-green-400 mb-2" />
                     <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">M365 SSO</span>
                     <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">Recommended</span>
+                  </button>
+
+                  {/* OAuth2 Interactive Sign-In */}
+                  <button
+                    onClick={handleInteractiveLogin}
+                    disabled={isLoggingIn || loading || !isConfigured}
+                    className="flex flex-col items-center justify-center p-4 border-2 border-blue-200 dark:border-blue-700 rounded-lg hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-gray-800"
+                    title="OAuth2 Interactive Sign-In - Sign in with your Microsoft account"
+                  >
+                    <MicrosoftIcon className="h-8 w-8 text-blue-600 dark:text-blue-400 mb-2" />
+                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">OAuth2</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">Interactive</span>
                   </button>
 
                   {/* App-Only Authentication */}
@@ -556,11 +764,11 @@ const Login = () => {
                   </button>
                 </div>
                 
-                {/* Info about authentication modes */}
+                {/* Info about selected mode */}
                 <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
                   <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-                    <p><strong>SSO (Recommended):</strong> Sign in with your Microsoft 365 work account</p>
-                    <p><strong>App-Only:</strong> Uses client secret for automated operations</p>
+                    <p><strong>OAuth2:</strong> Sign in with your Microsoft account (delegated permissions)</p>
+                    <p><strong>App-Only:</strong> Uses client secret for automated operations (requires secret above)</p>
                     <p><strong>Demo:</strong> Explore the app with mock data (no credentials needed)</p>
                   </div>
                 </div>
@@ -596,27 +804,48 @@ const Login = () => {
                   </div>
                 </div>
                 
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-blue-800 dark:text-blue-300">First time sign in?</h3>
-                      <div className="mt-1 text-sm text-blue-700 dark:text-blue-400">
-                        You may need to consent to required permissions. An administrator may need to approve these permissions for your organization.
+                {demoMode ? (
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-4">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <InformationCircleIcon className="h-5 w-5 text-amber-400" />
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-amber-800 dark:text-amber-300">Setup Instructions</h3>
+                        <div className="mt-1 text-sm text-amber-700 dark:text-amber-400">
+                          <p className="mb-2">To enable full authentication:</p>
+                          <ol className="list-decimal list-inside space-y-1">
+                            <li>Create an Azure AD app registration</li>
+                            <li>Update the .env file with your credentials</li>
+                            <li>Grant the required API permissions</li>
+                          </ol>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-blue-800 dark:text-blue-300">First time sign in?</h3>
+                        <div className="mt-1 text-sm text-blue-700 dark:text-blue-400">
+                          You may need to consent to required permissions. An administrator may need to approve these permissions for your organization.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             
             <div className="text-center mt-6 text-xs text-gray-500 dark:text-gray-400">
               <p>© 2025 Employee Life Cycle Portal</p>
-              <p className="mt-1">Powered by Microsoft Graph API & Convex</p>
+              <p className="mt-1">Powered by Microsoft Graph API</p>
               <p className="mt-1">Built by Kameron McCain</p>
               <p className="mt-2">
                 <a href="/faq" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
