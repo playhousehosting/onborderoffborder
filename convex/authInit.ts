@@ -9,6 +9,8 @@ export const { auth, signIn, signOut, store } = convexAuth({
     MicrosoftEntraID({
       clientId: process.env.AUTH_AZURE_AD_ID,
       clientSecret: process.env.AUTH_AZURE_AD_SECRET,
+      // Set explicit issuer to match what Microsoft sends
+      issuer: `https://login.microsoftonline.com/${tenantId}/v2.0`,
       authorization: {
         url: `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize`,
         params: {
@@ -17,27 +19,6 @@ export const { auth, signIn, signOut, store } = convexAuth({
       },
       token: {
         url: `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
-        async conform(response) {
-          const body = await response.json();
-          
-          // For multi-tenant apps, accept any Microsoft issuer
-          // The issuer will be tenant-specific even when using "common"
-          if (body.id_token) {
-            const [, payload] = body.id_token.split('.');
-            const decoded = JSON.parse(atob(payload));
-            console.log('🔍 Token issuer:', decoded.iss);
-            
-            // Validate it's a Microsoft issuer
-            if (!decoded.iss?.includes('login.microsoftonline.com')) {
-              throw new Error('Invalid issuer - must be from Microsoft');
-            }
-            
-            // Override issuer validation by setting expected issuer
-            body.issuer = decoded.iss;
-          }
-          
-          return Response.json(body);
-        },
       },
       userinfo: `https://graph.microsoft.com/oidc/userinfo`,
       checks: ["state"],
