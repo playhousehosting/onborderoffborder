@@ -24,6 +24,16 @@ export const AuthProvider = ({ children }) => {
                    null;
 
   // Map auth state from both providers to unified format
+  const permissions = convexAuth.isAuthenticated ? convexAuth.permissions : {
+    userManagement: true,
+    deviceManagement: true,
+    mailManagement: true,
+    sharePointManagement: true,
+    teamsManagement: true,
+    complianceManagement: true,
+    defenderManagement: true,
+  };
+
   const authState = {
     isAuthenticated: clerkSignedIn || convexAuth.isAuthenticated,
     loading: !clerkLoaded || convexAuth.isLoading,
@@ -42,14 +52,11 @@ export const AuthProvider = ({ children }) => {
       ...clerkUser
     } : null,
     // Permissions: app-only has full access, Clerk users have standard access
-    permissions: convexAuth.isAuthenticated ? convexAuth.permissions : {
-      userManagement: true,
-      deviceManagement: true,
-      mailManagement: true,
-      sharePointManagement: true,
-      teamsManagement: true,
-      complianceManagement: true,
-      defenderManagement: true,
+    permissions,
+    // Helper function to check permissions
+    hasPermission: (permission) => {
+      if (!permissions) return false;
+      return permissions[permission] === true;
     },
     // Expose logout from active auth mode
     logout: convexAuth.isAuthenticated ? convexAuth.logout : null

@@ -89,7 +89,7 @@ const Login = () => {
               routing="path"
               path="/login"
               signUpUrl="/sign-up"
-              afterSignInUrl="/dashboard"
+              fallbackRedirectUrl="/dashboard"
               appearance={{
                 elements: {
                   rootBox: "mx-auto",
