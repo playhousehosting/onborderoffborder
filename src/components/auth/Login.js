@@ -90,6 +90,7 @@ const Login = () => {
               path="/login"
               signUpUrl="/sign-up"
               fallbackRedirectUrl="/dashboard"
+              signInFallbackRedirectUrl="/dashboard"
               appearance={{
                 elements: {
                   rootBox: "mx-auto",

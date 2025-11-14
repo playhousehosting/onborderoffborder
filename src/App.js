@@ -64,6 +64,9 @@ function App() {
                 <Routes>
                   {/* Public Routes - Always accessible */}
                   <Route path="/login" element={<Login />} />
+                  <Route path="/login/*" element={<Login />} />
+                  <Route path="/sign-up" element={<Login />} />
+                  <Route path="/sign-up/*" element={<Login />} />
                   <Route path="/oauth-callback" element={<OAuthCallback />} />
                   <Route path="/configure" element={<ConfigurationForm />} />
                   <Route path="/faq" element={<FAQ />} />
