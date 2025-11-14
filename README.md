@@ -2,6 +2,12 @@
 
 A production-ready, enterprise-grade SaaS platform for managing the complete employee lifecycle with Microsoft 365 integration. Built with React, Convex serverless backend, and Microsoft Graph API.
 
+## 🚨 SSO Login Issues?
+
+If you're seeing `[CONVEX A(auth:signIn)] Server Error`, the Convex Auth environment variables need to be configured.
+
+**Quick Fix (5 min)**: [QUICK_FIX_SSO_ERRORS.md](./QUICK_FIX_SSO_ERRORS.md)
+
 ## 🚀 Live Application
 
 **Production URL**: [https://www.employeelifecyclepotral.com](https://www.employeelifecyclepotral.com)
@@ -44,12 +50,16 @@ A comprehensive employee lifecycle management system featuring:
 ## ✨ Key Features
 
 ### 🔐 Authentication & Security
+- **Microsoft 365 SSO**: One-click sign-in with work accounts via Convex Auth
+  - **⚠️ Configuration Required**: See [CONVEX_SSO_CONFIGURATION.md](./CONVEX_SSO_CONFIGURATION.md) for setup
 - **App-Only Mode**: Server-side token acquisition via Convex (eliminates CORS issues)
 - **Multi-Tenant Sessions**: Complete data isolation per organization
 - **AES-256-GCM Encryption**: All credentials encrypted at rest
 - **Automatic Session Management**: Auto-creates sessions for cached users
 - **Microsoft Graph API**: All operations use official Microsoft APIs
 - **Zero Legacy Endpoints**: No deprecated APIs or direct Azure AD calls from browser
+
+📖 See [M365_SSO_SETUP.md](./M365_SSO_SETUP.md) for SSO setup and [CONVEX_SSO_CONFIGURATION.md](./CONVEX_SSO_CONFIGURATION.md) for detailed configuration.
 
 ### 👥 User Management
 - **Complete CRUD Operations**: Create, read, update, disable Azure AD users
@@ -271,6 +281,25 @@ npx convex dev
    - `SecurityEvents.Read.All` - Security events (optional)
 3. Click **Grant admin consent for [Your Organization]** (requires Global Admin)
 4. Verify all permissions show green checkmarks
+
+### 5a. Configure SSO (Optional but Recommended)
+
+If you want to enable Microsoft 365 Single Sign-On for end users:
+
+1. In your Azure AD app **Authentication** section, add redirect URI:
+   ```
+   https://your-convex-subdomain.convex.site/api/auth/callback/azure-ad
+   ```
+2. Add **delegated permissions**: `openid`, `profile`, `email`, `User.Read`
+3. Click **Grant admin consent**
+4. In [Convex Dashboard](https://dashboard.convex.dev), add environment variables:
+   - `AUTH_AZURE_AD_ID` = Your Application (Client) ID
+   - `AUTH_AZURE_AD_SECRET` = Your Client Secret
+   - `AUTH_AZURE_AD_ISSUER` = `https://login.microsoftonline.com/{TENANT_ID}/v2.0`
+5. Run `npx convex deploy`
+
+📖 **Complete SSO setup guide**: [CONVEX_SSO_CONFIGURATION.md](./CONVEX_SSO_CONFIGURATION.md)  
+📖 **Troubleshooting SSO errors**: [SSO_TROUBLESHOOTING.md](./SSO_TROUBLESHOOTING.md)
 
 ### 6. Configure Frontend Environment
 

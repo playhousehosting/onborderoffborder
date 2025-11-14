@@ -23,8 +23,24 @@ export const SSOLoginButton = ({ className = "", onSuccess, onError }) => {
       }
     } catch (error) {
       console.error("SSO login error:", error);
+      
+      // Provide helpful error message
+      let errorMessage = "SSO login failed. ";
+      
+      if (error.message && error.message.includes("Server Error")) {
+        errorMessage += "This usually means the Convex Auth environment variables are not configured. ";
+        errorMessage += "Please ensure AUTH_AZURE_AD_ID, AUTH_AZURE_AD_SECRET, and AUTH_AZURE_AD_ISSUER are set in your Convex Dashboard. ";
+        errorMessage += "See CONVEX_SSO_CONFIGURATION.md for setup instructions.";
+      } else if (error.message) {
+        errorMessage += error.message;
+      } else {
+        errorMessage += "Please try again or contact support.";
+      }
+      
+      console.error("SSO login error details:", errorMessage);
+      
       if (onError) {
-        onError(error);
+        onError(new Error(errorMessage));
       }
     } finally {
       setIsLoading(false);

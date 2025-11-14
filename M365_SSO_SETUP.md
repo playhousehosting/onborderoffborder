@@ -1,68 +1,83 @@
 # Microsoft 365 SSO Setup Guide
 
+## ⚠️ IMPORTANT: Configuration Required
+
+If you're seeing SSO login errors like `[CONVEX A(auth:signIn)] Server Error`, this means the Convex Auth environment variables are **not yet configured**.
+
+### 🚀 Quick Fix (5 Minutes)
+**👉 [QUICK_FIX_SSO_ERRORS.md](./QUICK_FIX_SSO_ERRORS.md)** - Fast, step-by-step fix for the error
+
+### 📖 Complete Guides
+- **[CONVEX_SSO_CONFIGURATION.md](./CONVEX_SSO_CONFIGURATION.md)** - Comprehensive setup with explanations
+- **[SSO_TROUBLESHOOTING.md](./SSO_TROUBLESHOOTING.md)** - Troubleshooting common issues
+- **[SSO_CONFIGURATION_CHECKLIST.md](./.github/SSO_CONFIGURATION_CHECKLIST.md)** - Printable checklist
+
+## Quick Start
+
+### Prerequisites
+- Azure AD app registration with client ID, client secret, and tenant ID
+- Access to [Convex Dashboard](https://dashboard.convex.dev) for your project
+
+### Critical Configuration Steps
+
+1. **Set Environment Variables in Convex Dashboard** (Settings → Environment Variables):
+   - `AUTH_AZURE_AD_ID` = Your Azure AD Application (Client) ID
+   - `AUTH_AZURE_AD_SECRET` = Your Azure AD Client Secret  
+   - `AUTH_AZURE_AD_ISSUER` = `https://login.microsoftonline.com/{TENANT_ID}/v2.0`
+
+2. **Configure Redirect URI in Azure AD**:
+   ```
+   https://neighborly-manatee-845.convex.site/api/auth/callback/azure-ad
+   ```
+
+3. **Deploy Convex Functions**:
+   ```bash
+   npx convex deploy
+   ```
+
 ## Overview
 
 This application now supports **Microsoft 365 Single Sign-On (SSO)** via Convex Auth, allowing users to sign in with their work accounts using OAuth 2.0.
 
-## Setup Instructions
+## Detailed Setup Instructions
 
-### 1. Azure AD App Registration
+For complete step-by-step instructions including:
+- Getting Azure AD credentials
+- Creating client secrets
+- Configuring redirect URIs
+- Setting Convex environment variables
+- Troubleshooting common errors
 
-Update your existing Azure AD app registration to support OAuth redirects:
+**See: [CONVEX_SSO_CONFIGURATION.md](./CONVEX_SSO_CONFIGURATION.md)**
 
-1. Go to [Azure Portal](https://portal.azure.com) → Azure Active Directory → App registrations
-2. Select your application
-3. Go to **Authentication** → **Add a platform** → **Web**
-4. Add redirect URIs:
-   ```
-   http://localhost:3000/api/auth/callback/microsoft
-   https://your-production-domain.com/api/auth/callback/microsoft
-   https://neighborly-manatee-845.convex.site/api/auth/callback/microsoft
-   ```
-5. Enable **ID tokens** checkbox
-6. Click **Save**
+## Quick Reference: Azure AD App Configuration
 
-### 2. Update API Permissions
+### 1. Redirect URIs (Authentication section)
+```
+http://localhost:3000/api/auth/callback/azure-ad
+https://your-production-domain.com/api/auth/callback/azure-ad  
+https://neighborly-manatee-845.convex.site/api/auth/callback/azure-ad
+```
 
-Ensure these **delegated permissions** are added (in addition to existing application permissions):
+**Note**: The path ends with `/azure-ad` (not `/microsoft`)
+
+### 2. Delegated API Permissions
 
 - `openid` - Required for SSO
 - `profile` - User profile information
 - `email` - User email address
 - `User.Read` - Read signed-in user profile
-- `offline_access` - Refresh tokens
+- `offline_access` - Refresh tokens (optional)
 
-Click **Grant admin consent** after adding.
+Click **Grant admin consent** after adding permissions.
 
-### 3. Configure Environment Variables
+### 3. Client Secret
 
-The same Azure AD credentials work for both app-only and SSO modes. No additional environment variables needed!
+Create a client secret in Azure AD (Certificates & secrets section) and save the **Value** immediately - you won't be able to see it again!
 
-**Convex Backend** (already configured):
-```bash
-AZURE_CLIENT_ID=your-client-id
-AZURE_CLIENT_SECRET=your-client-secret
-AZURE_TENANT_ID=your-tenant-id
-```
+## Testing SSO Login
 
-**Frontend** (already configured):
-```bash
-REACT_APP_CONVEX_URL=https://neighborly-manatee-845.convex.cloud
-```
-
-### 4. Deploy Convex Schema Changes
-
-```bash
-npx convex deploy
-```
-
-This will deploy:
-- Updated schema with `authTables` (Convex Auth)
-- New `auth.config.ts` with Microsoft provider
-- New `ssoAuth.ts` mutations and queries
-- HTTP routes for OAuth callback
-
-### 5. Test SSO Login
+After configuration:
 
 1. Navigate to login page
 2. Click **"Sign in with Microsoft 365"** button
