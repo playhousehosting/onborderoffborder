@@ -169,6 +169,9 @@ export const ConvexAuthProvider = ({ children }) => {
 
       console.log('✅ OAuth2 login successful');
       
+      // Trigger storage event so AuthContext picks up the authenticated session
+      window.dispatchEvent(new Event('storage'));
+      
       setIsAuthenticated(true);
       setUser(result.user);
       setPermissions({
