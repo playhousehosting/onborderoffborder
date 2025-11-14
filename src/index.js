@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { ConvexReactClient } from "convex/react";
 import { ConvexProvider } from "convex/react";
 import { ClerkProvider } from '@clerk/clerk-react';
+import { ConvexAuthProvider } from './contexts/ConvexAuthContext';
 import App from './App';
 import StartupHealthCheck from './components/common/StartupHealthCheck';
 import './i18n'; // Initialize i18n
@@ -60,9 +61,11 @@ if (!rootElement) {
     <React.StrictMode>
       <ClerkProvider publishableKey={clerkPubKey}>
         <ConvexProvider client={convex}>
-          <StartupHealthCheck>
-            <App />
-          </StartupHealthCheck>
+          <ConvexAuthProvider>
+            <StartupHealthCheck>
+              <App />
+            </StartupHealthCheck>
+          </ConvexAuthProvider>
         </ConvexProvider>
       </ClerkProvider>
     </React.StrictMode>

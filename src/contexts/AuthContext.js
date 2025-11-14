@@ -1,7 +1,7 @@
-// AuthContext wrapper for Clerk authentication
-// This provides a unified auth interface for the app
+// Unified AuthContext supporting both Clerk and App-Only authentication
 import React, { createContext, useContext } from 'react';
 import { useAuth as useClerkAuth, useUser } from '@clerk/clerk-react';
+import { useAuth as useConvexAuth } from './ConvexAuthContext';
 
 const AuthContext = createContext();
 
@@ -14,20 +14,35 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const { isSignedIn, isLoaded } = useClerkAuth();
-  const { user } = useUser();
+  const { isSignedIn: clerkSignedIn, isLoaded: clerkLoaded } = useClerkAuth();
+  const { user: clerkUser } = useUser();
+  const convexAuth = useConvexAuth();
 
-  // Map Clerk auth state to our app's expected format
+  // Determine which auth mode is active
+  const authMode = convexAuth.isAuthenticated ? 'app-only' : 
+                   clerkSignedIn ? 'clerk' : 
+                   null;
+
+  // Map auth state from both providers to unified format
   const authState = {
-    isAuthenticated: isSignedIn || false,
-    loading: !isLoaded,
-    user: user ? {
-      displayName: user.fullName || user.primaryEmailAddress?.emailAddress || 'User',
-      email: user.primaryEmailAddress?.emailAddress,
-      id: user.id,
-      ...user
+    isAuthenticated: clerkSignedIn || convexAuth.isAuthenticated,
+    loading: !clerkLoaded || convexAuth.isLoading,
+    authMode, // 'clerk', 'app-only', or null
+    user: convexAuth.isAuthenticated ? {
+      displayName: 'Admin (App Credentials)',
+      email: convexAuth.user?.email || 'app-admin@system',
+      id: convexAuth.user?.id || 'app-admin',
+      authMode: 'app-only',
+      ...convexAuth.user
+    } : clerkUser ? {
+      displayName: clerkUser.fullName || clerkUser.primaryEmailAddress?.emailAddress || 'User',
+      email: clerkUser.primaryEmailAddress?.emailAddress,
+      id: clerkUser.id,
+      authMode: 'clerk',
+      ...clerkUser
     } : null,
-    permissions: {
+    // Permissions: app-only has full access, Clerk users have standard access
+    permissions: convexAuth.isAuthenticated ? convexAuth.permissions : {
       userManagement: true,
       deviceManagement: true,
       mailManagement: true,
@@ -35,13 +50,18 @@ export const AuthProvider = ({ children }) => {
       teamsManagement: true,
       complianceManagement: true,
       defenderManagement: true,
-    }
+    },
+    // Expose logout from active auth mode
+    logout: convexAuth.isAuthenticated ? convexAuth.logout : null
   };
 
   console.log('🔄 Auth state:', { 
-    isSignedIn, 
-    isLoaded,
-    user: user?.fullName
+    authMode,
+    isAuthenticated: authState.isAuthenticated,
+    clerkSignedIn, 
+    clerkLoaded,
+    convexAuthenticated: convexAuth.isAuthenticated,
+    user: authState.user?.displayName
   });
 
   return (
