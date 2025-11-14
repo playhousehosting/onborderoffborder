@@ -9,18 +9,13 @@ export const { auth, signIn, signOut, store } = convexAuth({
     AzureAD({
       clientId: process.env.AUTH_AZURE_AD_ID,
       clientSecret: process.env.AUTH_AZURE_AD_SECRET,
+      // Use wellKnown for automatic discovery - handles multi-tenant issuer validation
+      wellKnown: `https://login.microsoftonline.com/${tenantId}/v2.0/.well-known/openid-configuration`,
       authorization: {
-        url: `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize`,
         params: {
           scope: "openid profile email User.Read offline_access",
-          // Add redirect_uri parameter for explicit control
-          redirect_uri: process.env.CONVEX_SITE_URL ? `${process.env.CONVEX_SITE_URL}/api/auth/callback/azure-ad` : undefined,
         },
       },
-      token: `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
-      userinfo: `https://graph.microsoft.com/oidc/userinfo`,
-      // Configure issuer for multi-tenant support
-      issuer: `https://login.microsoftonline.com/${tenantId}/v2.0`,
       checks: ["state"], // Use "state" only - PKCE causes "error in response body" with Microsoft
       profile(profile) {
         // Validate required profile data
