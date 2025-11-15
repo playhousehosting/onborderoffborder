@@ -38,7 +38,9 @@ class ClerkGraphService {
         throw new Error('No Clerk session token available');
       }
 
-      const url = `${this.baseUrl}${this.proxyPath}${endpoint}`;
+      // Remove leading slash from endpoint if present (proxyPath already has trailing slash)
+      const cleanEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
+      const url = `${this.baseUrl}${this.proxyPath}${cleanEndpoint}`;
       
       const response = await fetch(url, {
         ...options,
