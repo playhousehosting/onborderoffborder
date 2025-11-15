@@ -7,8 +7,10 @@ import { useAuth } from '@clerk/clerk-react';
  */
 class ClerkGraphService {
   constructor() {
-    this.baseUrl = process.env.REACT_APP_BACKEND_URL || 'https://employee-offboarding-portal-backend.vercel.app';
-    this.proxyPath = '/api/clerk-proxy/graph';
+    // Use Convex deployment URL for proxy
+    const convexUrl = process.env.REACT_APP_CONVEX_URL || 'https://neighborly-manatee-845.convex.cloud';
+    this.baseUrl = convexUrl.replace('/api', '');
+    this.proxyPath = '/clerk-proxy/graph';
   }
 
   /**
