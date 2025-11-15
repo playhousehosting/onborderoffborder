@@ -230,7 +230,7 @@ export const getMailboxSettings = action({
       sessionId: args.sessionId,
     });
 
-    const accessToken = await getAccessToken(credentials);
+    const accessToken = await getAccessTokenFromCredentials(credentials);
 
     const response = await fetch(
       `https://graph.microsoft.com/v1.0/users/${args.userId}/mailboxSettings`,
@@ -264,7 +264,7 @@ export const setAutomaticReply = action({
       sessionId: args.sessionId,
     });
 
-    const accessToken = await getAccessToken(credentials);
+    const accessToken = await getAccessTokenFromCredentials(credentials);
 
     const response = await fetch(
       `https://graph.microsoft.com/v1.0/users/${args.userId}/mailboxSettings`,
