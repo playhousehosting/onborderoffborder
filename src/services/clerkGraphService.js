@@ -8,9 +8,13 @@ import { useAuth } from '@clerk/clerk-react';
 class ClerkGraphService {
   constructor() {
     // Use Convex deployment URL for proxy
-    const convexUrl = process.env.REACT_APP_CONVEX_URL || 'https://neighborly-manatee-845.convex.cloud';
-    this.baseUrl = convexUrl.replace('/api', '');
-    this.proxyPath = '/clerk-proxy/graph/'; // Note trailing slash for pathPrefix routing
+    const convexUrl = process.env.REACT_APP_CONVEX_URL;
+    if (!convexUrl) {
+      throw new Error('REACT_APP_CONVEX_URL environment variable is required');
+    }
+    // Convex HTTP actions are served from the root URL, not /api
+    this.baseUrl = convexUrl.includes('/api') ? convexUrl.replace('/api', '') : convexUrl;
+    this.proxyPath = '/clerk-proxy/graph'; // No trailing slash - will be added with endpoint
   }
 
   /**
@@ -38,9 +42,11 @@ class ClerkGraphService {
         throw new Error('No Clerk session token available');
       }
 
-      // Remove leading slash from endpoint if present (proxyPath already has trailing slash)
-      const cleanEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
+      // Ensure endpoint starts with / for proper path construction
+      const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
       const url = `${this.baseUrl}${this.proxyPath}${cleanEndpoint}`;
+      
+      console.log(`📡 Clerk Graph request: ${url}`);
       
       const response = await fetch(url, {
         ...options,
@@ -72,7 +78,7 @@ class ClerkGraphService {
    * Get all users
    */
   async getAllUsers(filter = '', top = 999) {
-    let endpoint = `/users?$top=${top}&$select=id,displayName,userPrincipalName,mail,jobTitle,department,accountEnabled,createdDateTime,lastPasswordChangeDateTime`;
+    let endpoint = `users?$top=${top}&$select=id,displayName,userPrincipalName,mail,jobTitle,department,accountEnabled,createdDateTime,lastPasswordChangeDateTime`;
     
     if (filter) {
       endpoint += `&$filter=${encodeURIComponent(filter)}`;
@@ -85,14 +91,14 @@ class ClerkGraphService {
    * Get user by ID
    */
   async getUser(userId) {
-    return await this.makeRequest(`/users/${userId}`);
+    return await this.makeRequest(`users/${userId}`);
   }
 
   /**
    * Create user
    */
   async createUser(userData) {
-    return await this.makeRequest('/users', {
+    return await this.makeRequest('users', {
       method: 'POST',
       body: JSON.stringify(userData)
     });
@@ -102,7 +108,7 @@ class ClerkGraphService {
    * Update user
    */
   async updateUser(userId, updates) {
-    return await this.makeRequest(`/users/${userId}`, {
+    return await this.makeRequest(`users/${userId}`, {
       method: 'PATCH',
       body: JSON.stringify(updates)
     });
@@ -112,7 +118,7 @@ class ClerkGraphService {
    * Delete user
    */
   async deleteUser(userId) {
-    return await this.makeRequest(`/users/${userId}`, {
+    return await this.makeRequest(`users/${userId}`, {
       method: 'DELETE'
     });
   }
@@ -121,35 +127,35 @@ class ClerkGraphService {
    * Get user's groups
    */
   async getUserGroups(userId) {
-    return await this.makeRequest(`/users/${userId}/memberOf`);
+    return await this.makeRequest(`users/${userId}/memberOf`);
   }
 
   /**
    * Get all groups
    */
   async getAllGroups() {
-    return await this.makeRequest('/groups?$select=id,displayName,mail,groupTypes');
+    return await this.makeRequest('groups?$select=id,displayName,mail,groupTypes');
   }
 
   /**
    * Get managed devices
    */
   async getManagedDevices(top = 999) {
-    return await this.makeRequest(`/deviceManagement/managedDevices?$top=${top}&$select=id,deviceName,complianceState,operatingSystem,osVersion,managedDeviceOwnerType,enrolledDateTime,lastSyncDateTime`);
+    return await this.makeRequest(`deviceManagement/managedDevices?$top=${top}&$select=id,deviceName,complianceState,operatingSystem,osVersion,managedDeviceOwnerType,enrolledDateTime,lastSyncDateTime`);
   }
 
   /**
    * Get device by ID
    */
   async getDevice(deviceId) {
-    return await this.makeRequest(`/deviceManagement/managedDevices/${deviceId}`);
+    return await this.makeRequest(`deviceManagement/managedDevices/${deviceId}`);
   }
 
   /**
    * Get audit logs
    */
   async getAuditLogs(top = 50) {
-    return await this.makeRequest(`/auditLogs/directoryAudits?$top=${top}&$orderby=activityDateTime desc`);
+    return await this.makeRequest(`auditLogs/directoryAudits?$top=${top}&$orderby=activityDateTime desc`);
   }
 
   /**
@@ -157,7 +163,7 @@ class ClerkGraphService {
    */
   async checkHealth() {
     try {
-      const response = await fetch(`${this.baseUrl}/api/clerk-proxy/health`);
+      const response = await fetch(`${this.baseUrl}/clerk-proxy/health`);
       return await response.json();
     } catch (error) {
       console.error('❌ Health check failed:', error);
