@@ -14,7 +14,7 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const { isSignedIn: clerkSignedIn, isLoaded: clerkLoaded } = useClerkAuth();
+  const { isSignedIn: clerkSignedIn, isLoaded: clerkLoaded, signOut: clerkSignOut } = useClerkAuth();
   const { user: clerkUser } = useUser();
   const convexAuth = useConvexAuth();
 
@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }) => {
       return permissions[permission] === true;
     },
     // Expose logout from active auth mode
-    logout: convexAuth.isAuthenticated ? convexAuth.logout : null
+    logout: convexAuth.isAuthenticated ? convexAuth.logout : clerkSignedIn ? clerkSignOut : null
   };
 
   console.log('🔄 Auth state:', { 

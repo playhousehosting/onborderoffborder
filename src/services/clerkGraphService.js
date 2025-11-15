@@ -10,7 +10,7 @@ class ClerkGraphService {
     // Use Convex deployment URL for proxy
     const convexUrl = process.env.REACT_APP_CONVEX_URL || 'https://neighborly-manatee-845.convex.cloud';
     this.baseUrl = convexUrl.replace('/api', '');
-    this.proxyPath = '/clerk-proxy/graph';
+    this.proxyPath = '/clerk-proxy/graph/'; // Note trailing slash for pathPrefix routing
   }
 
   /**
