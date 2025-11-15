@@ -30,13 +30,13 @@ http.route({
 });
 
 http.route({
-  path: "/clerk-proxy/graph",
+  pathPrefix: "/clerk-proxy/graph/",
   method: "GET",
   handler: graphGet,
 });
 
 http.route({
-  path: "/clerk-proxy/graph",
+  pathPrefix: "/clerk-proxy/graph/",
   method: "POST",
   handler: graphPost,
 });
