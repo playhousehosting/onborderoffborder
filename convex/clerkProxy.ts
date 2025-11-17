@@ -194,8 +194,8 @@ export const graphGet = httpAction(async (ctx, request) => {
     }
 
     // Extract the Graph API path from the URL path (everything after /clerk-proxy/graph)
-    const pathMatch = url.pathname.match(/\/clerk-proxy\/graph(.*)$/);
-    const graphPath = pathMatch ? pathMatch[1] : '/users';
+    const pathMatch = url.pathname.match(/\/clerk-proxy\/graph\/?(.*)$/);
+    const graphPath = pathMatch && pathMatch[1] ? `/${pathMatch[1]}` : '/users';
     
     // Build Graph URL with query params
     const graphUrl = `https://graph.microsoft.com/v1.0${graphPath}${url.search}`;
@@ -289,11 +289,11 @@ export const graphPost = httpAction(async (ctx, request) => {
     }
 
     // Extract the Graph API path from the URL path
-    const pathMatch = url.pathname.match(/\/clerk-proxy\/graph(.*)$/);
-    const graphPath = pathMatch ? pathMatch[1] : '/users';
+    const pathMatch = url.pathname.match(/\/clerk-proxy\/graph\/?(.*)$/);
+    const graphPath = pathMatch && pathMatch[1] ? `/${pathMatch[1]}` : '/users';
     const body = await request.text();
 
-    const graphUrl = `https://graph.microsoft.com/v1.0${graphPath}`;
+    const graphUrl = `https://graph.microsoft.com/v1.0${graphPath}${url.search}`;
     console.log('🌐 Calling Graph API POST:', graphUrl);
 
     try {
