@@ -1294,6 +1294,18 @@ const OffboardingWizard = () => {
                       Disable user account
                     </div>
                   )}
+                  {offboardingOptions.resetPassword && (
+                    <div className="flex items-center text-sm">
+                      <CheckCircleIcon className="h-4 w-4 text-success-500 mr-2" />
+                      Reset password
+                    </div>
+                  )}
+                  {offboardingOptions.revokeLicenses && (
+                    <div className="flex items-center text-sm">
+                      <CheckCircleIcon className="h-4 w-4 text-success-500 mr-2" />
+                      Revoke all licenses
+                    </div>
+                  )}
                   {offboardingOptions.convertMailbox && (
                     <div className="flex items-center text-sm">
                       <CheckCircleIcon className="h-4 w-4 text-success-500 mr-2" />
@@ -1354,10 +1366,10 @@ const OffboardingWizard = () => {
                       Remove app assignments
                     </div>
                   )}
-                  {offboardingOptions.revokeLicenses && (
+                  {offboardingOptions.removeAuthMethods && (
                     <div className="flex items-center text-sm">
                       <CheckCircleIcon className="h-4 w-4 text-success-500 mr-2" />
-                      Revoke all licenses
+                      Remove authentication methods
                     </div>
                   )}
                 </div>
