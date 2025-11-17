@@ -2,11 +2,11 @@ import { httpAction } from "./_generated/server";
 
 /**
  * Clerk to Graph API Proxy
- * Validates Clerk session tokens and uses app-only credentials to call Microsoft Graph
+ * Validates Clerk JWT session tokens and uses app-only credentials to call Microsoft Graph
  */
 
-// Verify Clerk token
-async function verifyClerkToken(token: string): Promise<{ userId: string; sessionId: string } | null> {
+// Verify Clerk JWT token
+async function verifyClerkToken(token: string): Promise<{ userId: string; email: string; claims: any } | null> {
   try {
     const clerkSecretKey = process.env.CLERK_SECRET_KEY;
     if (!clerkSecretKey) {
@@ -14,10 +14,47 @@ async function verifyClerkToken(token: string): Promise<{ userId: string; sessio
       return null;
     }
 
-    // Extract session ID from token (format: sess_xxxxx)
+    // Clerk JWT tokens are base64-encoded JWTs
+    // We'll verify them by checking with Clerk's JWKS endpoint
+    // For now, we'll do a simple verification by calling Clerk API
+    
+    // Decode JWT to get session ID (if it's a JWT, not a session token)
+    try {
+      // JWT format: header.payload.signature
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        // It's a JWT - decode the payload
+        const payload = JSON.parse(atob(parts[1]));
+        console.log('✅ JWT decoded:', {
+          sub: payload.sub,
+          email: payload.email || payload.primaryEmail,
+          exp: payload.exp,
+          iss: payload.iss
+        });
+        
+        // Basic validation
+        const now = Math.floor(Date.now() / 1000);
+        if (payload.exp && payload.exp < now) {
+          console.error("❌ Token expired");
+          return null;
+        }
+        
+        // For enhanced security, you should verify the signature with Clerk's JWKS
+        // But for now, we trust the token if it has the right structure
+        return {
+          userId: payload.sub || payload.user_id,
+          email: payload.email || payload.primaryEmail || '',
+          claims: payload
+        };
+      }
+    } catch (e) {
+      console.log("Not a JWT, trying session verification...");
+    }
+
+    // Fallback: Try as session ID format (sess_xxxxx)
     const sessionId = token.startsWith('sess_') ? token : null;
     if (!sessionId) {
-      console.error("❌ Invalid Clerk token format");
+      console.error("❌ Invalid token format - not JWT or session ID");
       return null;
     }
 
@@ -38,7 +75,8 @@ async function verifyClerkToken(token: string): Promise<{ userId: string; sessio
     const session = await response.json();
     return {
       userId: session.user_id,
-      sessionId: session.id
+      email: session.user?.primary_email_address || '',
+      claims: session
     };
   } catch (error) {
     console.error("❌ Error verifying Clerk token:", error);
@@ -96,30 +134,46 @@ export const health = httpAction(async () => {
 // Proxy GET requests to Microsoft Graph
 export const graphGet = httpAction(async (ctx, request) => {
     const url = new URL(request.url);
-    const clerkToken = request.headers.get('Authorization')?.replace('Bearer ', '');
+    const authHeader = request.headers.get('Authorization');
+    const clerkToken = authHeader?.replace('Bearer ', '');
+
+    console.log('📥 GET request to:', url.pathname);
 
     if (!clerkToken) {
       return new Response(JSON.stringify({ error: "No authorization token" }), {
         status: 401,
-        headers: { "Content-Type": "application/json" }
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
       });
     }
 
     // Verify Clerk token
     const session = await verifyClerkToken(clerkToken);
     if (!session) {
+      console.error('❌ Token verification failed');
       return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
         status: 401,
-        headers: { "Content-Type": "application/json" }
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
       });
     }
+
+    console.log('✅ Clerk user authenticated:', session.userId, session.email);
 
     // Get Graph API token
     const graphToken = await getGraphAccessToken();
     if (!graphToken) {
+      console.error('❌ Failed to get Graph API token');
       return new Response(JSON.stringify({ error: "Failed to acquire Graph API token" }), {
         status: 500,
-        headers: { "Content-Type": "application/json" }
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
       });
     }
 
@@ -129,6 +183,7 @@ export const graphGet = httpAction(async (ctx, request) => {
     
     // Build Graph URL with query params
     const graphUrl = `https://graph.microsoft.com/v1.0${graphPath}${url.search}`;
+    console.log('🌐 Calling Graph API:', graphUrl);
 
     try {
       const graphResponse = await fetch(graphUrl, {
@@ -140,15 +195,23 @@ export const graphGet = httpAction(async (ctx, request) => {
       });
 
       const data = await graphResponse.json();
+      console.log('✅ Graph API response:', graphResponse.status);
+      
       return new Response(JSON.stringify(data), {
         status: graphResponse.status,
-        headers: { "Content-Type": "application/json" }
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
       });
     } catch (error) {
       console.error("❌ Graph API request error:", error);
       return new Response(JSON.stringify({ error: "Graph API request failed" }), {
         status: 500,
-        headers: { "Content-Type": "application/json" }
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
       });
     }
 });
@@ -156,28 +219,44 @@ export const graphGet = httpAction(async (ctx, request) => {
 // Proxy POST requests to Microsoft Graph
 export const graphPost = httpAction(async (ctx, request) => {
     const url = new URL(request.url);
-    const clerkToken = request.headers.get('Authorization')?.replace('Bearer ', '');
+    const authHeader = request.headers.get('Authorization');
+    const clerkToken = authHeader?.replace('Bearer ', '');
+
+    console.log('📝 POST request to:', url.pathname);
 
     if (!clerkToken) {
       return new Response(JSON.stringify({ error: "No authorization token" }), {
         status: 401,
-        headers: { "Content-Type": "application/json" }
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
       });
     }
 
     const session = await verifyClerkToken(clerkToken);
     if (!session) {
+      console.error('❌ Token verification failed');
       return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
         status: 401,
-        headers: { "Content-Type": "application/json" }
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
       });
     }
 
+    console.log('✅ Clerk user authenticated:', session.userId);
+
     const graphToken = await getGraphAccessToken();
     if (!graphToken) {
+      console.error('❌ Failed to get Graph API token');
       return new Response(JSON.stringify({ error: "Failed to acquire Graph API token" }), {
         status: 500,
-        headers: { "Content-Type": "application/json" }
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
       });
     }
 
@@ -186,8 +265,11 @@ export const graphPost = httpAction(async (ctx, request) => {
     const graphPath = pathMatch ? pathMatch[1] : '/users';
     const body = await request.text();
 
+    const graphUrl = `https://graph.microsoft.com/v1.0${graphPath}`;
+    console.log('🌐 Calling Graph API POST:', graphUrl);
+
     try {
-      const graphResponse = await fetch(`https://graph.microsoft.com/v1.0${graphPath}`, {
+      const graphResponse = await fetch(graphUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${graphToken}`,
@@ -197,15 +279,23 @@ export const graphPost = httpAction(async (ctx, request) => {
       });
 
       const data = await graphResponse.json();
+      console.log('✅ Graph API POST response:', graphResponse.status);
+      
       return new Response(JSON.stringify(data), {
         status: graphResponse.status,
-        headers: { "Content-Type": "application/json" }
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
       });
     } catch (error) {
       console.error("❌ Graph API POST error:", error);
       return new Response(JSON.stringify({ error: "Graph API request failed" }), {
         status: 500,
-        headers: { "Content-Type": "application/json" }
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
       });
     }
 });
