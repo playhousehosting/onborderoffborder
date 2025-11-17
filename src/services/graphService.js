@@ -196,7 +196,9 @@ export class GraphService {
         throw tokenError;
       }
       
-      const url = `${this.baseUrl}${endpoint}`;
+      // Ensure endpoint starts with / for proper URL construction
+      const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+      const url = `${this.baseUrl}${cleanEndpoint}`;
       
       const defaultOptions = {
         headers: {
