@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { graphService } from '../../services/graphService';
-import { useClerkGraphService } from '../../services/clerkGraphService';
-import { useAuth } from '../../contexts/AuthContext';
+import msalGraphService from '../../services/msalGraphService';
+import { useMSALAuth } from '../../contexts/MSALAuthContext';
 import { useDebounce } from '../../hooks/useDebounce';
 import { logger } from '../../utils/logger';
 import { SkeletonTable } from '../common/Skeleton';
@@ -20,9 +19,13 @@ import {
 } from '@heroicons/react/24/outline';
 
 const UserSearch = () => {
-  const { hasPermission, authMode } = useAuth();
-  const clerkGraphService = useClerkGraphService();
-  const service = authMode === 'clerk' ? clerkGraphService : graphService;
+  const { hasPermission, getAccessToken } = useMSALAuth();
+  const service = msalGraphService;
+  
+  // Set up MSAL graph service with token function
+  useEffect(() => {
+    msalGraphService.setGetTokenFunction(getAccessToken);
+  }, [getAccessToken]);
   const [users, setUsers] = useState([]);
   const [allUsers, setAllUsers] = useState([]); // Store all users for client-side filtering
   const [loading, setLoading] = useState(false);

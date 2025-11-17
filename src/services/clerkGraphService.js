@@ -59,8 +59,17 @@ class ClerkGraphService {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: response.statusText }));
-        throw new Error(error.error?.message || error.message || 'Request failed');
+        const errorData = await response.json().catch(() => ({ message: response.statusText }));
+        
+        // Check if error requires OAuth authorization
+        if (errorData.requiresOAuth) {
+          const oauthError = new Error(errorData.message || 'Microsoft authorization required');
+          oauthError.requiresOAuth = true;
+          oauthError.authUrl = errorData.authUrl;
+          throw oauthError;
+        }
+        
+        throw new Error(errorData.error?.message || errorData.message || 'Request failed');
       }
 
       // Handle 204 No Content

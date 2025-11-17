@@ -1,13 +1,15 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { MsalProvider } from '@azure/msal-react';
+import { MSALAuthProvider, useMSALAuth as useAuth } from './contexts/MSALAuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Toaster } from 'react-hot-toast';
+import { msalInstance } from './config/msalConfig';
 import './index.css';
 
 // Components
 import Layout from './components/common/Layout';
-import Login from './components/auth/Login';
+import MSALLogin from './components/auth/MSALLogin';
 import SignUp from './components/auth/SignUp';
 import OAuthCallback from './components/auth/OAuthCallback';
 import Dashboard from './components/dashboard/Dashboard';
@@ -59,14 +61,15 @@ const ProtectedRoute = ({ children }) => {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider>
-        <AuthProvider>
+      <MsalProvider instance={msalInstance}>
+        <MSALAuthProvider>
+          <ThemeProvider>
             <Router>
               <div className="App">
                 <Routes>
                   {/* Public Routes - Always accessible */}
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/login/*" element={<Login />} />
+                  <Route path="/login" element={<MSALLogin />} />
+                  <Route path="/login/*" element={<MSALLogin />} />
                   <Route path="/sign-up" element={<SignUp />} />
                   <Route path="/sign-up/*" element={<SignUp />} />
                   <Route path="/oauth-callback" element={<OAuthCallback />} />
@@ -258,8 +261,9 @@ function App() {
               />
               </div>
             </Router>
-        </AuthProvider>
-      </ThemeProvider>
+          </ThemeProvider>
+        </MSALAuthProvider>
+      </MsalProvider>
     </ErrorBoundary>
   );
 }

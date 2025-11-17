@@ -19,6 +19,8 @@ import type * as crons from "../crons.js";
 import type * as graph from "../graph.js";
 import type * as graphUtils from "../graphUtils.js";
 import type * as http from "../http.js";
+import type * as microsoftOAuth from "../microsoftOAuth.js";
+import type * as msalProxy from "../msalProxy.js";
 import type * as offboarding from "../offboarding.js";
 import type * as offboardingAutomation from "../offboardingAutomation.js";
 import type * as offboardingMutations from "../offboardingMutations.js";
@@ -44,6 +46,8 @@ declare const fullApi: ApiFromModules<{
   graph: typeof graph;
   graphUtils: typeof graphUtils;
   http: typeof http;
+  microsoftOAuth: typeof microsoftOAuth;
+  msalProxy: typeof msalProxy;
   offboarding: typeof offboarding;
   offboardingAutomation: typeof offboardingAutomation;
   offboardingMutations: typeof offboardingMutations;

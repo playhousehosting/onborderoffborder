@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { Link, useSearchParams } from 'react-router-dom';
+import { useMSALAuth } from '../../contexts/MSALAuthContext';
 import { useTranslation } from 'react-i18next';
-import { graphService } from '../../services/graphService';
-import { useClerkGraphService } from '../../services/clerkGraphService';
+import msalGraphService from '../../services/msalGraphService';
 import { logger } from '../../utils/logger';
 import { SkeletonDashboard } from '../common/Skeleton';
 import toast from 'react-hot-toast';
@@ -23,9 +22,9 @@ import {
 } from '@heroicons/react/24/outline';
 
 const Dashboard = () => {
-  const { user, hasPermission, authMode } = useAuth();
-  const clerkGraphService = useClerkGraphService();
+  const { user, hasPermission, getAccessToken } = useMSALAuth();
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeUsers: 0,
@@ -39,13 +38,18 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [recentActivity, setRecentActivity] = useState([]);
 
+  // Set up MSAL graph service with token function
+  useEffect(() => {
+    msalGraphService.setGetTokenFunction(getAccessToken);
+  }, [getAccessToken]);
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
 
-        // Select appropriate service based on auth mode
-        const service = authMode === 'clerk' ? clerkGraphService : graphService;
+        // Use MSAL graph service
+        const service = msalGraphService;
         
         // Only fetch data if user has permissions
         if (hasPermission('userManagement')) {
@@ -152,6 +156,25 @@ const Dashboard = () => {
     fetchDashboardData();
   }, [hasPermission]);
 
+  // No OAuth callback checking needed with MSAL
+  useEffect(() => {
+    const oauthSuccess = searchParams.get('oauth_success');
+    if (!oauthSuccess) return;
+    const oauthError = searchParams.get('oauth_error');
+    const errorDetails = searchParams.get('details') || searchParams.get('oauth_error_description');
+
+    if (oauthSuccess) {
+      toast.success('✅ Microsoft authorization successful! Reloading dashboard...');
+      // Remove query params and reload
+      window.history.replaceState({}, '', '/dashboard');
+      window.location.reload();
+    } else if (oauthError) {
+      toast.error(`OAuth Error: ${oauthError}${errorDetails ? ` - ${errorDetails}` : ''}`);
+      // Remove query params
+      window.history.replaceState({}, '', '/dashboard');
+    }
+  }, [searchParams]);
+
   const formatTimestamp = (timestamp) => {
     const now = new Date();
     const diff = now - timestamp;
@@ -199,9 +222,10 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="animate-in">
-      {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-primary-500 via-blue-500 to-purple-600 dark:from-primary-600 dark:via-blue-600 dark:to-purple-700 rounded-2xl p-8 mb-8 text-white shadow-2xl relative overflow-hidden">
+    <>
+      <div className="animate-in">
+        {/* Welcome Section */}
+        <div className="bg-gradient-to-r from-primary-500 via-blue-500 to-purple-600 dark:from-primary-600 dark:via-blue-600 dark:to-purple-700 rounded-2xl p-8 mb-8 text-white shadow-2xl relative overflow-hidden">
         {/* Decorative background elements */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -mr-48 -mt-48 animate-pulse"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full -ml-32 -mb-32"></div>
@@ -558,7 +582,8 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

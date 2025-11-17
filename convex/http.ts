@@ -2,7 +2,7 @@ import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { auth } from "./authInit";
 import { initiateAdminConsent, handleAdminConsentCallback } from "./adminConsent";
-import { health, graphGet, graphPost, graphOptions } from "./clerkProxy";
+import { health, graphGet, graphPost, graphPatch, graphDelete, graphOptions } from "./msalProxy";
 
 const http = httpRouter();
 
@@ -22,7 +22,7 @@ http.route({
   handler: handleAdminConsentCallback,
 });
 
-// Clerk proxy endpoints for Graph API access
+// MSAL proxy endpoints for Graph API access
 http.route({
   path: "/clerk-proxy/health",
   method: "GET",
@@ -46,6 +46,18 @@ http.route({
   pathPrefix: "/clerk-proxy/graph/",
   method: "POST",
   handler: graphPost,
+});
+
+http.route({
+  pathPrefix: "/clerk-proxy/graph/",
+  method: "PATCH",
+  handler: graphPatch,
+});
+
+http.route({
+  pathPrefix: "/clerk-proxy/graph/",
+  method: "DELETE",
+  handler: graphDelete,
 });
 
 export default http;

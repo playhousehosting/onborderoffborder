@@ -89,6 +89,51 @@ async function verifyClerkToken(token: string): Promise<{ userId: string; email:
   }
 }
 
+// Fetch Microsoft OAuth token from Clerk's user metadata
+// For multi-tenant support, tokens must be stored in user's public_metadata
+// during the OAuth flow (via Clerk webhooks or custom integration)
+async function getMicrosoftOAuthToken(userId: string): Promise<string | null> {
+  try {
+    const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+    if (!clerkSecretKey) {
+      console.error("❌ CLERK_SECRET_KEY not configured");
+      return null;
+    }
+
+    console.log(`🔍 Checking for stored Microsoft OAuth token for user: ${userId}`);
+    
+    // Get user's public_metadata where we store the OAuth token
+    const userResponse = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
+      headers: {
+        'Authorization': `Bearer ${clerkSecretKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!userResponse.ok) {
+      console.error(`❌ Failed to fetch user from Clerk: ${userResponse.status}`);
+      return null;
+    }
+
+    const userData = await userResponse.json();
+    
+    // Check if OAuth token is stored in public_metadata
+    const storedToken = userData.public_metadata?.microsoft_access_token;
+    
+    if (storedToken) {
+      console.log("🎫 Found stored Microsoft OAuth token in user metadata");
+      return storedToken;
+    }
+
+    console.log("ℹ️ No Microsoft OAuth token found in user metadata");
+    console.log("💡 User needs to complete Microsoft OAuth consent flow for Graph API access");
+    return null;
+  } catch (error) {
+    console.error("❌ Error fetching Microsoft OAuth token from Clerk:", error);
+    return null;
+  }
+}
+
 // Get Graph API access token using app-only credentials
 async function getGraphAccessToken(): Promise<string | null> {
   try {
@@ -192,24 +237,33 @@ export const graphGet = httpAction(async (ctx, request) => {
     let graphToken = session.graphToken;
     
     if (graphToken) {
-      console.log('🎫 Using user\'s delegated OAuth token (Microsoft sign-in via Clerk)');
+      console.log('🎫 Using user\'s delegated OAuth token from JWT');
     } else {
-      console.log('🔑 No delegated token - attempting app-only credentials');
-      graphToken = await getGraphAccessToken();
+      // Try fetching OAuth token from Clerk's Backend API
+      console.log('🔍 No token in JWT, checking Clerk API for Microsoft OAuth token...');
+      graphToken = await getMicrosoftOAuthToken(session.userId);
       
-      if (!graphToken) {
-        console.error('❌ Failed to get Graph API token - user needs to sign in with Microsoft or configure app-only credentials');
-        return new Response(JSON.stringify({ 
-          error: "Graph API access not available",
-          message: "Please sign in with Microsoft account or contact administrator to configure app-only access"
-        }), {
-          status: 403,
-          headers: { 
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*"
-          }
-        });
+      if (graphToken) {
+        console.log('🎫 Using Microsoft OAuth token from Clerk API');
       }
+    }
+    
+    if (!graphToken) {
+      console.error('❌ No Microsoft OAuth token available');
+      console.log('💡 Multi-tenant mode requires users to complete Microsoft OAuth consent');
+      console.log('📝 Note: AZURE_TENANT_ID=organizations prevents app-only authentication');
+      return new Response(JSON.stringify({ 
+        error: "Microsoft Graph API access not available",
+        message: "This application requires Microsoft OAuth consent. Please click 'Authorize Microsoft Access' to grant permissions.",
+        requiresOAuth: true,
+        authUrl: "/auth/microsoft" // Frontend should redirect here
+      }), {
+        status: 403,
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
     }
 
     // Extract the Graph API path from the URL path (everything after /clerk-proxy/graph)
@@ -283,28 +337,36 @@ export const graphPost = httpAction(async (ctx, request) => {
 
     console.log('✅ Clerk user authenticated:', session.userId);
 
-    // Get Graph API token - prefer user's delegated token, fallback to app-only
+    // Get Graph API token - prefer user's delegated token
     let graphToken = session.graphToken;
     
     if (graphToken) {
-      console.log('🎫 Using user\'s delegated OAuth token (Microsoft sign-in via Clerk)');
+      console.log('🎫 Using user\'s delegated OAuth token from JWT');
     } else {
-      console.log('🔑 No delegated token - attempting app-only credentials');
-      graphToken = await getGraphAccessToken();
+      // Try fetching OAuth token from Clerk's user metadata
+      console.log('🔍 No token in JWT, checking Clerk metadata for Microsoft OAuth token...');
+      graphToken = await getMicrosoftOAuthToken(session.userId);
       
-      if (!graphToken) {
-        console.error('❌ Failed to get Graph API token');
-        return new Response(JSON.stringify({ 
-          error: "Graph API access not available",
-          message: "Please sign in with Microsoft account or contact administrator"
-        }), {
-          status: 403,
-          headers: { 
-            "Content-Type": "application/json",
-            ...getCorsHeaders()
-          }
-        });
+      if (graphToken) {
+        console.log('🎫 Using Microsoft OAuth token from Clerk metadata');
       }
+    }
+    
+    if (!graphToken) {
+      console.error('❌ No Microsoft OAuth token available');
+      console.log('💡 Multi-tenant mode requires Microsoft OAuth consent');
+      return new Response(JSON.stringify({ 
+        error: "Microsoft Graph API access not available",
+        message: "This application requires Microsoft OAuth consent. Please click 'Authorize Microsoft Access' to grant permissions.",
+        requiresOAuth: true,
+        authUrl: "/auth/microsoft"
+      }), {
+        status: 403,
+        headers: { 
+          "Content-Type": "application/json",
+          ...getCorsHeaders()
+        }
+      });
     }
 
     // Extract the Graph API path from the URL path
