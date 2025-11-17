@@ -500,9 +500,9 @@ const Help = () => {
               <p>Transfer time depends on the amount of data:</p>
               <ul className="list-disc ml-6 space-y-1">
                 <li><strong>Permissions:</strong> 1-5 minutes (instant via API)</li>
-                <li><strong>Small OneDrive:</strong> 5-15 minutes (< 1 GB)</li>
+                <li><strong>Small OneDrive:</strong> 5-15 minutes (under 1 GB)</li>
                 <li><strong>Medium OneDrive:</strong> 30-60 minutes (1-10 GB)</li>
-                <li><strong>Large OneDrive:</strong> Several hours (> 10 GB)</li>
+                <li><strong>Large OneDrive:</strong> Several hours (over 10 GB)</li>
                 <li><strong>Mailbox Delegation:</strong> 1-2 minutes</li>
               </ul>
               <p className="mt-2 text-sm text-gray-600">Large transfers run in the background. You'll receive a notification when complete.</p>
