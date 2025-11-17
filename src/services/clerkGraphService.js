@@ -12,8 +12,9 @@ class ClerkGraphService {
     if (!convexUrl) {
       throw new Error('REACT_APP_CONVEX_URL environment variable is required');
     }
-    // Convex HTTP actions are served from the root URL, not /api
-    this.baseUrl = convexUrl.includes('/api') ? convexUrl.replace('/api', '') : convexUrl;
+    // Convex HTTP actions are served from .convex.site, not .convex.cloud
+    // Convert .convex.cloud to .convex.site for HTTP actions
+    this.baseUrl = convexUrl.replace('.convex.cloud', '.convex.site').replace('/api', '');
     this.proxyPath = '/clerk-proxy/graph'; // No trailing slash - will be added with endpoint
   }
 
