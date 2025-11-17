@@ -26,6 +26,7 @@ import WorkflowManagement from './components/workflows/WorkflowManagement';
 import Settings from './components/settings/Settings';
 import ConfigurationForm from './components/auth/ConfigurationForm';
 import FAQ from './components/common/FAQ';
+import Help from './components/common/Help';
 import NotFound from './components/common/NotFound';
 import ErrorBoundary from './components/common/ErrorBoundary';
 
@@ -71,6 +72,7 @@ function App() {
                   <Route path="/oauth-callback" element={<OAuthCallback />} />
                   <Route path="/configure" element={<ConfigurationForm />} />
                   <Route path="/faq" element={<FAQ />} />
+                  <Route path="/help" element={<Help />} />
                   
                   {/* Default route */}
                   <Route path="/" element={<Navigate to="/login" replace />} />
@@ -207,11 +209,21 @@ function App() {
                   }
                 />
                 <Route
-                  path="/workflows"
+                  path="/settings"
                   element={
                     <ProtectedRoute>
                       <Layout>
                         <Settings />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/help"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <Help />
                       </Layout>
                     </ProtectedRoute>
                   }
