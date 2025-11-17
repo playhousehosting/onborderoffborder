@@ -13,16 +13,23 @@ Your Azure App Registration is currently configured as **"Web"** type, but MSAL 
 3. Find your app: **Employee Offboarding Portal**
    - Client ID: `3f4637ee-e352-4273-96a6-3996a4a7f8c0`
 
-### Step 2: Add SPA Platform
+### Step 2: Make App Multi-Tenant (if not already)
 1. Click **Authentication** in the left menu
+2. Under **Supported account types**, ensure it's set to:
+   - **Accounts in any organizational directory (Any Azure AD directory - Multitenant)**
+   - OR **Accounts in any organizational directory and personal Microsoft accounts**
+3. This allows users from ANY tenant to sign in
+
+### Step 3: Add SPA Platform
+1. Still in **Authentication** section
 2. Under **Platform configurations**, click **+ Add a platform**
-3. Select **Single-page application**
+3. Select **Single-page application** (NOT "Web")
 4. Add your redirect URIs:
    ```
    http://localhost:3000
    https://www.employeelifecyclepotral.com
    ```
-5. Check these boxes:
+5. Under **Implicit grant and hybrid flows**, check:
    - ✅ **Access tokens (used for implicit flows)**
    - ✅ **ID tokens (used for implicit and hybrid flows)**
 6. Click **Configure**
