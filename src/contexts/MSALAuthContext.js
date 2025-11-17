@@ -55,12 +55,16 @@ export const MSALAuthProvider = ({ children }) => {
     }
   }, [account, inProgress]);
 
-  // Login function
+  // Login function - using popup for Web app registration type
   const login = async () => {
     try {
-      await instance.loginRedirect(loginRequest);
+      const response = await instance.loginPopup(loginRequest);
+      if (response) {
+        instance.setActiveAccount(response.account);
+        console.log('✅ Login successful:', response.account?.username);
+      }
     } catch (error) {
-      console.error('Login failed', error);
+      console.error('❌ Login failed:', error);
       throw error;
     }
   };
@@ -68,11 +72,12 @@ export const MSALAuthProvider = ({ children }) => {
   // Logout function
   const logout = async () => {
     try {
-      await instance.logoutRedirect({
-        account: account
+      await instance.logoutPopup({
+        account: account,
+        mainWindowRedirectUri: window.location.origin
       });
     } catch (error) {
-      console.error('Logout failed', error);
+      console.error('❌ Logout failed:', error);
       throw error;
     }
   };

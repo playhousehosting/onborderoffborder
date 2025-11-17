@@ -70,17 +70,15 @@ export const msalInstance = new PublicClientApplication(msalConfig);
 
 // Initialize MSAL
 msalInstance.initialize().then(() => {
-  // Handle redirect promise
-  msalInstance.handleRedirectPromise()
-    .then((response) => {
-      if (response) {
-        console.log('✅ MSAL: Redirect authentication successful', response.account?.username);
-        msalInstance.setActiveAccount(response.account);
-      }
-    })
-    .catch((error) => {
-      console.error('❌ MSAL: Redirect error', error);
-    });
+  console.log('✅ MSAL initialized successfully');
+  // Check if there's an existing account in cache
+  const accounts = msalInstance.getAllAccounts();
+  if (accounts.length > 0) {
+    msalInstance.setActiveAccount(accounts[0]);
+    console.log('✅ Active account restored:', accounts[0].username);
+  }
+}).catch((error) => {
+  console.error('❌ MSAL initialization error:', error);
 });
 
 export default msalInstance;
