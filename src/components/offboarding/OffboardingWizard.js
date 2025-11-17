@@ -250,10 +250,15 @@ const OffboardingWizard = () => {
   }, [searchTerm]);
 
   const handleOptionChange = (option, value) => {
-    setOffboardingOptions(prev => ({
-      ...prev,
-      [option]: value,
-    }));
+    console.log(`🔧 Option changed: ${option} = ${value}`);
+    setOffboardingOptions(prev => {
+      const updated = {
+        ...prev,
+        [option]: value,
+      };
+      console.log('📋 Updated options:', updated);
+      return updated;
+    });
   };
 
   const applyTemplate = (templateId) => {
@@ -296,6 +301,8 @@ const OffboardingWizard = () => {
   };
 
   const executeOffboarding = async () => {
+    console.log('🚀 Starting offboarding with options:', offboardingOptions);
+    
     if (!hasPermission('userManagement')) {
       toast.error('You do not have permission to perform offboarding operations');
       return;
