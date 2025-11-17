@@ -7,7 +7,7 @@ import { PublicClientApplication, LogLevel } from '@azure/msal-browser';
 
 export const msalConfig = {
   auth: {
-    clientId: process.env.REACT_APP_AZURE_CLIENT_ID || '3f4637ee-e352-4273-96a6-3996a4a7f8c0',
+    clientId: process.env.REACT_APP_AZURE_CLIENT_ID || '70125586-536c-42b4-b1ac-ae7dbe2b07c8',
     authority: 'https://login.microsoftonline.com/common', // Multi-tenant: works with ANY Microsoft account
     redirectUri: window.location.origin,
     postLogoutRedirectUri: window.location.origin,
