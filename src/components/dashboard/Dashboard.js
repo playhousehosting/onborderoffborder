@@ -201,23 +201,81 @@ const Dashboard = () => {
   return (
     <div className="animate-in">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 rounded-2xl p-8 mb-8 text-white shadow-xl">
-        <div className="flex items-center justify-between">
+      <div className="bg-gradient-to-r from-primary-500 via-blue-500 to-purple-600 dark:from-primary-600 dark:via-blue-600 dark:to-purple-700 rounded-2xl p-8 mb-8 text-white shadow-2xl relative overflow-hidden">
+        {/* Decorative background elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -mr-48 -mt-48 animate-pulse"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full -ml-32 -mb-32"></div>
+        
+        <div className="relative z-10 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2">{t('dashboard.welcomeBack')}, {user?.displayName || user?.name}! 👋</h1>
-            <p className="text-primary-100 dark:text-primary-200 text-lg">
-              Ready to streamline your employee lifecycle management today?
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-white/20 backdrop-blur-sm rounded-full p-2">
+                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                </svg>
+              </div>
+              <h1 className="text-4xl font-bold">{t('dashboard.welcomeBack')}, {user?.displayName || user?.name}! 👋</h1>
+            </div>
+            <p className="text-blue-50 text-xl font-medium mb-2">
+              🌍 Managing your global workforce has never been easier
+            </p>
+            <p className="text-primary-100 dark:text-primary-200 text-base">
+              Your command center for employee lifecycle management • Available 24/7 worldwide
             </p>
           </div>
           <div className="hidden lg:block">
-            <SparklesIcon className="h-16 w-16 text-primary-200 dark:text-primary-300" />
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 shadow-2xl border border-white/20">
+              <SparklesIcon className="h-20 w-20 text-white animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Tips Banner */}
+      <div className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-5 border-2 border-green-200 dark:border-green-700 shadow-sm">
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center shadow-md">
+              <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-base font-bold text-green-900 dark:text-green-100 mb-2 flex items-center gap-2">
+              💡 Pro Tips for Global Admins
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-green-800 dark:text-green-200">
+              <div className="flex items-start gap-2">
+                <span className="text-green-500 font-bold">•</span>
+                <span><strong>Help Center:</strong> Access comprehensive guides in the sidebar</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-green-500 font-bold">•</span>
+                <span><strong>Quick Actions:</strong> Streamline workflows with one-click access</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-green-500 font-bold">•</span>
+                <span><strong>Audit Logs:</strong> Track all changes in real-time below</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-green-500 font-bold">•</span>
+                <span><strong>24/7 Access:</strong> Manage your team from anywhere, anytime</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Stats Grid */}
+      <div className="mb-3">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-4">
+          <ArrowTrendingUpIcon className="h-6 w-6 text-blue-500" />
+          Organization Overview
+        </h2>
+      </div>
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden transform hover:scale-105">
           <div className="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 p-4">
             <div className="flex items-center justify-between">
               <UserGroupIcon className="h-8 w-8 text-white" />
@@ -298,7 +356,17 @@ const Dashboard = () => {
 
       {/* Quick Actions */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">{t('dashboard.quickActions')}</h2>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <svg className="h-7 w-7 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              {t('dashboard.quickActions')}
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Choose an action to get started with your workflow</p>
+          </div>
+        </div>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {hasPermission('userManagement') && (
             <>
@@ -438,8 +506,16 @@ const Dashboard = () => {
 
       {/* Recent Activity */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">{t('dashboard.recentActivity')}</h2>
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <ClockIcon className="h-7 w-7 text-blue-500" />
+              {t('dashboard.recentActivity')}
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Live updates from your organization's activity log</p>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700">
           <div className="p-6">
             {recentActivity.length > 0 ? (
               <div className="flow-root">
