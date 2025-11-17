@@ -8,7 +8,7 @@ import { PublicClientApplication, LogLevel } from '@azure/msal-browser';
 export const msalConfig = {
   auth: {
     clientId: process.env.REACT_APP_AZURE_CLIENT_ID || '3f4637ee-e352-4273-96a6-3996a4a7f8c0',
-    authority: 'https://login.microsoftonline.com/organizations', // Multi-tenant
+    authority: 'https://login.microsoftonline.com/0851dcc0-890e-4381-b82d-c14fe2915be3',
     redirectUri: window.location.origin,
     postLogoutRedirectUri: window.location.origin,
     navigateToLoginRequestUrl: true
@@ -68,15 +68,33 @@ export const graphConfig = {
 // Create the MSAL instance
 export const msalInstance = new PublicClientApplication(msalConfig);
 
-// Initialize MSAL
+// Initialize MSAL and handle redirects
 msalInstance.initialize().then(() => {
   console.log('✅ MSAL initialized successfully');
-  // Check if there's an existing account in cache
-  const accounts = msalInstance.getAllAccounts();
-  if (accounts.length > 0) {
-    msalInstance.setActiveAccount(accounts[0]);
-    console.log('✅ Active account restored:', accounts[0].username);
-  }
+  
+  // Handle redirect promise (for loginRedirect/logoutRedirect flows)
+  msalInstance.handleRedirectPromise()
+    .then((response) => {
+      if (response) {
+        console.log('✅ MSAL: Redirect authentication successful', response.account?.username);
+        msalInstance.setActiveAccount(response.account);
+      } else {
+        // No redirect response, check if there's an existing account in cache
+        const accounts = msalInstance.getAllAccounts();
+        if (accounts.length > 0) {
+          msalInstance.setActiveAccount(accounts[0]);
+          console.log('✅ Active account restored:', accounts[0].username);
+        }
+      }
+    })
+    .catch((error) => {
+      console.error('❌ MSAL: Redirect error', error);
+      // Display user-friendly error message
+      if (error.errorCode === 'invalid_request' && error.errorMessage?.includes('AADSTS9002326')) {
+        console.error('⚠️ Azure App Registration must be configured as "Single-Page Application" (SPA) type');
+        console.error('📖 See AZURE_SPA_CONFIGURATION_REQUIRED.md for setup instructions');
+      }
+    });
 }).catch((error) => {
   console.error('❌ MSAL initialization error:', error);
 });

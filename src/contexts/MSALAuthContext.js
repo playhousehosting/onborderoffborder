@@ -55,14 +55,13 @@ export const MSALAuthProvider = ({ children }) => {
     }
   }, [account, inProgress]);
 
-  // Login function - using popup for Web app registration type
+  // Login function - using redirect (requires SPA app type in Azure)
   const login = async () => {
     try {
-      const response = await instance.loginPopup(loginRequest);
-      if (response) {
-        instance.setActiveAccount(response.account);
-        console.log('✅ Login successful:', response.account?.username);
-      }
+      console.log('🔐 Initiating Microsoft login redirect...');
+      await instance.loginRedirect(loginRequest);
+      // Note: Execution stops here - user is redirected to Microsoft
+      // After auth, user returns to app and handleRedirectPromise() processes the result
     } catch (error) {
       console.error('❌ Login failed:', error);
       throw error;
@@ -72,9 +71,10 @@ export const MSALAuthProvider = ({ children }) => {
   // Logout function
   const logout = async () => {
     try {
-      await instance.logoutPopup({
+      console.log('🚪 Logging out...');
+      await instance.logoutRedirect({
         account: account,
-        mainWindowRedirectUri: window.location.origin
+        postLogoutRedirectUri: window.location.origin
       });
     } catch (error) {
       console.error('❌ Logout failed:', error);
