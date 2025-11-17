@@ -35,9 +35,12 @@ Under **Customize session token**, click on the **Claims editor** and paste the 
   "organizationSlug": "{{org.slug}}",
   "organizationName": "{{org.name}}",
   "permissions": "{{user.public_metadata.permissions}}",
-  "role": "{{user.public_metadata.role}}"
+  "role": "{{user.public_metadata.role}}",
+  "oauth_token": "{{user.oauth_access_token_microsoft}}"
 }
 ```
+
+> **IMPORTANT:** The `oauth_token` field will contain the Microsoft Graph OAuth access token when users sign in with Microsoft. This enables multi-tenant Microsoft Graph API access through Clerk.
 
 > **Note:** Reserved claims like `azp`, `sub`, `iss`, `aud`, `exp`, `nbf`, `iat`, and `jti` are automatically included by Clerk and cannot be customized.
 

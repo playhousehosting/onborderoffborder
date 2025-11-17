@@ -2,11 +2,13 @@ import { httpAction } from "./_generated/server";
 
 /**
  * Clerk to Graph API Proxy
- * Validates Clerk JWT session tokens and uses app-only credentials to call Microsoft Graph
+ * Validates Clerk JWT session tokens and uses either:
+ * 1. User's delegated OAuth token (from Microsoft sign-in via Clerk)
+ * 2. App-only credentials as fallback (for non-Microsoft users with admin access)
  */
 
 // Verify Clerk JWT token
-async function verifyClerkToken(token: string): Promise<{ userId: string; email: string; claims: any } | null> {
+async function verifyClerkToken(token: string): Promise<{ userId: string; email: string; claims: any; graphToken?: string } | null> {
   try {
     const clerkSecretKey = process.env.CLERK_SECRET_KEY;
     if (!clerkSecretKey) {
@@ -29,7 +31,8 @@ async function verifyClerkToken(token: string): Promise<{ userId: string; email:
           sub: payload.sub,
           email: payload.email || payload.primaryEmail,
           exp: payload.exp,
-          iss: payload.iss
+          iss: payload.iss,
+          hasGraphToken: !!payload.graphAccessToken
         });
         
         // Basic validation
@@ -44,7 +47,9 @@ async function verifyClerkToken(token: string): Promise<{ userId: string; email:
         return {
           userId: payload.sub || payload.user_id,
           email: payload.email || payload.primaryEmail || '',
-          claims: payload
+          claims: payload,
+          // Check if user has a Microsoft Graph OAuth token (from Microsoft sign-in)
+          graphToken: payload.oauth_token || payload.graphAccessToken || payload.accessToken
         };
       }
     } catch (e) {
@@ -164,17 +169,28 @@ export const graphGet = httpAction(async (ctx, request) => {
 
     console.log('✅ Clerk user authenticated:', session.userId, session.email);
 
-    // Get Graph API token
-    const graphToken = await getGraphAccessToken();
-    if (!graphToken) {
-      console.error('❌ Failed to get Graph API token');
-      return new Response(JSON.stringify({ error: "Failed to acquire Graph API token" }), {
-        status: 500,
-        headers: { 
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
-        }
-      });
+    // Get Graph API token - prefer user's delegated token, fallback to app-only
+    let graphToken = session.graphToken;
+    
+    if (graphToken) {
+      console.log('🎫 Using user\'s delegated OAuth token (Microsoft sign-in via Clerk)');
+    } else {
+      console.log('🔑 No delegated token - attempting app-only credentials');
+      graphToken = await getGraphAccessToken();
+      
+      if (!graphToken) {
+        console.error('❌ Failed to get Graph API token - user needs to sign in with Microsoft or configure app-only credentials');
+        return new Response(JSON.stringify({ 
+          error: "Graph API access not available",
+          message: "Please sign in with Microsoft account or contact administrator to configure app-only access"
+        }), {
+          status: 403,
+          headers: { 
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+          }
+        });
+      }
     }
 
     // Extract the Graph API path from the URL path (everything after /clerk-proxy/graph)
@@ -248,16 +264,28 @@ export const graphPost = httpAction(async (ctx, request) => {
 
     console.log('✅ Clerk user authenticated:', session.userId);
 
-    const graphToken = await getGraphAccessToken();
-    if (!graphToken) {
-      console.error('❌ Failed to get Graph API token');
-      return new Response(JSON.stringify({ error: "Failed to acquire Graph API token" }), {
-        status: 500,
-        headers: { 
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
-        }
-      });
+    // Get Graph API token - prefer user's delegated token, fallback to app-only
+    let graphToken = session.graphToken;
+    
+    if (graphToken) {
+      console.log('🎫 Using user\'s delegated OAuth token (Microsoft sign-in via Clerk)');
+    } else {
+      console.log('🔑 No delegated token - attempting app-only credentials');
+      graphToken = await getGraphAccessToken();
+      
+      if (!graphToken) {
+        console.error('❌ Failed to get Graph API token');
+        return new Response(JSON.stringify({ 
+          error: "Graph API access not available",
+          message: "Please sign in with Microsoft account or contact administrator"
+        }), {
+          status: 403,
+          headers: { 
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+          }
+        });
+      }
     }
 
     // Extract the Graph API path from the URL path
