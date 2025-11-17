@@ -2,7 +2,7 @@ import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { auth } from "./authInit";
 import { initiateAdminConsent, handleAdminConsentCallback } from "./adminConsent";
-import { health, graphGet, graphPost } from "./clerkProxy";
+import { health, graphGet, graphPost, graphOptions } from "./clerkProxy";
 
 const http = httpRouter();
 
@@ -27,6 +27,13 @@ http.route({
   path: "/clerk-proxy/health",
   method: "GET",
   handler: health,
+});
+
+// CORS preflight handler for /clerk-proxy/graph/*
+http.route({
+  pathPrefix: "/clerk-proxy/graph/",
+  method: "OPTIONS",
+  handler: graphOptions,
 });
 
 http.route({

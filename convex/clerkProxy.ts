@@ -128,11 +128,30 @@ async function getGraphAccessToken(): Promise<string | null> {
   }
 }
 
+// CORS headers for all responses
+const getCorsHeaders = () => ({
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Max-Age": "86400"
+});
+
 // Health check endpoint
 export const health = httpAction(async () => {
   return new Response(JSON.stringify({ status: "ok", service: "clerk-proxy" }), {
     status: 200,
-    headers: { "Content-Type": "application/json" }
+    headers: { 
+      "Content-Type": "application/json",
+      ...getCorsHeaders()
+    }
+  });
+});
+
+// OPTIONS handler for CORS preflight
+export const graphOptions = httpAction(async (ctx, request) => {
+  return new Response(null, {
+    status: 204,
+    headers: getCorsHeaders()
   });
 });
 
@@ -149,7 +168,7 @@ export const graphGet = httpAction(async (ctx, request) => {
         status: 401,
         headers: { 
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
+          ...getCorsHeaders()
         }
       });
     }
@@ -226,7 +245,7 @@ export const graphGet = httpAction(async (ctx, request) => {
         status: 500,
         headers: { 
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
+          ...getCorsHeaders()
         }
       });
     }
@@ -245,7 +264,7 @@ export const graphPost = httpAction(async (ctx, request) => {
         status: 401,
         headers: { 
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
+          ...getCorsHeaders()
         }
       });
     }
@@ -257,7 +276,7 @@ export const graphPost = httpAction(async (ctx, request) => {
         status: 401,
         headers: { 
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
+          ...getCorsHeaders()
         }
       });
     }
@@ -282,7 +301,7 @@ export const graphPost = httpAction(async (ctx, request) => {
           status: 403,
           headers: { 
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*"
+            ...getCorsHeaders()
           }
         });
       }
@@ -313,7 +332,7 @@ export const graphPost = httpAction(async (ctx, request) => {
         status: graphResponse.status,
         headers: { 
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
+          ...getCorsHeaders()
         }
       });
     } catch (error) {
@@ -322,7 +341,7 @@ export const graphPost = httpAction(async (ctx, request) => {
         status: 500,
         headers: { 
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
+          ...getCorsHeaders()
         }
       });
     }
