@@ -55,9 +55,14 @@ const Dashboard = () => {
         if (hasPermission('userManagement')) {
           // Get ALL user statistics using pagination
           logger.debug('📊 Fetching all users with pagination...');
-          const usersData = await service.getAllUsers(); // Automatically fetches all pages
+          // Explicitly request accountEnabled field to ensure it's included in response
+          const usersData = await service.getAllUsers({ 
+            select: 'id,displayName,userPrincipalName,accountEnabled' 
+          });
           const totalUsers = usersData.value?.length || 0;
-          const activeUsers = usersData.value?.filter(u => u.accountEnabled).length || 0;
+          
+          // Filter active users (accountEnabled === true)
+          const activeUsers = usersData.value?.filter(u => u.accountEnabled === true).length || 0;
           const disabledUsers = totalUsers - activeUsers;
           
           logger.success(`✅ Loaded ${totalUsers} total users (${activeUsers} active, ${disabledUsers} disabled)`);
