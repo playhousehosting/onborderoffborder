@@ -66,9 +66,9 @@ export const graphGet = httpAction(async (ctx, request) => {
 
     const accessToken = authHeader.substring(7); // Remove 'Bearer ' prefix
     
-    // Extract the path after /clerk-proxy/graph
+    // Extract the path after /msal-proxy/graph
     const url = new URL(request.url);
-    const graphPath = url.pathname.replace('/clerk-proxy/graph', '') || '/me';
+    const graphPath = url.pathname.replace('/msal-proxy/graph', '') || '/me';
     const graphUrl = `https://graph.microsoft.com/v1.0${graphPath}${url.search}`;
     
     console.log(`📡 Proxying GET request to: ${graphUrl}`);
@@ -152,9 +152,9 @@ export const graphPost = httpAction(async (ctx, request) => {
 
     const accessToken = authHeader.substring(7);
     
-    // Extract the path after /clerk-proxy/graph
+    // Extract the path after /msal-proxy/graph
     const url = new URL(request.url);
-    const graphPath = url.pathname.replace('/clerk-proxy/graph', '') || '/me';
+    const graphPath = url.pathname.replace('/msal-proxy/graph', '') || '/me';
     const graphUrl = `https://graph.microsoft.com/v1.0${graphPath}${url.search}`;
     
     // Get request body
@@ -323,7 +323,7 @@ export const graphDelete = httpAction(async (ctx, request) => {
 
     const accessToken = authHeader.substring(7);
     const url = new URL(request.url);
-    const graphPath = url.pathname.replace('/clerk-proxy/graph', '') || '/me';
+    const graphPath = url.pathname.replace('/msal-proxy/graph', '') || '/me';
     const graphUrl = `https://graph.microsoft.com/v1.0${graphPath}${url.search}`;
     
     console.log(`📡 Proxying DELETE request to: ${graphUrl}`);

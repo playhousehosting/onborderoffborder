@@ -24,38 +24,38 @@ http.route({
 
 // MSAL proxy endpoints for Graph API access
 http.route({
-  path: "/clerk-proxy/health",
+  path: "/msal-proxy/health",
   method: "GET",
   handler: health,
 });
 
-// CORS preflight handler for /clerk-proxy/graph/*
+// CORS preflight handler for /msal-proxy/graph/*
 http.route({
-  pathPrefix: "/clerk-proxy/graph/",
+  pathPrefix: "/msal-proxy/graph/",
   method: "OPTIONS",
   handler: graphOptions,
 });
 
 http.route({
-  pathPrefix: "/clerk-proxy/graph/",
+  pathPrefix: "/msal-proxy/graph/",
   method: "GET",
   handler: graphGet,
 });
 
 http.route({
-  pathPrefix: "/clerk-proxy/graph/",
+  pathPrefix: "/msal-proxy/graph/",
   method: "POST",
   handler: graphPost,
 });
 
 http.route({
-  pathPrefix: "/clerk-proxy/graph/",
+  pathPrefix: "/msal-proxy/graph/",
   method: "PATCH",
   handler: graphPatch,
 });
 
 http.route({
-  pathPrefix: "/clerk-proxy/graph/",
+  pathPrefix: "/msal-proxy/graph/",
   method: "DELETE",
   handler: graphDelete,
 });
