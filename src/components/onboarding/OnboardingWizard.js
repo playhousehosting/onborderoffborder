@@ -4,6 +4,7 @@ import msalGraphService from '../../services/msalGraphService';
 import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
 import { getGroupsForDepartment, hasMappedGroups } from '../../utils/departmentMappings';
 import { logger } from '../../utils/logger';
+import { apiConfig } from '../../config/apiConfig';
 import toast from 'react-hot-toast';
 import { useConvex } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -121,8 +122,7 @@ const OnboardingWizard = () => {
 
   const checkADConfigStatus = async () => {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
-      const response = await fetch(`${API_BASE_URL}/api/ad/config-status`, {
+      const response = await fetch(`${apiConfig.baseURL}/api/ad/config-status`, {
         signal: AbortSignal.timeout(3000), // 3 second timeout
       });
       
@@ -355,8 +355,7 @@ const OnboardingWizard = () => {
       if (!selectedUser && newUserInfo.createInOnPremAD) {
         // Create user in on-premises Active Directory
         try {
-          const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
-          const response = await fetch(`${API_BASE_URL}/api/ad/create-user`, {
+          const response = await fetch(`${apiConfig.baseURL}/api/ad/create-user`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',

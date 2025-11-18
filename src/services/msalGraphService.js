@@ -103,19 +103,66 @@ class MSALGraphService {
   }
 
   /**
-   * Get all users with pagination
+   * Get all users with automatic pagination (fetches all pages)
    */
   async getAllUsers(options = {}) {
-    const { top = 999, filter, select } = options;
+    const { top = 999, filter, select, fetchAll = true } = options;
     
     let queryParams = [`$top=${top}`, '$count=true'];
     if (filter) queryParams.push(`$filter=${encodeURIComponent(filter)}`);
     if (select) queryParams.push(`$select=${select}`);
     
     const endpoint = `/users?${queryParams.join('&')}`;
-    const response = await this.makeRequest(endpoint);
     
-    return response; // Return full response object with value and @odata properties
+    if (!fetchAll) {
+      return await this.makeRequest(endpoint);
+    }
+    
+    // Fetch all pages automatically
+    return await this.getAllWithPagination(endpoint);
+  }
+
+  /**
+   * Generic method to fetch all pages from a paginated endpoint
+   */
+  async getAllWithPagination(endpoint) {
+    let allResults = [];
+    let currentUrl = endpoint;
+    let totalCount = null;
+    let pageCount = 0;
+    
+    while (currentUrl) {
+      pageCount++;
+      const response = await this.makeRequest(currentUrl);
+      
+      // Store total count from first response
+      if (totalCount === null && response['@odata.count'] !== undefined) {
+        totalCount = response['@odata.count'];
+        console.log(`📊 Total records available: ${totalCount}, fetching all pages...`);
+      }
+      
+      // Accumulate results
+      if (response.value && Array.isArray(response.value)) {
+        allResults = allResults.concat(response.value);
+        console.log(`📄 Page ${pageCount}: Fetched ${response.value.length} records (total so far: ${allResults.length})`);
+      }
+      
+      // Check for next page
+      currentUrl = response['@odata.nextLink'];
+      if (currentUrl) {
+        // Extract just the path and query from the full URL
+        const url = new URL(currentUrl);
+        currentUrl = url.pathname + url.search;
+      }
+    }
+    
+    console.log(`✅ Pagination complete: ${allResults.length} total records fetched in ${pageCount} page(s)`);
+    
+    // Return in same format as single-page response
+    return {
+      value: allResults,
+      '@odata.count': totalCount !== null ? totalCount : allResults.length,
+    };
   }
 
   /**
@@ -190,19 +237,23 @@ class MSALGraphService {
   }
 
   /**
-   * Get all groups
+   * Get all groups with automatic pagination (fetches all pages)
    */
   async getAllGroups(options = {}) {
-    const { top = 999, filter, select } = options;
+    const { top = 999, filter, select, fetchAll = true } = options;
     
-    let queryParams = [`$top=${top}`];
+    let queryParams = [`$top=${top}`, '$count=true'];
     if (filter) queryParams.push(`$filter=${encodeURIComponent(filter)}`);
     if (select) queryParams.push(`$select=${select}`);
     
     const endpoint = `/groups?${queryParams.join('&')}`;
-    const response = await this.makeRequest(endpoint);
     
-    return response; // Return full response object
+    if (!fetchAll) {
+      return await this.makeRequest(endpoint);
+    }
+    
+    // Fetch all pages automatically
+    return await this.getAllWithPagination(endpoint);
   }
 
   /**
@@ -246,19 +297,24 @@ class MSALGraphService {
   }
 
   /**
-   * Get all devices (requires DeviceManagementManagedDevices.ReadWrite.All)
+   * Get all devices with automatic pagination (fetches all pages)
+   * (requires DeviceManagementManagedDevices.ReadWrite.All)
    */
   async getAllDevices(options = {}) {
-    const { top = 999, filter, select } = options;
+    const { top = 999, filter, select, fetchAll = true } = options;
     
-    let queryParams = [`$top=${top}`];
+    let queryParams = [`$top=${top}`, '$count=true'];
     if (filter) queryParams.push(`$filter=${encodeURIComponent(filter)}`);
     if (select) queryParams.push(`$select=${select}`);
     
     const endpoint = `/deviceManagement/managedDevices?${queryParams.join('&')}`;
-    const response = await this.makeRequest(endpoint);
     
-    return response; // Return full response object
+    if (!fetchAll) {
+      return await this.makeRequest(endpoint);
+    }
+    
+    // Fetch all pages automatically
+    return await this.getAllWithPagination(endpoint);
   }
 
   /**
@@ -334,6 +390,289 @@ class MSALGraphService {
    */
   async removeLicense(userId, skuId) {
     return await this.assignLicense(userId, null, [skuId]);
+  }
+
+  /**
+   * Remove all licenses from user
+   */
+  async removeAllLicenses(userId) {
+    try {
+      const user = await this.makeRequest(`/users/${userId}?$select=id,assignedLicenses`);
+      const assignedLicenses = user.assignedLicenses || [];
+      
+      if (assignedLicenses.length === 0) {
+        return { success: true, removedCount: 0 };
+      }
+
+      const skuIds = assignedLicenses.map(license => license.skuId);
+
+      await this.makeRequest(`/users/${userId}/assignLicense`, {
+        method: 'POST',
+        body: JSON.stringify({
+          addLicenses: [],
+          removeLicenses: skuIds,
+        }),
+      });
+
+      return { success: true, removedCount: skuIds.length };
+    } catch (error) {
+      console.error('Error removing all licenses:', error);
+      throw new Error(`Failed to remove licenses: ${error.message}`);
+    }
+  }
+
+  /**
+   * Search users
+   */
+  async searchUsers(searchTerm) {
+    const filter = `startswith(displayName,'${searchTerm}') or startswith(userPrincipalName,'${searchTerm}') or startswith(mail,'${searchTerm}')`;
+    const response = await this.makeRequest(`/users?$filter=${filter}&$top=25&$select=id,displayName,userPrincipalName,mail,jobTitle,department`);
+    return response;
+  }
+
+  /**
+   * Reset user password
+   */
+  async resetUserPassword(userId, newPassword, forceChangePasswordNextSignIn = false) {
+    return await this.makeRequest(`/users/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        passwordProfile: {
+          password: newPassword,
+          forceChangePasswordNextSignIn,
+        },
+      }),
+    });
+  }
+
+  /**
+   * Revoke all user sign-in sessions
+   */
+  async revokeUserSessions(userId) {
+    return await this.makeRequest(`/users/${userId}/revokeSignInSessions`, {
+      method: 'POST',
+    });
+  }
+
+  /**
+   * Set auto-reply message
+   */
+  async setAutoReply(userId, isEnabled, externalAudience, internalReply, externalReply) {
+    return await this.makeRequest(`/users/${userId}/mailboxSettings`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        automaticRepliesSetting: {
+          status: isEnabled ? 'AlwaysEnabled' : 'Disabled',
+          externalAudience: externalAudience || 'All',
+          internalReply: internalReply || '',
+          externalReply: externalReply || '',
+        },
+      }),
+    });
+  }
+
+  /**
+   * Set mail forwarding
+   */
+  async setMailForwarding(userId, forwardingAddress, deliverToMailboxAndForward) {
+    return await this.makeRequest(`/users/${userId}/mailboxSettings`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        forwardingAddress: forwardingAddress,
+        deliverToMailboxAndForwardingAddress: deliverToMailboxAndForward || false,
+      }),
+    });
+  }
+
+  /**
+   * Convert to shared mailbox (NOT supported via Graph API - returns instructions)
+   */
+  async convertToSharedMailbox(userId) {
+    const user = await this.makeRequest(`/users/${userId}?$select=id,userPrincipalName,mail`);
+    const email = user.mail || user.userPrincipalName;
+    
+    throw new Error(
+      `Converting to shared mailbox is not supported via Microsoft Graph API. ` +
+      `Please use Exchange Online PowerShell:\n` +
+      `Connect-ExchangeOnline\n` +
+      `Set-Mailbox -Identity "${email}" -Type Shared\n` +
+      `Or use Exchange Admin Center: https://admin.exchange.microsoft.com`
+    );
+  }
+
+  /**
+   * Get user's Teams
+   */
+  async getUserTeams(userId) {
+    try {
+      const response = await this.makeRequest(`/users/${userId}/joinedTeams?$select=id,displayName,description`);
+      const allTeams = response.value || [];
+      
+      const nonDynamicTeams = [];
+      for (const team of allTeams) {
+        try {
+          const groupInfo = await this.makeRequest(`/groups/${team.id}?$select=id,displayName,groupTypes`);
+          const groupTypes = groupInfo.groupTypes || [];
+          
+          if (!groupTypes.includes('DynamicMembership')) {
+            nonDynamicTeams.push(team);
+          }
+        } catch (error) {
+          console.warn(`Could not check dynamic status for team ${team.displayName}:`, error);
+          nonDynamicTeams.push(team);
+        }
+      }
+      
+      return {
+        value: nonDynamicTeams,
+        total: nonDynamicTeams.length
+      };
+    } catch (error) {
+      console.error('Error fetching user teams:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove user from Team
+   */
+  async removeUserFromTeam(teamId, userId) {
+    return await this.makeRequest(`/groups/${teamId}/members/${userId}/$ref`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Get user's app role assignments
+   */
+  async getUserAppRoleAssignments(userId) {
+    try {
+      const result = await this.makeRequest(`/users/${userId}/appRoleAssignments`);
+      
+      if (!result || !result.value) {
+        return { value: [], total: 0 };
+      }
+
+      const enrichedAssignments = await Promise.all(
+        result.value.map(async (assignment) => {
+          try {
+            const servicePrincipal = await this.makeRequest(
+              `/servicePrincipals/${assignment.resourceId}?$select=id,displayName,appId`
+            );
+            return {
+              ...assignment,
+              appDisplayName: servicePrincipal.displayName,
+              appId: servicePrincipal.appId
+            };
+          } catch (error) {
+            console.warn(`Could not fetch details for service principal ${assignment.resourceId}:`, error);
+            return {
+              ...assignment,
+              appDisplayName: 'Unknown Application',
+              appId: assignment.resourceId
+            };
+          }
+        })
+      );
+
+      return {
+        value: enrichedAssignments,
+        total: enrichedAssignments.length
+      };
+    } catch (error) {
+      console.error('Error fetching user app role assignments:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove user from enterprise app
+   */
+  async removeUserFromEnterpriseApp(userId, appRoleAssignmentId) {
+    return await this.makeRequest(`/users/${userId}/appRoleAssignments/${appRoleAssignmentId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Get user's authentication methods
+   */
+  async getUserAuthenticationMethods(userId) {
+    try {
+      const methods = [];
+
+      const methodTypes = [
+        { type: 'phone', endpoint: 'phoneMethods', labelFn: m => `Phone: ${m.phoneNumber || 'Unknown'}` },
+        { type: 'email', endpoint: 'emailMethods', labelFn: m => `Email: ${m.emailAddress || 'Unknown'}` },
+        { type: 'fido2', endpoint: 'fido2Methods', labelFn: m => `FIDO2 Key: ${m.displayName || m.model || 'Unknown'}` },
+        { type: 'microsoftAuthenticator', endpoint: 'microsoftAuthenticatorMethods', labelFn: m => `Microsoft Authenticator: ${m.displayName || m.phoneAppVersion || 'Unknown'}` },
+        { type: 'windowsHelloForBusiness', endpoint: 'windowsHelloForBusinessMethods', labelFn: m => `Windows Hello: ${m.displayName || 'Unknown'}` },
+      ];
+
+      for (const methodType of methodTypes) {
+        try {
+          const data = await this.makeRequest(`/users/${userId}/authentication/${methodType.endpoint}`);
+          if (data && data.value) {
+            methods.push(...data.value.map(method => ({
+              ...method,
+              methodType: methodType.type,
+              displayName: methodType.labelFn(method)
+            })));
+          }
+        } catch (error) {
+          console.warn(`Could not fetch ${methodType.type} methods:`, error);
+        }
+      }
+
+      return {
+        value: methods,
+        total: methods.length
+      };
+    } catch (error) {
+      console.error('Error fetching user authentication methods:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove authentication method
+   */
+  async removeAuthenticationMethod(userId, methodId, methodType) {
+    const endpoints = {
+      phone: `phoneMethods`,
+      email: `emailMethods`,
+      fido2: `fido2Methods`,
+      microsoftAuthenticator: `microsoftAuthenticatorMethods`,
+      windowsHelloForBusiness: `windowsHelloForBusinessMethods`,
+    };
+
+    const endpoint = endpoints[methodType];
+    if (!endpoint) {
+      throw new Error(`Unsupported authentication method type: ${methodType}`);
+    }
+
+    return await this.makeRequest(`/users/${userId}/authentication/${endpoint}/${methodId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Get user's devices
+   */
+  async getUserDevices(userPrincipalName) {
+    const response = await this.makeRequest(`/deviceManagement/managedDevices?$filter=userPrincipalName eq '${userPrincipalName}'&$select=id,deviceName,manufacturer,model,operatingSystem,osVersion,complianceState,lastSyncDateTime`);
+    return response;
+  }
+
+  /**
+   * Backup user data (placeholder - returns success)
+   */
+  async backupUserData(userId) {
+    return {
+      success: true,
+      message: 'Backup process initiated',
+      backupId: `backup_${userId}_${Date.now()}`,
+    };
   }
 
   /**

@@ -5,6 +5,8 @@ import { InteractionStatus } from '@azure/msal-browser';
 import { loginRequest } from '../config/msalConfig';
 import { setSessionId, clearSessionId, getSessionId } from '../services/convexService';
 import msalGraphService from '../services/msalGraphService';
+import { useConvex } from 'convex/react';
+import { api } from '../convex/_generated/api';
 
 const MSALAuthContext = createContext();
 
@@ -19,6 +21,7 @@ export const useMSALAuth = () => {
 export const MSALAuthProvider = ({ children }) => {
   const { instance, accounts, inProgress } = useMsal();
   const account = useAccount(accounts[0] || null);
+  const convex = useConvex();
   const [accessToken, setAccessToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -46,8 +49,8 @@ export const MSALAuthProvider = ({ children }) => {
 
   // Update access token and session ID when account changes
   useEffect(() => {
-    if (account && inProgress === InteractionStatus.None) {
-      getAccessToken().then(token => {
+    if (account && inProgress === InteractionStatus.None && convex) {
+      getAccessToken().then(async token => {
         setAccessToken(token);
         setLoading(false);
         
@@ -63,13 +66,27 @@ export const MSALAuthProvider = ({ children }) => {
           setSessionId(sessionId);
           console.log('✅ Created MSAL session ID:', sessionId);
         }
+        
+        // Register session with Convex database
+        try {
+          await convex.mutation(api.authMutations.createMSALSession, {
+            sessionId: sessionId,
+            userId: account.homeAccountId,
+            email: account.username,
+            displayName: account.name || account.username,
+            tenantId: account.tenantId || 'common',
+          });
+          console.log('✅ MSAL session registered with Convex');
+        } catch (error) {
+          console.error('❌ Failed to register MSAL session with Convex:', error);
+        }
       });
     } else if (!account && inProgress === InteractionStatus.None) {
       setAccessToken(null);
       setLoading(false);
       clearSessionId();
     }
-  }, [account, inProgress]);
+  }, [account, inProgress, convex]);
 
   // Login function - using redirect (requires SPA app type in Azure)
   const login = async () => {

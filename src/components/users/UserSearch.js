@@ -59,7 +59,7 @@ const UserSearch = () => {
     try {
       setLoading(true);
       logger.debug('📊 Fetching all users for search...');
-      const response = await service.getAllUsers({ top: 999 }); // Fetch 999 per page
+      const response = await service.getAllUsers(); // Automatically fetches all pages
       const fetchedUsers = response.value || [];
       setAllUsers(fetchedUsers);
       logger.success(`✅ Loaded ${fetchedUsers.length} users`);

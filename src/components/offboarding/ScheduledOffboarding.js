@@ -94,10 +94,13 @@ const ScheduledOffboarding = () => {
       const sessionId = getSessionId();
       
       if (!sessionId) {
+        console.warn('⚠️ No session ID found');
         toast.error('Session not found. Please log in again.');
         setScheduledOffboardings([]);
         return;
       }
+
+      console.log('🔍 Fetching scheduled offboardings with sessionId:', sessionId);
 
       // Call Convex to get scheduled offboardings
       const data = await convex.query(api.offboarding.list, { sessionId });
@@ -154,8 +157,18 @@ const ScheduledOffboarding = () => {
       
       setScheduledOffboardings(transformed);
     } catch (error) {
-      console.error('Error fetching scheduled offboardings:', error);
-      toast.error('Failed to fetch scheduled offboardings');
+      console.error('❌ Error fetching scheduled offboardings:', error);
+      
+      // Check if it's a session error
+      if (error.message && (error.message.includes('Unauthorized') || error.message.includes('Session'))) {
+        console.warn('⚠️ Session invalid or expired, clearing...');
+        localStorage.removeItem('sessionId');
+        toast.error('Your session has expired. Please log in again.');
+      } else {
+        toast.error('Failed to fetch scheduled offboardings. This feature may require additional setup.');
+      }
+      
+      setScheduledOffboardings([]);
     } finally {
       setLoading(false);
     }

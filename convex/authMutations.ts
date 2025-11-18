@@ -253,6 +253,65 @@ export const logout = mutation({
 });
 
 /**
+ * Create or update MSAL session (for Microsoft SSO via MSAL)
+ */
+export const createMSALSession = mutation({
+  args: {
+    sessionId: v.string(),
+    userId: v.string(),
+    email: v.string(),
+    displayName: v.string(),
+    tenantId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Check if session already exists
+    const existingSession = await ctx.db
+      .query("sessions")
+      .withIndex("by_session_id", (q) => q.eq("sessionId", args.sessionId))
+      .first();
+
+    const now = Date.now();
+    const expiresAt = now + SESSION_DURATION;
+
+    if (existingSession) {
+      // Update existing session
+      await ctx.db.patch(existingSession._id, {
+        email: args.email,
+        displayName: args.displayName,
+        updatedAt: now,
+        expiresAt: expiresAt,
+      });
+
+      return {
+        success: true,
+        sessionId: args.sessionId,
+        message: "Session updated",
+      };
+    }
+
+    // Create new session
+    await ctx.db.insert("sessions", {
+      tenantId: args.tenantId,
+      sessionId: args.sessionId,
+      userId: args.userId,
+      email: args.email,
+      displayName: args.displayName,
+      authMode: "oauth2", // MSAL uses OAuth2 delegated permissions
+      roles: ["admin"], // Microsoft SSO users get admin role
+      expiresAt: expiresAt,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return {
+      success: true,
+      sessionId: args.sessionId,
+      message: "Session created",
+    };
+  },
+});
+
+/**
  * Cleanup expired sessions (run periodically)
  */
 export const cleanupExpiredSessions = mutation({
