@@ -150,9 +150,12 @@ class MSALGraphService {
       // Check for next page
       currentUrl = response['@odata.nextLink'];
       if (currentUrl) {
-        // Extract just the path and query from the full URL
+        // Extract just the Graph API path (remove /v1.0 prefix since proxy adds it)
         const url = new URL(currentUrl);
-        currentUrl = url.pathname + url.search;
+        let path = url.pathname + url.search;
+        // Remove /v1.0 or /beta prefix since the proxy endpoint already includes it
+        path = path.replace(/^\/v1\.0/, '').replace(/^\/beta/, '');
+        currentUrl = path;
       }
     }
     

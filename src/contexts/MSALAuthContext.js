@@ -79,6 +79,13 @@ export const MSALAuthProvider = ({ children }) => {
           console.log('✅ MSAL session registered with Convex');
         } catch (error) {
           console.error('❌ Failed to register MSAL session with Convex:', error);
+          console.error('Session data:', {
+            sessionId,
+            userId: account.homeAccountId,
+            email: account.username,
+            displayName: account.name || account.username,
+            tenantId: account.tenantId || 'common',
+          });
         }
       });
     } else if (!account && inProgress === InteractionStatus.None) {
