@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { graphService } from '../../services/graphService';
-import { useAuth } from '../../contexts/AuthContext';
+import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
 import toast from 'react-hot-toast';
 import {
   ComputerDesktopIcon,

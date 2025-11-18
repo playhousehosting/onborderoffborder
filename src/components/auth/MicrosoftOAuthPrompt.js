@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useMSALAuth as useAuth } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
 
 const MicrosoftOAuthPrompt = ({ onSuccess }) => {

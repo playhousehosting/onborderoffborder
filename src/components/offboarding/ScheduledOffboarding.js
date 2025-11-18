@@ -3,7 +3,7 @@ import { useConvex } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { getSessionId } from '../../services/convexService';
 import { graphService } from '../../services/graphService';
-import { useAuth } from '../../contexts/AuthContext';
+import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
 import toast from 'react-hot-toast';
 import {
   CalendarIcon,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { graphService } from '../../services/graphService';
-import { useAuth } from '../../contexts/AuthContext';
+import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
 import { logger } from '../../utils/logger';
 import toast from 'react-hot-toast';
 import { useConvex } from 'convex/react';

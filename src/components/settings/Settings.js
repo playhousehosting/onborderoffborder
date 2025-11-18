@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
 import { graphService } from '../../services/graphService';
 import { isDemoMode } from '../../config/authConfig';
 import toast from 'react-hot-toast';

@@ -71,7 +71,7 @@ import {
 import intuneService from '../../services/intuneService';
 import wingetService from '../../services/wingetService';
 import settingsCatalogService from '../../services/settingsCatalogService';
-import { useAuth } from '../../contexts/AuthContext';
+import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
 
 // ========== MAIN COMPONENT ==========
 
