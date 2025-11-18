@@ -15,7 +15,8 @@ import {
   UserGroupIcon
 } from '@heroicons/react/24/outline';
 import lifecycleWorkflowsService, { WORKFLOW_CATEGORIES } from '../../services/lifecycleWorkflowsService';
-import graphService from '../../services/graphService';
+import msalGraphService from '../../services/msalGraphService';
+import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
 import { 
   getDepartmentMappings, 
   saveDepartmentMappings,
@@ -31,6 +32,14 @@ import {
 
 const WorkflowManagement = () => {
   const { t } = useTranslation();
+  const { getAccessToken } = useAuth();
+  
+  // Initialize MSAL graph service with token function
+  useEffect(() => {
+    if (getAccessToken) {
+      msalGraphService.setGetTokenFunction(getAccessToken);
+    }
+  }, [getAccessToken]);
   
   // Tab state
   const [activeTab, setActiveTab] = useState('workflows'); // 'workflows' or 'mappings'
@@ -73,7 +82,7 @@ const WorkflowManagement = () => {
   const loadGroups = async () => {
     setIsLoadingGroups(true);
     try {
-      const groups = await graphService.getGroups();
+      const groups = await msalGraphService.getGroups();
       setAvailableGroups(Array.isArray(groups) ? groups : []);
     } catch (error) {
       console.error('Error loading groups:', error);

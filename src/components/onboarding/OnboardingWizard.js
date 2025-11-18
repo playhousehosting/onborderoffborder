@@ -33,7 +33,7 @@ const OnboardingWizard = () => {
   // Initialize MSAL graph service with token function
   useEffect(() => {
     if (getAccessToken) {
-      msalmsalGraphService.setGetTokenFunction(getAccessToken);
+      msalGraphService.setGetTokenFunction(getAccessToken);
     }
   }, [getAccessToken]);
   

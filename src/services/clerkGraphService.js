@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useMSALAuth as useAuth } from '@clerk/clerk-react';
 
 /**
  * Graph Service for Clerk-authenticated users

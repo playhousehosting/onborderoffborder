@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { graphService } from '../../services/graphService';
+import msalGraphService from '../../services/msalGraphService';
 import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
 import toast from 'react-hot-toast';
 import {
@@ -12,7 +12,15 @@ import {
 } from '@heroicons/react/24/outline';
 
 const DeviceManagement = () => {
-  const { hasPermission } = useAuth();
+  const { hasPermission, getAccessToken } = useAuth();
+  
+  // Initialize MSAL graph service with token function
+  useEffect(() => {
+    if (getAccessToken) {
+      msalGraphService.setGetTokenFunction(getAccessToken);
+    }
+  }, [getAccessToken]);
+  
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,7 +49,7 @@ const DeviceManagement = () => {
       }
       
       const skip = (currentPage - 1) * devicesPerPage;
-      const response = await graphService.makeRequest(
+      const response = await msalGraphService.makeRequest(
         `/deviceManagement/managedDevices?$top=${devicesPerPage}&$skip=${skip}${filterQuery}&$select=id,deviceName,manufacturer,model,operatingSystem,osVersion,complianceState,lastSyncDateTime,userPrincipalName,serialNumber`
       );
       
@@ -79,7 +87,7 @@ const DeviceManagement = () => {
 
   const handleRetireDevice = async (deviceId) => {
     try {
-      await graphService.retireDevice(deviceId);
+      await msalGraphService.retireDevice(deviceId);
       toast.success('Device retired successfully');
       fetchDevices();
     } catch (error) {
@@ -94,7 +102,7 @@ const DeviceManagement = () => {
     }
 
     try {
-      await graphService.wipeDevice(deviceId, false, false);
+      await msalGraphService.wipeDevice(deviceId, false, false);
       toast.success('Device wipe initiated successfully');
       fetchDevices();
     } catch (error) {
@@ -105,7 +113,7 @@ const DeviceManagement = () => {
 
   const handleSyncDevice = async (deviceId) => {
     try {
-      await graphService.syncDevice(deviceId);
+      await msalGraphService.syncDevice(deviceId);
       toast.success('Device sync initiated successfully');
       fetchDevices();
     } catch (error) {
@@ -126,7 +134,7 @@ const DeviceManagement = () => {
 
     try {
       for (const deviceId of selectedDevices) {
-        await graphService.retireDevice(deviceId);
+        await msalGraphService.retireDevice(deviceId);
       }
       toast.success(`${selectedDevices.length} device(s) retired successfully`);
       setSelectedDevices([]);
@@ -149,7 +157,7 @@ const DeviceManagement = () => {
 
     try {
       for (const deviceId of selectedDevices) {
-        await graphService.wipeDevice(deviceId, false, false);
+        await msalGraphService.wipeDevice(deviceId, false, false);
       }
       toast.success(`Wipe initiated for ${selectedDevices.length} device(s)`);
       setSelectedDevices([]);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { graphService } from '../../services/graphService';
+import msalGraphService from '../../services/msalGraphService';
 import toast from 'react-hot-toast';
 import {
   XMarkIcon,
@@ -23,6 +23,15 @@ import {
 } from '@heroicons/react/24/outline';
 
 const UserDetailModal = ({ user, onClose, onUserUpdated }) => {
+  // Initialize MSAL graph service with token function
+  useEffect(() => {
+    const initializeAuth = async () => {
+      // Token function should already be set by parent component
+      // This component doesn't have access to getAccessToken directly
+    };
+    initializeAuth();
+  }, []);
+  
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [signInLogs, setSignInLogs] = useState([]);
@@ -50,11 +59,11 @@ const UserDetailModal = ({ user, onClose, onUserUpdated }) => {
         devicesResponse,
         managerResponse
       ] = await Promise.allSettled([
-        graphService.getUserSignInLogs(user.id, 7),
-        graphService.getUserAuthenticationMethods(user.id),
-        graphService.getUserPresence(user.id),
-        graphService.getUserRegisteredDevices(user.id),
-        graphService.getUserManager(user.id)
+        msalGraphService.getUserSignInLogs(user.id, 7),
+        msalGraphService.getUserAuthenticationMethods(user.id),
+        msalGraphService.getUserPresence(user.id),
+        msalGraphService.getUserRegisteredDevices(user.id),
+        msalGraphService.getUserManager(user.id)
       ]);
 
       if (signInLogsResponse.status === 'fulfilled') {
@@ -91,7 +100,7 @@ const UserDetailModal = ({ user, onClose, onUserUpdated }) => {
 
     try {
       setProcessing(true);
-      const response = await graphService.resetUserPassword(user.id);
+      const response = await msalGraphService.resetUserPassword(user.id);
       
       toast.success(
         <div>
@@ -124,12 +133,12 @@ const UserDetailModal = ({ user, onClose, onUserUpdated }) => {
     try {
       setProcessing(true);
       const methodType = method['@odata.type'].split('.').pop().replace('AuthenticationMethod', '');
-      await graphService.deleteUserAuthenticationMethod(user.id, method.id, methodType);
+      await msalGraphService.deleteUserAuthenticationMethod(user.id, method.id, methodType);
       
       toast.success(`${methodName} removed successfully`);
       
       // Reload auth methods
-      const updatedMethods = await graphService.getUserAuthenticationMethods(user.id);
+      const updatedMethods = await msalGraphService.getUserAuthenticationMethods(user.id);
       setAuthMethods(updatedMethods.value || []);
     } catch (error) {
       console.error('Error revoking auth method:', error);
@@ -150,10 +159,10 @@ const UserDetailModal = ({ user, onClose, onUserUpdated }) => {
       setProcessing(true);
       
       if (user.accountEnabled) {
-        await graphService.disableUserAccount(user.id);
+        await msalGraphService.disableUserAccount(user.id);
         toast.success('Account disabled successfully');
       } else {
-        await graphService.enableUserAccount(user.id);
+        await msalGraphService.enableUserAccount(user.id);
         toast.success('Account enabled successfully');
       }
 
@@ -177,7 +186,7 @@ const UserDetailModal = ({ user, onClose, onUserUpdated }) => {
 
     try {
       setProcessing(true);
-      await graphService.revokeUserSessions(user.id);
+      await msalGraphService.revokeUserSessions(user.id);
       toast.success('All sessions revoked successfully');
     } catch (error) {
       console.error('Error revoking sessions:', error);

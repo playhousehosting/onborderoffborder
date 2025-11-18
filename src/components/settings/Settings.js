@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
-import { graphService } from '../../services/graphService';
+import msalGraphService from '../../services/msalGraphService';
 import { isDemoMode } from '../../config/authConfig';
 import toast from 'react-hot-toast';
 import {
@@ -14,7 +14,15 @@ import {
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, getAccessToken } = useAuth();
+  
+  // Initialize MSAL graph service with token function
+  useEffect(() => {
+    if (getAccessToken) {
+      msalGraphService.setGetTokenFunction(getAccessToken);
+    }
+  }, [getAccessToken]);
+  
   const [activeTab, setActiveTab] = useState('azure');
   const [config, setConfig] = useState({
     clientId: '',

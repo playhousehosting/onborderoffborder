@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useConvex } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { getSessionId } from '../../services/convexService';
-import { graphService } from '../../services/graphService';
+import msalGraphService from '../../services/msalGraphService';
 import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
 import toast from 'react-hot-toast';
 import {
@@ -19,7 +19,15 @@ import {
 
 const ScheduledOffboarding = () => {
   const convex = useConvex();
-  const { hasPermission } = useAuth();
+  const { hasPermission, getAccessToken } = useAuth();
+  
+  // Initialize MSAL graph service with token function
+  useEffect(() => {
+    if (getAccessToken) {
+      msalGraphService.setGetTokenFunction(getAccessToken);
+    }
+  }, [getAccessToken]);
+  
   const [scheduledOffboardings, setScheduledOffboardings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showScheduleForm, setShowScheduleForm] = useState(false);
@@ -158,7 +166,7 @@ const ScheduledOffboarding = () => {
     
     try {
       setSearching(true);
-      const results = await graphService.searchUsers(searchTerm);
+      const results = await msalGraphService.searchUsers(searchTerm);
       setSearchResults(results.value || []);
     } catch (error) {
       console.error('Error searching users:', error);

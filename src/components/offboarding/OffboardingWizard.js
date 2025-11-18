@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { graphService } from '../../services/graphService';
+import msalGraphService from '../../services/msalGraphService';
 import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
 import { logger } from '../../utils/logger';
 import toast from 'react-hot-toast';
@@ -49,8 +49,15 @@ const generateRandomPassword = () => {
 const OffboardingWizard = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermission, getAccessToken } = useAuth();
   const convex = useConvex();
+  
+  // Initialize MSAL graph service with token function
+  useEffect(() => {
+    if (getAccessToken) {
+      msalGraphService.setGetTokenFunction(getAccessToken);
+    }
+  }, [getAccessToken]);
   
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -212,7 +219,7 @@ const OffboardingWizard = () => {
   const fetchUser = async (id) => {
     try {
       setLoading(true);
-      const userData = await graphService.getUserById(id);
+      const userData = await msalGraphService.getUserById(id);
       setSelectedUser(userData);
     } catch (error) {
       logger.error('Error fetching user:', error);
@@ -227,7 +234,7 @@ const OffboardingWizard = () => {
     
     try {
       setSearching(true);
-      const results = await graphService.searchUsers(searchTerm);
+      const results = await msalGraphService.searchUsers(searchTerm);
       setSearchResults(results.value || []);
     } catch (error) {
       logger.error('Error searching users:', error);
@@ -327,7 +334,7 @@ const OffboardingWizard = () => {
       if (offboardingOptions.disableAccount) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Disabling account...', currentStep: prev.currentStep + 1 }));
         try {
-          await graphService.disableUser(selectedUser.id);
+          await msalGraphService.disableUser(selectedUser.id);
           results.push({
             action: 'Disable Account',
             status: 'success',
@@ -351,7 +358,7 @@ const OffboardingWizard = () => {
       // 2. Revoke all sign-in sessions (CRITICAL: Always do this after disabling account)
       setExecutionProgress(prev => ({ ...prev, currentTask: 'Revoking all active sessions...', currentStep: prev.currentStep + 1 }));
       try {
-        await graphService.revokeUserSessions(selectedUser.id);
+        await msalGraphService.revokeUserSessions(selectedUser.id);
         results.push({
           action: 'Revoke Sessions',
           status: 'success',
@@ -370,7 +377,7 @@ const OffboardingWizard = () => {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Resetting password...', currentStep: prev.currentStep + 1 }));
         try {
           const newPassword = generateRandomPassword();
-          await graphService.resetUserPassword(selectedUser.id, newPassword, false);
+          await msalGraphService.resetUserPassword(selectedUser.id, newPassword, false);
           results.push({
             action: 'Reset Password',
             status: 'success',
@@ -395,7 +402,7 @@ const OffboardingWizard = () => {
       if (offboardingOptions.revokeLicenses) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Revoking licenses...', currentStep: prev.currentStep + 1 }));
         try {
-          const licenseResult = await graphService.removeAllLicenses(selectedUser.id);
+          const licenseResult = await msalGraphService.removeAllLicenses(selectedUser.id);
           results.push({
             action: 'Revoke Licenses',
             status: 'success',
@@ -420,7 +427,7 @@ const OffboardingWizard = () => {
       if (offboardingOptions.convertMailbox) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Converting mailbox to shared...', currentStep: prev.currentStep + 1 }));
         try {
-          await graphService.convertToSharedMailbox(selectedUser.id);
+          await msalGraphService.convertToSharedMailbox(selectedUser.id);
           results.push({
             action: 'Convert Mailbox',
             status: 'success',
@@ -445,7 +452,7 @@ const OffboardingWizard = () => {
       if (offboardingOptions.setEmailForwarding) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Setting up email forwarding...', currentStep: prev.currentStep + 1 }));
         try {
-          await graphService.setMailForwarding(
+          await msalGraphService.setMailForwarding(
             selectedUser.id,
             offboardingOptions.forwardingAddress,
             true
@@ -474,7 +481,7 @@ const OffboardingWizard = () => {
       if (offboardingOptions.setAutoReply) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Setting auto-reply message...', currentStep: prev.currentStep + 1 }));
         try {
-          await graphService.setAutoReply(
+          await msalGraphService.setAutoReply(
             selectedUser.id,
             true,
             'All',
@@ -505,7 +512,7 @@ const OffboardingWizard = () => {
       if (offboardingOptions.backupData) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Backing up user data...', currentStep: prev.currentStep + 1 }));
         try {
-          const backupResult = await graphService.backupUserData(selectedUser.id);
+          const backupResult = await msalGraphService.backupUserData(selectedUser.id);
           results.push({
             action: 'Data Backup',
             status: 'success',
@@ -531,7 +538,7 @@ const OffboardingWizard = () => {
       if (offboardingOptions.removeFromGroups) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Removing from groups...', currentStep: prev.currentStep + 1 }));
         try {
-          const groupsData = await graphService.getUserGroups(selectedUser.id);
+          const groupsData = await msalGraphService.getUserGroups(selectedUser.id);
           const groups = groupsData.value || [];
           let removedCount = 0;
           let failedCount = 0;
@@ -545,7 +552,7 @@ const OffboardingWizard = () => {
           } else {
             for (const group of groups) {
               try {
-                await graphService.removeUserFromGroup(group.id, selectedUser.id);
+                await msalGraphService.removeUserFromGroup(group.id, selectedUser.id);
                 removedCount++;
               } catch (error) {
                 failedCount++;
@@ -582,7 +589,7 @@ const OffboardingWizard = () => {
       if (offboardingOptions.removeFromTeams) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Removing from Teams...', currentStep: prev.currentStep + 1 }));
         try {
-          const teamsData = await graphService.getUserTeams(selectedUser.id);
+          const teamsData = await msalGraphService.getUserTeams(selectedUser.id);
           const teams = teamsData.value || [];
           let removedCount = 0;
           let failedCount = 0;
@@ -596,7 +603,7 @@ const OffboardingWizard = () => {
           } else {
             for (const team of teams) {
               try {
-                await graphService.removeUserFromTeam(team.id, selectedUser.id);
+                await msalGraphService.removeUserFromTeam(team.id, selectedUser.id);
                 removedCount++;
               } catch (error) {
                 failedCount++;
@@ -633,7 +640,7 @@ const OffboardingWizard = () => {
       if (hasPermission('application') && offboardingOptions.removeFromApps) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Removing from enterprise applications...', currentStep: prev.currentStep + 1 }));
         try {
-          const appsData = await graphService.getUserAppRoleAssignments(selectedUser.id);
+          const appsData = await msalGraphService.getUserAppRoleAssignments(selectedUser.id);
           const apps = appsData.value || [];
           let removedCount = 0;
           let failedCount = 0;
@@ -647,7 +654,7 @@ const OffboardingWizard = () => {
           } else {
             for (const app of apps) {
               try {
-                await graphService.removeUserFromEnterpriseApp(selectedUser.id, app.id);
+                await msalGraphService.removeUserFromEnterpriseApp(selectedUser.id, app.id);
                 removedCount++;
               } catch (error) {
                 failedCount++;
@@ -684,7 +691,7 @@ const OffboardingWizard = () => {
       if (hasPermission('userAuthenticationMethod') && offboardingOptions.removeAuthMethods) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Removing authentication methods...', currentStep: prev.currentStep + 1 }));
         try {
-          const authMethodsData = await graphService.getUserAuthenticationMethods(selectedUser.id);
+          const authMethodsData = await msalGraphService.getUserAuthenticationMethods(selectedUser.id);
           const authMethods = authMethodsData.value || [];
           let removedCount = 0;
           let failedCount = 0;
@@ -698,7 +705,7 @@ const OffboardingWizard = () => {
           } else {
             for (const method of authMethods) {
               try {
-                await graphService.removeAuthenticationMethod(selectedUser.id, method.id, method.methodType);
+                await msalGraphService.removeAuthenticationMethod(selectedUser.id, method.id, method.methodType);
                 removedCount++;
               } catch (error) {
                 failedCount++;
@@ -735,7 +742,7 @@ const OffboardingWizard = () => {
       if (hasPermission('deviceManagement') && (offboardingOptions.wipeDevices || offboardingOptions.retireDevices)) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Managing devices...', currentStep: prev.currentStep + 1 }));
         try {
-          const devicesData = await graphService.getUserDevices(selectedUser.userPrincipalName);
+          const devicesData = await msalGraphService.getUserDevices(selectedUser.userPrincipalName);
           const devices = devicesData.value || [];
           let processedDevices = 0;
           let failedDevices = 0;
@@ -750,9 +757,9 @@ const OffboardingWizard = () => {
             for (const device of devices) {
               try {
                 if (offboardingOptions.wipeDevices) {
-                  await graphService.wipeDevice(device.id, false, false);
+                  await msalGraphService.wipeDevice(device.id, false, false);
                 } else if (offboardingOptions.retireDevices) {
-                  await graphService.retireDevice(device.id);
+                  await msalGraphService.retireDevice(device.id);
                 }
                 processedDevices++;
               } catch (error) {

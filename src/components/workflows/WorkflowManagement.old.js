@@ -15,7 +15,7 @@ import {
   UserGroupIcon
 } from '@heroicons/react/24/outline';
 import lifecycleWorkflowsService, { WORKFLOW_CATEGORIES } from '../../services/lifecycleWorkflowsService';
-import graphService from '../../services/graphService';
+import msalGraphService from '../../services/msalGraphService';
 import { 
   getDepartmentMappings, 
   saveDepartmentMappings 
@@ -61,7 +61,7 @@ const WorkflowManagement = () => {
   const loadGroups = async () => {
     setIsLoadingGroups(true);
     try {
-      const groups = await graphService.getGroups();
+      const groups = await msalGraphService.getGroups();
       setAvailableGroups(Array.isArray(groups) ? groups : []);
     } catch (error) {
       console.error('Error loading groups:', error);

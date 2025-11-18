@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
-import { graphService } from '../../services/graphService';
+import msalGraphService from '../../services/msalGraphService';
 import toast from 'react-hot-toast';
 import {
   ArrowPathIcon,
@@ -19,7 +19,15 @@ import {
 const TransferWizard = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermission, getAccessToken } = useAuth();
+  
+  // Initialize MSAL graph service with token function
+  useEffect(() => {
+    if (getAccessToken) {
+      msalGraphService.setGetTokenFunction(getAccessToken);
+    }
+  }, [getAccessToken]);
+  
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedUser, setSelectedUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -56,7 +64,7 @@ const TransferWizard = () => {
     const loadUser = async () => {
       if (userId) {
         try {
-          const user = await graphService.getUserById(userId);
+          const user = await msalGraphService.getUserById(userId);
           setSelectedUser(user);
           setCurrentStep(2);
         } catch (error) {
@@ -78,7 +86,7 @@ const TransferWizard = () => {
 
     setIsSearching(true);
     try {
-      const results = await graphService.searchUsers(searchTerm);
+      const results = await msalGraphService.searchUsers(searchTerm);
       setSearchResults(results.value || []);
       if (results.value?.length === 0) {
         toast.info('No users found');
@@ -170,7 +178,7 @@ const TransferWizard = () => {
       if (batchRequests.length > 0) {
         try {
           console.log(`Executing ${batchRequests.length} operations in batch request...`);
-          const batchResponse = await graphService.batchRequest(batchRequests);
+          const batchResponse = await msalGraphService.batchRequest(batchRequests);
           
           // Process batch responses
           batchResponse.responses.forEach((response) => {
@@ -207,7 +215,7 @@ const TransferWizard = () => {
       // 2. Update manager if specified (needs manager search first)
       if (transferOptions.newManager) {
         try {
-          await graphService.updateUserManager(selectedUser.id, transferOptions.newManager);
+          await msalGraphService.updateUserManager(selectedUser.id, transferOptions.newManager);
           results.push({
             action: 'Manager Assignment',
             status: 'success',
@@ -243,7 +251,7 @@ const TransferWizard = () => {
       // 4. Send notification to user
       if (transferOptions.notifyUser) {
         try {
-          await graphService.sendTransferNotification(
+          await msalGraphService.sendTransferNotification(
             selectedUser.id,
             transferOptions,
             'user'
@@ -265,7 +273,7 @@ const TransferWizard = () => {
       // 5. Send notification to manager
       if (transferOptions.notifyManager && transferOptions.newManager) {
         try {
-          await graphService.sendTransferNotification(
+          await msalGraphService.sendTransferNotification(
             transferOptions.newManager,
             transferOptions,
             'manager'

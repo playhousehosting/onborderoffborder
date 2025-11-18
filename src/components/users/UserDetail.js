@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { graphService } from '../../services/graphService';
+import msalGraphService from '../../services/msalGraphService';
 import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
 import toast from 'react-hot-toast';
 import {
@@ -20,7 +20,15 @@ import {
 
 const UserDetail = () => {
   const { userId } = useParams();
-  const { hasPermission } = useAuth();
+  const { hasPermission, getAccessToken } = useAuth();
+  
+  // Initialize MSAL graph service with token function
+  useEffect(() => {
+    if (getAccessToken) {
+      msalGraphService.setGetTokenFunction(getAccessToken);
+    }
+  }, [getAccessToken]);
+  
   const [user, setUser] = useState(null);
   const [userGroups, setUserGroups] = useState([]);
   const [userDevices, setUserDevices] = useState([]);
@@ -39,12 +47,12 @@ const UserDetail = () => {
       setLoading(true);
       
       // Fetch user details
-      const userData = await graphService.getUserById(userId);
+      const userData = await msalGraphService.getUserById(userId);
       setUser(userData);
       
       // Fetch user groups
       try {
-        const groupsData = await graphService.getUserGroups(userId);
+        const groupsData = await msalGraphService.getUserGroups(userId);
         setUserGroups(groupsData.value || []);
       } catch (error) {
         console.warn('Could not fetch user groups:', error);
@@ -53,7 +61,7 @@ const UserDetail = () => {
       // Fetch user devices if user has device management permission
       if (hasPermission('deviceManagement')) {
         try {
-          const devicesData = await graphService.getUserDevices(userData.userPrincipalName);
+          const devicesData = await msalGraphService.getUserDevices(userData.userPrincipalName);
           setUserDevices(devicesData.value || []);
         } catch (error) {
           console.warn('Could not fetch user devices:', error);
@@ -62,7 +70,7 @@ const UserDetail = () => {
       
       // Fetch user licenses
       try {
-        const licensesData = await graphService.getUserLicenses(userId);
+        const licensesData = await msalGraphService.getUserLicenses(userId);
         setUserLicenses(licensesData || []);
       } catch (error) {
         console.warn('Could not fetch user licenses:', error);
