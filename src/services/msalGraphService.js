@@ -12,7 +12,7 @@ class MSALGraphService {
     // Convex HTTP actions are served from .convex.site, not .convex.cloud
     // Convert .convex.cloud to .convex.site for HTTP actions
     this.baseUrl = convexUrl.replace('.convex.cloud', '.convex.site').replace('/api', '');
-    this.proxyPath = '/clerk-proxy/graph'; // Keep route name for now, will rename in backend later
+    this.proxyPath = '/msal-proxy/graph';
   }
 
   /**
