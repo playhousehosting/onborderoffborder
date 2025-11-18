@@ -6,6 +6,7 @@ import { logger } from '../../utils/logger';
 import toast from 'react-hot-toast';
 import { useConvex } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import { exportOffboardingResultsToPDF } from '../../utils/pdfExport';
 import {
   UserMinusIcon,
   UserIcon,
@@ -19,6 +20,7 @@ import {
   ArrowLeftIcon,
   ExclamationTriangleIcon,
   ClockIcon,
+  ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
 
 // Generate random password (12 characters)
@@ -49,7 +51,7 @@ const generateRandomPassword = () => {
 const OffboardingWizard = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { hasPermission, getAccessToken } = useAuth();
+  const { hasPermission, getAccessToken, user: currentUser } = useAuth();
   const convex = useConvex();
   
   // Initialize MSAL graph service with token function
@@ -872,6 +874,24 @@ const OffboardingWizard = () => {
     }
   };
 
+  // Export results to PDF
+  const handleExportPDF = () => {
+    try {
+      const filename = exportOffboardingResultsToPDF({
+        user: selectedUser,
+        results: executionResults,
+        options: offboardingOptions,
+        executedBy: currentUser || 'Unknown User',
+        executionDate: new Date(),
+      });
+      toast.success(`PDF exported: ${filename}`);
+      logger.info('PDF report exported successfully');
+    } catch (error) {
+      logger.error('Failed to export PDF:', error);
+      toast.error('Failed to export PDF report');
+    }
+  };
+
   const renderStep = () => {
     switch (steps[currentStep].id) {
       case 'user-selection':
@@ -1549,19 +1569,28 @@ const OffboardingWizard = () => {
                   ))}
                 </div>
                 
-                <div className="mt-6 flex justify-end space-x-3">
+                <div className="mt-6 flex flex-col sm:flex-row justify-between gap-3">
                   <button
-                    onClick={() => window.location.reload()}
-                    className="btn btn-secondary"
+                    onClick={handleExportPDF}
+                    className="btn btn-outline flex items-center justify-center gap-2"
                   >
-                    Start Another Offboarding
+                    <ArrowDownTrayIcon className="h-5 w-5" />
+                    Export to PDF
                   </button>
-                  <button
-                    onClick={() => navigate('/dashboard')}
-                    className="btn btn-primary"
-                  >
-                    Go to Dashboard
-                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="btn btn-secondary"
+                    >
+                      Start Another Offboarding
+                    </button>
+                    <button
+                      onClick={() => navigate('/dashboard')}
+                      className="btn btn-primary"
+                    >
+                      Go to Dashboard
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
