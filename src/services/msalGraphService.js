@@ -115,7 +115,7 @@ class MSALGraphService {
     const endpoint = `/users?${queryParams.join('&')}`;
     const response = await this.makeRequest(endpoint);
     
-    return response.value || [];
+    return response; // Return full response object with value and @odata properties
   }
 
   /**
@@ -202,7 +202,7 @@ class MSALGraphService {
     const endpoint = `/groups?${queryParams.join('&')}`;
     const response = await this.makeRequest(endpoint);
     
-    return response.value || [];
+    return response; // Return full response object
   }
 
   /**
@@ -258,7 +258,7 @@ class MSALGraphService {
     const endpoint = `/deviceManagement/managedDevices?${queryParams.join('&')}`;
     const response = await this.makeRequest(endpoint);
     
-    return response.value || [];
+    return response; // Return full response object
   }
 
   /**

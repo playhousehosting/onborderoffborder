@@ -55,7 +55,7 @@ const Dashboard = () => {
         if (hasPermission('userManagement')) {
           // Get ALL user statistics using pagination
           logger.debug('📊 Fetching all users with pagination...');
-          const usersData = await service.getAllUsers('', 999); // Fetch 999 per page for better performance
+          const usersData = await service.getAllUsers({ top: 999 }); // Fetch 999 per page for better performance
           const totalUsers = usersData.value?.length || 0;
           const activeUsers = usersData.value?.filter(u => u.accountEnabled).length || 0;
           const disabledUsers = totalUsers - activeUsers;
