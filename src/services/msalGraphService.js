@@ -13,6 +13,7 @@ class MSALGraphService {
     // Convert .convex.cloud to .convex.site for HTTP actions
     this.baseUrl = convexUrl.replace('.convex.cloud', '.convex.site').replace('/api', '');
     this.proxyPath = '/msal-proxy/graph';
+    this._getTokenFunction = null;
   }
 
   /**
@@ -20,7 +21,10 @@ class MSALGraphService {
    * This will be set by the React component using setGetTokenFunction
    */
   async getAccessToken() {
-    throw new Error('Must call setGetTokenFunction first with getAccessToken from useMSALAuth');
+    if (!this._getTokenFunction) {
+      throw new Error('Must call setGetTokenFunction first with getAccessToken from useMSALAuth');
+    }
+    return await this._getTokenFunction();
   }
 
   /**
@@ -28,7 +32,7 @@ class MSALGraphService {
    * @param {Function} getTokenFn - The getAccessToken function from useMSALAuth hook
    */
   setGetTokenFunction(getTokenFn) {
-    this.getAccessToken = getTokenFn;
+    this._getTokenFunction = getTokenFn;
   }
 
   /**
@@ -85,6 +89,17 @@ class MSALGraphService {
       console.error('❌ Graph request error:', error);
       throw error;
     }
+  }
+
+  /**
+   * Get user by ID
+   */
+  async getUserById(userId, select) {
+    let endpoint = `/users/${userId}`;
+    if (select) {
+      endpoint += `?$select=${select}`;
+    }
+    return await this.makeRequest(endpoint);
   }
 
   /**
@@ -283,6 +298,42 @@ class MSALGraphService {
     return await this.makeRequest(`/deviceManagement/managedDevices/${deviceId}`, {
       method: 'DELETE',
     });
+  }
+
+  /**
+   * Get available licenses (subscribed SKUs) for the organization
+   */
+  async getAvailableLicenses() {
+    const response = await this.makeRequest('/subscribedSkus');
+    return response;
+  }
+
+  /**
+   * Get user license details
+   */
+  async getUserLicenses(userId) {
+    const response = await this.makeRequest(`/users/${userId}/licenseDetails`);
+    return response.value || [];
+  }
+
+  /**
+   * Assign license to user
+   */
+  async assignLicense(userId, skuId, removeLicenses = []) {
+    return await this.makeRequest(`/users/${userId}/assignLicense`, {
+      method: 'POST',
+      body: JSON.stringify({
+        addLicenses: [{ skuId }],
+        removeLicenses,
+      }),
+    });
+  }
+
+  /**
+   * Remove license from user
+   */
+  async removeLicense(userId, skuId) {
+    return await this.assignLicense(userId, null, [skuId]);
   }
 
   /**

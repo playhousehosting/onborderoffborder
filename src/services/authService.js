@@ -21,9 +21,13 @@ export class AuthService {
   // Get current account
   getCurrentAccount() {
     if (!this.msalInstance) {
+      console.warn('⚠️ MSAL instance not initialized in authService');
       return null;
     }
     const accounts = this.msalInstance.getAllAccounts();
+    if (accounts.length === 0) {
+      console.warn('⚠️ No MSAL accounts found in authService.getCurrentAccount()');
+    }
     return accounts.length > 0 ? accounts[0] : null;
   }
 

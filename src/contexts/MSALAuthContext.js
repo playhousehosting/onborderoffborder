@@ -4,6 +4,7 @@ import { useMsal, useAccount } from '@azure/msal-react';
 import { InteractionStatus } from '@azure/msal-browser';
 import { loginRequest } from '../config/msalConfig';
 import { setSessionId, clearSessionId, getSessionId } from '../services/convexService';
+import { msalGraphService } from '../services/msalGraphService';
 
 const MSALAuthContext = createContext();
 
@@ -49,6 +50,10 @@ export const MSALAuthProvider = ({ children }) => {
       getAccessToken().then(token => {
         setAccessToken(token);
         setLoading(false);
+        
+        // Initialize msalGraphService with token getter function
+        msalGraphService.setGetTokenFunction(getAccessToken);
+        console.log('✅ msalGraphService initialized with token function');
         
         // Create/restore session ID for Convex
         let sessionId = getSessionId();

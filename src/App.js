@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { MsalProvider } from '@azure/msal-react';
 import { MSALAuthProvider, useMSALAuth as useAuth } from './contexts/MSALAuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Toaster } from 'react-hot-toast';
 import { msalInstance } from './config/msalConfig';
+import { authService } from './services/authService';
 import './index.css';
+
+// Initialize authService with MSAL instance
+authService.setMsalInstance(msalInstance);
 
 // Components
 import Layout from './components/common/Layout';

@@ -67,7 +67,10 @@ export const ConvexAuthProvider = ({ children }) => {
             });
           }
         } else {
-          console.warn('⚠️ Session invalid or expired:', status.reason);
+          // Don't warn if using MSAL auth - Convex session not required
+          if (sessionId && !sessionId.startsWith('msal_')) {
+            console.warn('⚠️ Session invalid or expired:', status.reason);
+          }
           clearSessionId();
           setIsAuthenticated(false);
           setUser(null);
