@@ -53,6 +53,7 @@ export const loginRequest = {
     'Directory.ReadWrite.All',
     'Group.Read.All',
     'DeviceManagementManagedDevices.ReadWrite.All',
+    'DeviceManagementManagedDevices.PrivilegedOperations.All', // Required for device sync, wipe, retire
     'offline_access' // For refresh tokens
   ]
 };

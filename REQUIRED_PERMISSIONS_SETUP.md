@@ -10,6 +10,7 @@ Your application is successfully authenticating and some features work, but seve
 - Directory.ReadWrite.All
 - Group.Read.All
 - DeviceManagementManagedDevices.ReadWrite.All
+- DeviceManagementManagedDevices.PrivilegedOperations.All
 
 ## ❌ Missing Permissions (Causing 403 Errors)
 

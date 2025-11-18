@@ -49,6 +49,7 @@ Based on the console errors, your app is missing these permissions:
 
 ### Device Management (Intune)
 - ✅ `DeviceManagementManagedDevices.ReadWrite.All` - Read and write managed devices
+- ✅ `DeviceManagementManagedDevices.PrivilegedOperations.All` - Perform privileged operations (sync, wipe, retire)
 - ✅ `DeviceManagementConfiguration.ReadWrite.All` - Read and write device configs
 - ✅ `DeviceManagementApps.ReadWrite.All` - Manage apps on devices
 

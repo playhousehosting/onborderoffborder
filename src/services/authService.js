@@ -216,6 +216,7 @@ export class AuthService {
   async getDeviceManagementToken() {
     return this.getAccessToken([
       'DeviceManagementManagedDevices.ReadWrite.All',
+      'DeviceManagementManagedDevices.PrivilegedOperations.All',
       'DeviceManagementApps.ReadWrite.All'
     ]);
   }
