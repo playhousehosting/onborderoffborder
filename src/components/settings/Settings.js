@@ -12,6 +12,8 @@ import {
   XCircleIcon,
   TrashIcon,
   ArrowPathIcon,
+  BellIcon,
+  UserGroupIcon,
 } from '@heroicons/react/24/outline';
 
 const Settings = () => {
