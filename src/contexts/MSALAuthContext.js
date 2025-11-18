@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useMsal, useAccount } from '@azure/msal-react';
 import { InteractionStatus } from '@azure/msal-browser';
 import { loginRequest } from '../config/msalConfig';
+import { setSessionId, clearSessionId, getSessionId } from '../services/convexService';
 
 const MSALAuthContext = createContext();
 
@@ -42,16 +43,26 @@ export const MSALAuthProvider = ({ children }) => {
     }
   };
 
-  // Update access token when account changes
+  // Update access token and session ID when account changes
   useEffect(() => {
     if (account && inProgress === InteractionStatus.None) {
       getAccessToken().then(token => {
         setAccessToken(token);
         setLoading(false);
+        
+        // Create/restore session ID for Convex
+        let sessionId = getSessionId();
+        if (!sessionId) {
+          // Generate a unique session ID based on account ID and timestamp
+          sessionId = `msal_${account.homeAccountId}_${Date.now()}`;
+          setSessionId(sessionId);
+          console.log('✅ Created MSAL session ID:', sessionId);
+        }
       });
     } else if (!account && inProgress === InteractionStatus.None) {
       setAccessToken(null);
       setLoading(false);
+      clearSessionId();
     }
   }, [account, inProgress]);
 
@@ -72,6 +83,7 @@ export const MSALAuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       console.log('🚪 Logging out...');
+      clearSessionId();
       await instance.logoutRedirect({
         account: account,
         postLogoutRedirectUri: window.location.origin
