@@ -69,7 +69,7 @@ const Dashboard = () => {
           
           if (hasPermission('deviceManagement')) {
             try {
-              const devicesData = await service.makeRequest('deviceManagement/managedDevices?$top=999&$select=id,deviceName,complianceState');
+              const devicesData = await service.makeRequest('/deviceManagement/managedDevices?$top=999&$select=id,deviceName,complianceState');
               totalDevices = devicesData.value?.length || 0;
               
               // Count compliant and non-compliant devices
@@ -92,7 +92,7 @@ const Dashboard = () => {
           try {
             // Get directory audit logs (user creation, password changes, etc.)
             // Note: directoryAudits endpoint doesn't support $orderby, results are returned in descending order by default
-            const auditLogs = await service.makeRequest('auditLogs/directoryAudits?$top=50');
+            const auditLogs = await service.makeRequest('/auditLogs/directoryAudits?$top=50');
             
             if (auditLogs.value && auditLogs.value.length > 0) {
               auditActivity = auditLogs.value.slice(0, 10).map((log, idx) => {
