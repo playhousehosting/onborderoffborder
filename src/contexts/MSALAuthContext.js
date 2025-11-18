@@ -4,7 +4,7 @@ import { useMsal, useAccount } from '@azure/msal-react';
 import { InteractionStatus } from '@azure/msal-browser';
 import { loginRequest } from '../config/msalConfig';
 import { setSessionId, clearSessionId, getSessionId } from '../services/convexService';
-import { msalGraphService } from '../services/msalGraphService';
+import msalGraphService from '../services/msalGraphService';
 
 const MSALAuthContext = createContext();
 
