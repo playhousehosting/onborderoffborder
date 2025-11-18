@@ -264,14 +264,27 @@ export const createMSALSession = mutation({
     tenantId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Check if session already exists
-    const existingSession = await ctx.db
-      .query("sessions")
-      .withIndex("by_session_id", (q) => q.eq("sessionId", args.sessionId))
-      .first();
+    console.log('🔵 createMSALSession called with:', {
+      sessionId: args.sessionId,
+      userId: args.userId,
+      email: args.email,
+      tenantId: args.tenantId,
+    });
 
-    const now = Date.now();
-    const expiresAt = now + SESSION_DURATION;
+    // Validate required fields
+    if (!args.sessionId || !args.userId || !args.email || !args.tenantId) {
+      throw new Error('Missing required fields for MSAL session creation');
+    }
+
+    try {
+      // Check if session already exists
+      const existingSession = await ctx.db
+        .query("sessions")
+        .withIndex("by_session_id", (q) => q.eq("sessionId", args.sessionId))
+        .first();
+
+      const now = Date.now();
+      const expiresAt = now + SESSION_DURATION;
 
     if (existingSession) {
       // Update existing session
@@ -289,25 +302,33 @@ export const createMSALSession = mutation({
       };
     }
 
-    // Create new session
-    await ctx.db.insert("sessions", {
-      tenantId: args.tenantId,
-      sessionId: args.sessionId,
-      userId: args.userId,
-      email: args.email,
-      displayName: args.displayName,
-      authMode: "oauth2", // MSAL uses OAuth2 delegated permissions
-      roles: ["admin"], // Microsoft SSO users get admin role
-      expiresAt: expiresAt,
-      createdAt: now,
-      updatedAt: now,
-    });
+      // Create new session
+      const sessionData = {
+        tenantId: args.tenantId,
+        sessionId: args.sessionId,
+        userId: args.userId,
+        email: args.email,
+        displayName: args.displayName,
+        authMode: "oauth2" as const, // MSAL uses OAuth2 delegated permissions
+        roles: ["admin"], // Microsoft SSO users get admin role
+        expiresAt: expiresAt,
+        createdAt: now,
+        updatedAt: now,
+      };
 
-    return {
-      success: true,
-      sessionId: args.sessionId,
-      message: "Session created",
-    };
+      console.log('🔵 Inserting new session:', sessionData);
+      await ctx.db.insert("sessions", sessionData);
+      console.log('✅ Session created successfully');
+
+      return {
+        success: true,
+        sessionId: args.sessionId,
+        message: "Session created",
+      };
+    } catch (error) {
+      console.error('❌ Error in createMSALSession:', error);
+      throw error;
+    }
   },
 });
 
