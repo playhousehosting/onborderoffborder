@@ -17,6 +17,7 @@ import {
   MagnifyingGlassIcon,
   BookOpenIcon,
   LightBulbIcon,
+  ArrowLeftIcon,
 } from '@heroicons/react/24/outline';
 
 const Help = () => {
@@ -956,6 +957,17 @@ const Help = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
+        {/* Back to Dashboard Button */}
+        <div className="mb-6">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+          >
+            <ArrowLeftIcon className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </button>
+        </div>
+
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
