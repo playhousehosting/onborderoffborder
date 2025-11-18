@@ -59,7 +59,10 @@ const UserSearch = () => {
     try {
       setLoading(true);
       logger.debug('📊 Fetching all users for search...');
-      const response = await service.getAllUsers(); // Automatically fetches all pages
+      // Explicitly request accountEnabled and other fields needed for display and filtering
+      const response = await service.getAllUsers({
+        select: 'id,displayName,userPrincipalName,mail,jobTitle,department,accountEnabled'
+      });
       const fetchedUsers = response.value || [];
       setAllUsers(fetchedUsers);
       logger.success(`✅ Loaded ${fetchedUsers.length} users`);
