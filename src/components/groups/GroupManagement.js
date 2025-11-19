@@ -56,7 +56,7 @@ const GroupManagement = () => {
       const response = await msalGraphService.getAllGroups({
         select: 'id,displayName,mail,mailEnabled,securityEnabled,groupTypes,description,createdDateTime,memberCount',
       });
-      setGroups(response || []);
+      setGroups(response?.value || []);
     } catch (error) {
       console.error('Error loading groups:', error);
       toast.error('Failed to load groups');
