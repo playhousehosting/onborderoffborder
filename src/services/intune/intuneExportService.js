@@ -2,12 +2,10 @@
  * Intune Export Service
  * Exports Intune policies, configurations, and assignments to JSON files
  * Supports all policy types from Microsoft Graph API
+ * Uses MSAL authentication via Convex proxy
  */
 
 import msalGraphService from '../msalGraphService';
-
-// Use your existing MSAL Graph Service
-const graphService = msalGraphService;
 
 // Policy type definitions with Graph API endpoints
 const POLICY_TYPES = {
@@ -212,7 +210,7 @@ class IntuneExportService {
         endpoint += `?$filter=${encodeURIComponent(typeConfig.filter)}`;
       }
 
-      const response = await graphService.makeRequest(endpoint);
+      const response = await msalGraphService.makeRequest(endpoint);
       const policies = response.value || [];
 
       if (policies.length === 0) {
@@ -278,7 +276,7 @@ class IntuneExportService {
   async getAssignments(policyId, baseEndpoint) {
     try {
       const endpoint = `${baseEndpoint}/${policyId}/assignments`;
-      const response = await graphService.makeRequest(endpoint);
+      const response = await msalGraphService.makeRequest(endpoint);
       return response.value || [];
     } catch (error) {
       // Silently return empty if 404 or permission denied
@@ -295,7 +293,7 @@ class IntuneExportService {
   async getScriptContent(scriptId) {
     try {
       const endpoint = `/deviceManagement/deviceManagementScripts/${scriptId}`;
-      const response = await graphService.makeRequest(endpoint);
+      const response = await msalGraphService.makeRequest(endpoint);
       
       // Decode base64 script content
       if (response.scriptContent) {
@@ -313,7 +311,7 @@ class IntuneExportService {
    */
   async getOrganizationInfo() {
     try {
-      const response = await graphService.makeRequest('/organization');
+      const response = await msalGraphService.makeRequest('/organization');
       const org = response.value?.[0];
       
       return {
