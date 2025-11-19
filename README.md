@@ -96,7 +96,8 @@ A comprehensive employee lifecycle management system featuring:
 - **Scheduled Offboarding**: Plan future offboarding with timezone support
 - **Progress Tracking**: Real-time status updates and detailed results
 
-### 📱 Intune Management
+### 📱 Intune Management (Enhanced Enterprise Edition)
+**Core Features:**
 - **Device Inventory**: Real-time statistics with compliance monitoring
 - **Device Actions**: Sync, reboot, lock, retire, wipe
 - **Application Management**: WinGet integration with 10+ curated apps
@@ -104,7 +105,19 @@ A comprehensive employee lifecycle management system featuring:
 - **Settings Catalog**: Thousands of configurable settings
 - **Compliance Tracking**: Color-coded status badges and reports
 
-📖 See [INTUNE_MANAGEMENT_GUIDE.md](./INTUNE_MANAGEMENT_GUIDE.md) for details.
+**🆕 Advanced Management Features (Phases 1-9):**
+1. **Backup & Migration** - Export policies to JSON, migrate between tenants with conflict resolution (4 import modes: ALWAYS, SKIP, REPLACE, UPDATE)
+2. **Policy Comparison** - Compare tenant vs backup or two backups, generate diff reports (HTML/Text)
+3. **Documentation Generator** - Create professional policy docs in HTML, Markdown, or JSON with ADMX parsing
+4. **Bulk Clone** - Clone policies with pattern-based transformations (prefix, suffix, find/replace)
+5. **ADMX Import** - Parse Windows Group Policy ADMX/ADML files and convert to Intune policies
+6. **Assignment Analytics** - Detect policy conflicts, analyze coverage, export assignment matrix to CSV
+7. **Registry Settings** - Create Windows Registry policies via OMA-URI, import/export .reg files
+8. **Script Management** - Deploy PowerShell (.ps1) and Shell (.sh) scripts to Windows/macOS/Linux devices with execution tracking
+
+**Supported Policy Types:** Device Configurations, Compliance Policies, Settings Catalog, Security Baselines, Administrative Templates, Apps (Win32, iOS, Android), App Protection, App Configuration, Conditional Access, Enrollment Restrictions, Device Categories, PowerShell Scripts, Shell Scripts
+
+📖 See [INTUNE_MANAGEMENT_GUIDE.md](./INTUNE_MANAGEMENT_GUIDE.md) and [INTUNE_MANAGEMENT_FULL_FEATURE_PLAN.md](./INTUNE_MANAGEMENT_FULL_FEATURE_PLAN.md) for details.
 
 ### 🔄 Workflow Automation
 - **Lifecycle Workflows**: Microsoft Graph-based automation
@@ -227,6 +240,69 @@ audit_log: defineTable({
 📖 See [PRODUCTION_READINESS_REPORT.md](./PRODUCTION_READINESS_REPORT.md) for complete architecture details.
 
 ## 🎉 Recent Updates (November 2025)
+
+### 🚀 Advanced Intune Management Suite (NEW - Phases 1-9)
+**Enterprise-Grade Policy Management** - 9 comprehensive features for advanced Intune administration:
+
+**Phase 1-2: Backup & Migration Engine**
+- Export 14+ policy types to JSON with full metadata preservation
+- Import with 4 conflict modes (ALWAYS, SKIP, REPLACE, UPDATE)
+- Assignment preservation and mapping
+- Script content encoding/decoding
+- Dry-run preview before import
+
+**Phase 3: Policy Comparison & Drift Detection**
+- Compare tenant vs backup or two backups
+- Deep property-level diff analysis
+- Generate HTML and text reports
+- Track configuration drift over time
+- Identify unauthorized changes
+
+**Phase 4: Documentation Generator**
+- Create professional HTML/Markdown/JSON docs
+- Parse ADMX/ADML Group Policy templates
+- Include policy metadata, assignments, and settings
+- Generate compliance documentation
+- Export audit-ready reports
+
+**Phase 5: Bulk Clone Tool**
+- Clone policies with intelligent naming patterns
+- Prefix/suffix/find-replace transformations
+- Preview before cloning
+- Maintain assignments or create new ones
+- Support for all policy types
+
+**Phase 6: ADMX Import & Conversion**
+- Parse Windows Group Policy ADMX/ADML files
+- Convert to Intune Settings Catalog policies
+- Preserve policy definitions and metadata
+- Map ADMX settings to OMA-URI
+- Support for custom ADMX files
+
+**Phase 7: Assignment Analytics**
+- Detect policy conflicts (same type, conflicting intents)
+- Analyze group coverage across policies
+- Generate assignment matrix (CSV export)
+- Track unassigned policies
+- Identify over-assigned groups
+
+**Phase 8: Registry Settings Manager**
+- Create Windows Registry policies via OMA-URI
+- Import/export .reg files
+- Support all registry hives (HKLM, HKCU, HKCR, HKU, HKCC)
+- All value types (String, DWORD, QWORD, Binary, MultiString, ExpandableString)
+- Visual policy editor with validation
+
+**Phase 9: Script Management & Deployment**
+- Manage PowerShell (.ps1) and Shell (.sh) scripts
+- Support for Windows, macOS, and Linux devices
+- Base64 encoding/decoding for script content
+- Track execution states (success/failed/pending)
+- Bulk import/export scripts
+- Clone scripts with new configurations
+- Basic syntax validation
+
+**Architecture:** All features use Convex proxy for Graph API calls, ensuring production-ready security and reliability. Zero breaking changes to existing functionality.
 
 ### 📱 Mobile & Tablet Optimization
 - **Responsive Design**: Complete mobile-first redesign across all components

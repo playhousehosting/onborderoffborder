@@ -44,13 +44,24 @@ A comprehensive FAQ (Frequently Asked Questions) section has been added to the E
      - Available device actions
      - Compliance monitoring
   
-  7. **Troubleshooting & Support** (4 questions)
+  7. **Advanced Intune Management** (9 questions) ⭐
+     - Policy backup and restore
+     - Import/export policies between tenants
+     - Policy comparison and drift detection
+     - Documentation generation
+     - Bulk policy cloning
+     - ADMX/ADML import for Group Policies
+     - Assignment analytics and conflict detection
+     - Registry settings via OMA-URI
+     - PowerShell and Shell script management
+  
+  8. **Troubleshooting & Support** (4 questions)
      - Common errors and fixes
      - Log access and debugging
      - Performance optimization
      - Support resources
   
-  8. **Deployment & Configuration** (3 questions)
+  9. **Deployment & Configuration** (3 questions)
      - Vercel deployment guide
      - Environment variables reference
      - Custom domain setup
@@ -161,9 +172,9 @@ Users can access the FAQ through:
 
 ## Content Statistics
 
-- **7 categories** covering all portal aspects
-- **31 total questions** with detailed answers
-- **~15,000 words** of comprehensive documentation
+- **9 categories** covering all portal aspects
+- **40 total questions** with detailed answers (31 original + 9 new Intune features)
+- **~18,000 words** of comprehensive documentation
 - **Code examples** for PowerShell, environment variables, bash commands
 - **Links to** GitHub, Microsoft Docs, Graph Explorer
 - **Search keywords** optimized for common issues
