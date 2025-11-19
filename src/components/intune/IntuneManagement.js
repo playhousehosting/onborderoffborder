@@ -69,6 +69,7 @@ import {
   CloudDownload as BackupIcon,
   Compare as CompareIcon,
   Description as DocumentIcon,
+  ContentCopy as CloneIcon,
 } from '@mui/icons-material';
 
 import intuneService from '../../services/intuneService';
@@ -78,6 +79,7 @@ import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
 import BackupMigrationTab from './tabs/BackupMigrationTab';
 import ComparisonTab from './tabs/ComparisonTab';
 import DocumentationTab from './tabs/DocumentationTab';
+import CloneTab from './tabs/CloneTab';
 
 // ========== MAIN COMPONENT ==========
 
@@ -141,6 +143,7 @@ const IntuneManagement = () => {
           <Tab icon={<BackupIcon />} label="Backup & Migration" />
           <Tab icon={<CompareIcon />} label="Comparison" />
           <Tab icon={<DocumentIcon />} label="Documentation" />
+          <Tab icon={<CloneIcon />} label="Bulk Clone" />
         </Tabs>
       </Paper>
 
@@ -153,6 +156,7 @@ const IntuneManagement = () => {
         {activeTab === 5 && <BackupMigrationTab onSuccess={showSuccess} onError={showError} />}
         {activeTab === 6 && <ComparisonTab onSuccess={showSuccess} onError={showError} />}
         {activeTab === 7 && <DocumentationTab onSuccess={showSuccess} onError={showError} />}
+        {activeTab === 8 && <CloneTab onSuccess={showSuccess} onError={showError} />}
       </Box>
     </Container>
   );
