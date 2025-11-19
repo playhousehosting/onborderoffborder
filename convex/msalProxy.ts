@@ -20,7 +20,11 @@ function getCorsHeaders() {
     'http://employeelifecycleportal.com',
     'https://employeelifecycleportal.com',
     'http://www.employeelifecycleportal.com',
-    'https://www.employeelifecycleportal.com'
+    'https://www.employeelifecycleportal.com',
+    'http://beta.employeelifecycleportal.com',
+    'https://beta.employeelifecycleportal.com',
+    'http://www.beta.employeelifecycleportal.com',
+    'https://www.beta.employeelifecycleportal.com'
   ];
   
   return {
