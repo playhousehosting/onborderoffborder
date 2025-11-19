@@ -63,37 +63,99 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
-      <div className="max-w-md w-full">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-8 text-white relative overflow-hidden">
-            {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full -ml-24 -mb-24"></div>
-            
-            <div className="relative z-10">
-              <div className="flex justify-center mb-4">
-                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 shadow-xl animate-pulse">
-                  <svg className="h-14 w-14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                  </svg>
-                </div>
-              </div>
-              <h1 className="text-3xl font-bold text-center mb-2">
-                Welcome Worldwide Admins 🌍
-              </h1>
-              <p className="text-blue-50 text-center text-base mb-1">
-                Employee Life Cycle Portal
-              </p>
-              <p className="text-blue-100 text-center text-sm">
-                Empowering HR teams across the globe
-              </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4 py-12">
+      <div className="max-w-7xl mx-auto">
+        {/* Hero Section */}
+        <div className="text-center mb-12">
+          <div className="flex justify-center mb-6">
+            <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-3xl p-6 shadow-2xl">
+              <svg className="h-16 w-16 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+              </svg>
             </div>
           </div>
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+            Welcome to Employee Life Cycle Portal
+          </h1>
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+            Streamline your HR operations with automated workflows for onboarding, offboarding, transfers, and more
+          </p>
+        </div>
 
-          {/* Clerk Sign In Component */}
-          <div className="p-8">
+        {/* Feature Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          {/* Onboarding Card */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-2 border-green-200 dark:border-green-700 hover:shadow-xl transition-shadow">
+            <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg p-3 w-14 h-14 flex items-center justify-center mb-4">
+              <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Employee Onboarding</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Create accounts, assign licenses, set up email, and provision devices automatically
+            </p>
+          </div>
+
+          {/* Offboarding Card */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-2 border-red-200 dark:border-red-700 hover:shadow-xl transition-shadow">
+            <div className="bg-gradient-to-br from-red-500 to-rose-600 rounded-lg p-3 w-14 h-14 flex items-center justify-center mb-4">
+              <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Employee Offboarding</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Disable accounts, revoke licenses, set auto-replies, and transfer files securely
+            </p>
+          </div>
+
+          {/* Transfers Card */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-2 border-blue-200 dark:border-blue-700 hover:shadow-xl transition-shadow">
+            <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg p-3 w-14 h-14 flex items-center justify-center mb-4">
+              <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Transfers & Promotions</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Manage department changes, role updates, and location transfers seamlessly
+            </p>
+          </div>
+
+          {/* Groups Management Card */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-2 border-purple-200 dark:border-purple-700 hover:shadow-xl transition-shadow">
+            <div className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg p-3 w-14 h-14 flex items-center justify-center mb-4">
+              <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Group Management</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Create and manage distribution lists, security groups, and Microsoft 365 groups
+            </p>
+          </div>
+        </div>
+
+        {/* Main Login Card */}
+        <div className="max-w-md mx-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-8 text-white relative overflow-hidden">
+              {/* Decorative elements */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full -ml-24 -mb-24"></div>
+              
+              <div className="relative z-10 text-center">
+                <h2 className="text-2xl font-bold mb-2">Sign In to Get Started</h2>
+                <p className="text-blue-100 text-sm">
+                  Access your HR management dashboard
+                </p>
+              </div>
+            </div>
+
+            {/* Clerk Sign In Component */}
+            <div className="p-8">
             <SignIn 
               routing="path"
               path="/login"
@@ -271,10 +333,9 @@ const Login = () => {
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Footer */}
-          <div className="pb-8 px-8 text-center space-y-3">
+            {/* Footer */}
+            <div className="pb-8 px-8 text-center space-y-3">
             <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
               <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">🌟 Trusted by HR Teams Worldwide</p>
               <div className="flex items-center justify-center gap-2 text-xs text-gray-600 dark:text-gray-400">
@@ -305,6 +366,54 @@ const Login = () => {
                 View FAQ & Documentation
               </a>
             </div>
+          </div>
+        </div>
+
+        {/* Additional Info Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 max-w-5xl mx-auto">
+          {/* Security Card */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-blue-100 dark:bg-blue-900 rounded-lg p-2">
+                <svg className="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h3 className="font-bold text-gray-900 dark:text-white">Enterprise Security</h3>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Bank-level encryption, MFA support, and Azure AD integration for maximum security
+            </p>
+          </div>
+
+          {/* Automation Card */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-green-100 dark:bg-green-900 rounded-lg p-2">
+                <svg className="h-6 w-6 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 className="font-bold text-gray-900 dark:text-white">Automated Workflows</h3>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Save hours with automated provisioning, deprovisioning, and compliance workflows
+            </p>
+          </div>
+
+          {/* Support Card */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-purple-100 dark:bg-purple-900 rounded-lg p-2">
+                <svg className="h-6 w-6 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+              <h3 className="font-bold text-gray-900 dark:text-white">24/7 Global Access</h3>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Available worldwide with multi-language support and dedicated help resources
+            </p>
           </div>
         </div>
       </div>
