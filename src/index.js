@@ -3,9 +3,12 @@ import ReactDOM from 'react-dom/client';
 import { ConvexReactClient } from "convex/react";
 import { ConvexProvider } from "convex/react";
 import { ConvexAuthProvider } from './contexts/ConvexAuthContext';
+import { ClerkProvider } from '@clerk/clerk-react';
 import App from './App';
 import StartupHealthCheck from './components/common/StartupHealthCheck';
 import './i18n'; // Initialize i18n
+
+const CLERK_PUBLISHABLE_KEY = process.env.REACT_APP_CLERK_PUBLISHABLE_KEY;
 
 // Initialize Convex client
 const convex = new ConvexReactClient(process.env.REACT_APP_CONVEX_URL);
@@ -51,13 +54,15 @@ if (!rootElement) {
   const root = ReactDOM.createRoot(rootElement);
   root.render(
     <React.StrictMode>
-      <ConvexProvider client={convex}>
-        <ConvexAuthProvider>
-          <StartupHealthCheck>
-            <App />
-          </StartupHealthCheck>
-        </ConvexAuthProvider>
-      </ConvexProvider>
+      <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
+        <ConvexProvider client={convex}>
+          <ConvexAuthProvider>
+            <StartupHealthCheck>
+              <App />
+            </StartupHealthCheck>
+          </ConvexAuthProvider>
+        </ConvexProvider>
+      </ClerkProvider>
     </React.StrictMode>
   );
 }
