@@ -53,7 +53,11 @@ const corsOptions = {
       'http://employeelifecyclepotral.com',
       'https://employeelifecyclepotral.com',
       'http://www.employeelifecyclepotral.com',
-      'https://www.employeelifecyclepotral.com'
+      'https://www.employeelifecyclepotral.com',
+      'http://employeelifecycleportal.com',
+      'https://employeelifecycleportal.com',
+      'http://www.employeelifecycleportal.com',
+      'https://www.employeelifecycleportal.com'
     ];
     
     console.log('🔍 CORS check - Origin:', origin);

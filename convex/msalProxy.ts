@@ -8,6 +8,21 @@ import { httpAction } from "./_generated/server";
 
 // CORS headers for all responses
 function getCorsHeaders() {
+  // Allow specific origins for production
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5000',
+    'https://onboardingoffboarding.dynamicendpoints.com',
+    'http://employeelifecyclepotral.com',
+    'https://employeelifecyclepotral.com',
+    'http://www.employeelifecyclepotral.com',
+    'https://www.employeelifecyclepotral.com',
+    'http://employeelifecycleportal.com',
+    'https://employeelifecycleportal.com',
+    'http://www.employeelifecycleportal.com',
+    'https://www.employeelifecycleportal.com'
+  ];
+  
   return {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
