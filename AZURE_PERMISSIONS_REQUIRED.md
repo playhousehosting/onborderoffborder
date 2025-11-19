@@ -47,11 +47,14 @@ Based on the console errors, your app is missing these permissions:
 ### Licenses
 - ✅ `Organization.Read.All` - Read organization info (for license SKUs)
 
-### Device Management (Intune)
+### Device Management (Intune) - **CRITICAL FOR PHASES 1-9**
 - ✅ `DeviceManagementManagedDevices.ReadWrite.All` - Read and write managed devices
 - ✅ `DeviceManagementManagedDevices.PrivilegedOperations.All` - Perform privileged operations (sync, wipe, retire)
-- ✅ `DeviceManagementConfiguration.ReadWrite.All` - Read and write device configs
-- ✅ `DeviceManagementApps.ReadWrite.All` - Manage apps on devices
+- ✅ `DeviceManagementConfiguration.ReadWrite.All` - **REQUIRED** Read and write device configs (policies, compliance, settings catalog)
+- ✅ `DeviceManagementApps.ReadWrite.All` - **REQUIRED** Manage apps on devices (Win32 apps, mobile apps)
+- ✅ `DeviceManagementServiceConfig.ReadWrite.All` - Read and write service configuration (assignments, categories)
+
+**Note:** Without `DeviceManagementConfiguration.ReadWrite.All` and `DeviceManagementApps.ReadWrite.All`, all Advanced Intune Management features (Phases 1-9) will fail with 403 errors.
 
 ### Lifecycle Workflows
 - ✅ `LifecycleWorkflows.ReadWrite.All` - Manage lifecycle workflows
