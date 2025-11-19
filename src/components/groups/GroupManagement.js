@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
 import msalGraphService from '../../services/msalGraphService';
 import toast from 'react-hot-toast';
@@ -18,6 +19,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 const GroupManagement = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { hasPermission, getAccessToken } = useAuth();
   
@@ -36,10 +38,10 @@ const GroupManagement = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const groupTypes = [
-    { value: 'all', label: 'All Groups', icon: UserGroupIcon },
-    { value: 'distribution', label: 'Distribution Lists', icon: EnvelopeIcon },
-    { value: 'security', label: 'Security Groups', icon: ShieldCheckIcon },
-    { value: 'microsoft365', label: 'Microsoft 365', icon: SparklesIcon },
+    { value: 'all', label: t('groups.allGroups'), icon: UserGroupIcon },
+    { value: 'distribution', label: t('groups.distributionLists'), icon: EnvelopeIcon },
+    { value: 'security', label: t('groups.securityGroups'), icon: ShieldCheckIcon },
+    { value: 'microsoft365', label: t('groups.microsoft365'), icon: SparklesIcon },
   ];
 
   useEffect(() => {
@@ -59,7 +61,7 @@ const GroupManagement = () => {
       setGroups(response?.value || []);
     } catch (error) {
       console.error('Error loading groups:', error);
-      toast.error('Failed to load groups');
+      toast.error(t('groups.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -106,21 +108,21 @@ const GroupManagement = () => {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
           <SparklesIcon className="h-3 w-3 mr-1" />
-          M365
+          {t('groups.m365')}
         </span>
       );
     } else if (group.mailEnabled && !group.securityEnabled) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
           <EnvelopeIcon className="h-3 w-3 mr-1" />
-          Distribution
+          {t('groups.distribution')}
         </span>
       );
     } else if (group.securityEnabled) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
           <ShieldCheckIcon className="h-3 w-3 mr-1" />
-          Security
+          {t('groups.security')}
         </span>
       );
     }
@@ -128,17 +130,17 @@ const GroupManagement = () => {
   };
 
   const handleDeleteGroup = async (groupId, groupName) => {
-    if (!window.confirm(`Are you sure you want to delete the group "${groupName}"?`)) {
+    if (!window.confirm(t('groups.deleteConfirm', { groupName }))) {
       return;
     }
 
     try {
       await msalGraphService.deleteGroup(groupId);
-      toast.success('Group deleted successfully');
+      toast.success(t('groups.deleteSuccess'));
       loadGroups();
     } catch (error) {
       console.error('Error deleting group:', error);
-      toast.error('Failed to delete group');
+      toast.error(t('groups.deleteFailed'));
     }
   };
 
@@ -155,9 +157,9 @@ const GroupManagement = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Group Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('groups.title')}</h1>
           <p className="mt-1 text-sm text-gray-600">
-            Manage distribution lists, security groups, and Microsoft 365 groups
+            {t('groups.subtitle')}
           </p>
         </div>
         <button
@@ -165,7 +167,7 @@ const GroupManagement = () => {
           className="btn-primary inline-flex items-center justify-center"
         >
           <PlusIcon className="h-5 w-5 mr-2" />
-          Create Group
+          {t('groups.createGroup')}
         </button>
       </div>
 
@@ -218,7 +220,7 @@ const GroupManagement = () => {
               <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search groups by name, email, or description..."
+                placeholder={t('groups.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="form-input pl-10"
@@ -229,7 +231,7 @@ const GroupManagement = () => {
               className="btn-secondary inline-flex items-center justify-center whitespace-nowrap"
             >
               <FunnelIcon className="h-5 w-5 mr-2" />
-              Refresh
+              {t('groups.refresh')}
             </button>
           </div>
         </div>
@@ -239,18 +241,18 @@ const GroupManagement = () => {
       <div className="card">
         <div className="card-header">
           <h2 className="text-lg font-semibold text-gray-900">
-            Groups ({filteredGroups.length})
+            {t('groups.groupsCount')} ({filteredGroups.length})
           </h2>
         </div>
         <div className="card-body p-0">
           {filteredGroups.length === 0 ? (
-            <div className="text-center py-12">
+            <div className="text-center py-12 px-4">
               <UserGroupIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No groups found</h3>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">{t('groups.noGroupsFound')}</h3>
               <p className="mt-1 text-sm text-gray-500">
                 {searchTerm || selectedGroupType !== 'all'
-                  ? 'Try adjusting your search or filters'
-                  : 'Get started by creating a new group'}
+                  ? t('groups.adjustFilters')
+                  : t('groups.getStarted')}
               </p>
             </div>
           ) : (
@@ -258,20 +260,20 @@ const GroupManagement = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Group
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('groups.groupName')}
                     </th>
-                    <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Type
+                    <th className="hidden sm:table-cell px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('groups.type')}
                     </th>
-                    <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Email
+                    <th className="hidden md:table-cell px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('groups.email')}
                     </th>
-                    <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Description
+                    <th className="hidden lg:table-cell px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('groups.description')}
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
+                    <th className="px-4 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('groups.actions')}
                     </th>
                   </tr>
                 </thead>
@@ -282,43 +284,47 @@ const GroupManagement = () => {
                       className="hover:bg-gray-50 cursor-pointer"
                       onClick={() => navigate(`/groups/${group.id}`)}
                     >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
+                      <td className="px-4 sm:px-6 py-4">
+                        <div className="flex items-center min-w-0">
                           <div className="flex-shrink-0 h-10 w-10">
                             <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
                               <UserGroupIcon className="h-6 w-6 text-primary-600" />
                             </div>
                           </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
+                          <div className="ml-3 sm:ml-4 min-w-0 flex-1">
+                            <div className="text-sm font-medium text-gray-900 truncate">
                               {group.displayName}
                             </div>
-                            <div className="text-sm text-gray-500 sm:hidden">
+                            <div className="text-xs sm:text-sm text-gray-500 sm:hidden mt-1">
                               {getGroupTypeBadge(group)}
+                            </div>
+                            <div className="text-xs text-gray-500 md:hidden mt-1 truncate">
+                              {group.mail || '-'}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap">
+                      <td className="hidden sm:table-cell px-4 sm:px-6 py-4 whitespace-nowrap">
                         {getGroupTypeBadge(group)}
                       </td>
-                      <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{group.mail || '-'}</div>
+                      <td className="hidden md:table-cell px-4 sm:px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 truncate max-w-[200px]">{group.mail || '-'}</div>
                       </td>
-                      <td className="hidden lg:table-cell px-6 py-4">
+                      <td className="hidden lg:table-cell px-4 sm:px-6 py-4">
                         <div className="text-sm text-gray-500 truncate max-w-xs">
                           {group.description || '-'}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex items-center justify-end gap-1 sm:gap-2">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               navigate(`/groups/${group.id}/edit`);
                             }}
-                            className="text-primary-600 hover:text-primary-900"
-                            title="Edit"
+                            className="text-primary-600 hover:text-primary-900 p-1"
+                            title={t('groups.edit')}
+                            aria-label={t('groups.edit')}
                           >
                             <PencilIcon className="h-5 w-5" />
                           </button>
@@ -327,8 +333,9 @@ const GroupManagement = () => {
                               e.stopPropagation();
                               handleDeleteGroup(group.id, group.displayName);
                             }}
-                            className="text-red-600 hover:text-red-900"
-                            title="Delete"
+                            className="text-red-600 hover:text-red-900 p-1"
+                            title={t('groups.delete')}
+                            aria-label={t('groups.delete')}
                           >
                             <TrashIcon className="h-5 w-5" />
                           </button>
