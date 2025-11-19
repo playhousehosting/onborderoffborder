@@ -150,9 +150,9 @@ const Settings = () => {
 
   return (
     <div className="animate-in">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
+        <p className="mt-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
           Configure application settings and preferences
         </p>
       </div>
@@ -179,8 +179,8 @@ const Settings = () => {
       )}
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
-        <nav className="-mb-px flex gap-6">
+      <div className="border-b border-gray-200 dark:border-gray-700 mb-6 overflow-x-auto">
+        <nav className="-mb-px flex gap-3 sm:gap-6 min-w-max sm:min-w-0">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (

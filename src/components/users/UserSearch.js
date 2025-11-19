@@ -177,9 +177,9 @@ const UserSearch = () => {
 
   return (
     <div className="animate-in">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">User Search</h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">User Search</h1>
+        <p className="mt-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
           Search and manage users in your organization
         </p>
       </div>
@@ -309,23 +309,23 @@ const UserSearch = () => {
           {loading ? (
             <SkeletonTable rows={10} cols={5} />
           ) : users.length > 0 ? (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       User
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="hidden sm:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Status
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="hidden md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Department
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="hidden lg:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Job Title
                     </th>
-                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -333,40 +333,44 @@ const UserSearch = () => {
                 <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                   {users.map((user) => (
                     <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-6 py-4">
                         <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                              <UserIcon className="h-6 w-6 text-primary-600 dark:text-primary-400" />
+                          <div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
+                            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                              <UserIcon className="h-5 w-5 sm:h-6 sm:w-6 text-primary-600 dark:text-primary-400" />
                             </div>
                           </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          <div className="ml-2 sm:ml-4 min-w-0 flex-1">
+                            <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                               {user.displayName}
                             </div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                            <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
                               {user.mail || user.userPrincipalName}
+                            </div>
+                            <div className="sm:hidden mt-1">
+                              {getStatusBadge(user)}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="hidden sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(user)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td className="hidden md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {user.department || '—'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td className="hidden lg:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {user.jobTitle || '—'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-2">
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex flex-col sm:flex-row justify-end gap-1 sm:gap-2">
                           <button
                             onClick={() => handleViewUserDetails(user)}
-                            className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 flex items-center"
+                            className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 flex items-center justify-end text-xs sm:text-sm"
                           >
-                            <EyeIcon className="h-4 w-4 mr-1" />
-                            Details
+                            <EyeIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                            <span className="hidden sm:inline">Details</span>
+                            <span className="sm:hidden">View</span>
                           </button>
                           
                           {hasPermission('userManagement') && (
@@ -409,26 +413,32 @@ const UserSearch = () => {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-between">
-          <div className="text-sm text-gray-700 dark:text-gray-300">
-            Showing {((currentPage - 1) * usersPerPage) + 1} to{' '}
-            {Math.min(currentPage * usersPerPage, totalUsers)} of {totalUsers} results
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 order-2 sm:order-1">
+            <span className="hidden sm:inline">
+              Showing {((currentPage - 1) * usersPerPage) + 1} to{' '}
+              {Math.min(currentPage * usersPerPage, totalUsers)} of {totalUsers} results
+            </span>
+            <span className="sm:hidden">
+              {((currentPage - 1) * usersPerPage) + 1}-{Math.min(currentPage * usersPerPage, totalUsers)} of {totalUsers}
+            </span>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex items-center space-x-2 order-1 sm:order-2">
             <button
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="btn btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-secondary disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2"
             >
-              Previous
+              <span className="hidden sm:inline">Previous</span>
+              <span className="sm:hidden">Prev</span>
             </button>
-            <span className="px-3 py-2 text-sm text-gray-700 dark:text-gray-300">
-              Page {currentPage} of {totalPages}
+            <span className="px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
+              {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="btn btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-secondary disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2"
             >
               Next
             </button>

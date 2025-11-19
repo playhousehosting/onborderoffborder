@@ -114,41 +114,47 @@ const Layout = ({ children }) => {
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       {/* Mobile sidebar */}
       <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
-        <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white dark:bg-gray-800">
+        <div 
+          className="fixed inset-0 bg-gray-600 bg-opacity-75 transition-opacity" 
+          onClick={() => setSidebarOpen(false)} 
+          aria-hidden="true"
+        />
+        <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white dark:bg-gray-800 shadow-xl transition-transform">
           <div className="absolute top-0 right-0 -mr-12 pt-2">
             <button
               type="button"
-              className="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+              className="ml-1 flex items-center justify-center h-12 w-12 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white touch-target"
               onClick={() => setSidebarOpen(false)}
+              aria-label="Close sidebar"
             >
-              <XMarkIcon className="h-6 w-6 text-white" aria-hidden="true" />
+              <XMarkIcon className="h-7 w-7 text-white" aria-hidden="true" />
             </button>
           </div>
-          <Sidebar navigation={filteredNavigation} />
+          <Sidebar navigation={filteredNavigation} onItemClick={() => setSidebarOpen(false)} />
         </div>
       </div>
 
       {/* Static sidebar for desktop */}
       <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
-        <Sidebar navigation={filteredNavigation} />
+        <Sidebar navigation={filteredNavigation} onItemClick={() => {}} />
       </div>
 
       {/* Main content */}
       <div className="lg:pl-64 flex flex-col flex-1">
-        <div className="relative z-10 flex-shrink-0 flex h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 lg:border-none">
+        <div className="sticky top-0 z-10 flex-shrink-0 flex h-14 sm:h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 lg:border-none shadow-sm">
           <button
             type="button"
-            className="px-4 border-r border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 lg:hidden"
+            className="px-3 sm:px-4 border-r border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 lg:hidden touch-target"
             onClick={() => setSidebarOpen(true)}
+            aria-label="Open sidebar"
           >
             <Bars3Icon className="h-6 w-6" aria-hidden="true" />
           </button>
           
           {/* Search bar could go here */}
-          <div className="flex-1 px-4 flex justify-between sm:px-6 lg:max-w-6xl lg:mx-auto lg:px-8">
+          <div className="flex-1 px-2 sm:px-4 flex justify-between sm:px-6 lg:max-w-6xl lg:mx-auto lg:px-8">
             <div className="flex-1 flex"></div>
-            <div className="ml-4 flex items-center md:ml-6 gap-2">
+            <div className="ml-2 sm:ml-4 flex items-center md:ml-6 gap-1 sm:gap-2">
               {/* Theme Toggle */}
               <ThemeToggle />
               
@@ -156,23 +162,24 @@ const Layout = ({ children }) => {
               <LanguageSelector />
               
               {/* User dropdown */}
-              <div className="ml-3 relative">
-                <div className="flex items-center space-x-3">
+              <div className="ml-2 sm:ml-3 relative">
+                <div className="flex items-center space-x-2 sm:space-x-3">
                   <div className="text-right hidden md:block">
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{user?.displayName || user?.name}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{user?.userPrincipalName || user?.username}</div>
+                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate max-w-[150px]">{user?.displayName || user?.name}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">{user?.userPrincipalName || user?.username}</div>
                   </div>
-                  <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
+                  <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0">
                     <span className="text-white text-sm font-medium">
                       {user?.displayName?.charAt(0) || user?.name?.charAt(0) || 'U'}
                     </span>
                   </div>
                   <button
                     onClick={handleLogout}
-                    className="p-1 rounded-full text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                    className="p-1.5 sm:p-2 rounded-full text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 touch-target"
                     title="Sign out"
+                    aria-label="Sign out"
                   >
-                    <ArrowRightOnRectangleIcon className="h-6 w-6" aria-hidden="true" />
+                    <ArrowRightOnRectangleIcon className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -181,8 +188,8 @@ const Layout = ({ children }) => {
         </div>
 
         <main className="flex-1 relative overflow-y-auto focus:outline-none">
-          <div className="py-6">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="py-4 sm:py-6">
+            <div className="max-w-6xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
               {children || <Outlet />}
             </div>
           </div>
@@ -192,22 +199,23 @@ const Layout = ({ children }) => {
   );
 };
 
-const Sidebar = ({ navigation }) => {
+const Sidebar = ({ navigation, onItemClick }) => {
   const { t } = useTranslation();
   
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
       <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
-        <div className="flex items-center flex-shrink-0 px-4">
-          <ShieldCheckIcon className="h-8 w-8 text-primary-600 dark:text-primary-400" />
-          <h1 className="ml-2 text-xl font-bold text-gray-900 dark:text-gray-100">{t('nav.appTitle')}</h1>
+        <div className="flex items-center flex-shrink-0 px-4 mb-2">
+          <ShieldCheckIcon className="h-7 w-7 sm:h-8 sm:w-8 text-primary-600 dark:text-primary-400" />
+          <h1 className="ml-2 text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 truncate">{t('nav.appTitle')}</h1>
         </div>
-        <nav className="mt-5 flex-1 px-2 space-y-1">
+        <nav className="mt-3 sm:mt-5 flex-1 px-2 space-y-1">
           {navigation.map((item) => (
             <Link
               key={item.name}
               to={item.href}
-              className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
+              onClick={onItemClick}
+              className={`group flex items-center px-3 py-3 text-base sm:text-sm font-medium rounded-md touch-target ${
                 item.current
                   ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-900 dark:text-primary-100'
                   : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
@@ -219,7 +227,7 @@ const Sidebar = ({ navigation }) => {
                 }`}
                 aria-hidden="true"
               />
-              {item.name}
+              <span className="truncate">{item.name}</span>
             </Link>
           ))}
         </nav>

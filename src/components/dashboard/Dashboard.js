@@ -237,18 +237,18 @@ const Dashboard = () => {
         
         <div className="relative z-10 flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="bg-white/20 backdrop-blur-sm rounded-full p-2">
-                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex items-center gap-2 sm:gap-3 mb-3">
+              <div className="bg-white/20 backdrop-blur-sm rounded-full p-1.5 sm:p-2">
+                <svg className="h-6 w-6 sm:h-8 sm:w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                 </svg>
               </div>
-              <h1 className="text-4xl font-bold">{t('dashboard.welcomeBack')}, {user?.displayName || user?.name}! 👋</h1>
+              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold">{t('dashboard.welcomeBack')}, {user?.displayName || user?.name}! 👋</h1>
             </div>
-            <p className="text-blue-50 text-xl font-medium mb-2">
+            <p className="text-blue-50 text-sm sm:text-base md:text-lg lg:text-xl font-medium mb-2">
               🌍 Managing your global workforce has never been easier
             </p>
-            <p className="text-primary-100 dark:text-primary-200 text-base">
+            <p className="text-primary-100 dark:text-primary-200 text-xs sm:text-sm md:text-base">
               Your command center for employee lifecycle management • Available 24/7 worldwide
             </p>
           </div>
@@ -261,20 +261,20 @@ const Dashboard = () => {
       </div>
 
       {/* Quick Tips Banner */}
-      <div className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-5 border-2 border-green-200 dark:border-green-700 shadow-sm">
-        <div className="flex items-start gap-4">
+      <div className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-3 sm:p-4 md:p-5 border-2 border-green-200 dark:border-green-700 shadow-sm">
+        <div className="flex items-start gap-3 sm:gap-4">
           <div className="flex-shrink-0">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center shadow-md">
-              <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center shadow-md">
+              <svg className="h-5 w-5 sm:h-7 sm:w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
               </svg>
             </div>
           </div>
-          <div className="flex-1">
-            <h3 className="text-base font-bold text-green-900 dark:text-green-100 mb-2 flex items-center gap-2">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm sm:text-base font-bold text-green-900 dark:text-green-100 mb-2 flex items-center gap-2">
               💡 Pro Tips for Global Admins
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-green-800 dark:text-green-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm text-green-800 dark:text-green-200">
               <div className="flex items-start gap-2">
                 <span className="text-green-500 font-bold">•</span>
                 <span><strong>Help Center:</strong> Access comprehensive guides in the sidebar</span>
@@ -298,24 +298,24 @@ const Dashboard = () => {
 
       {/* Stats Grid */}
       <div className="mb-3">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-4">
-          <ArrowTrendingUpIcon className="h-6 w-6 text-blue-500" />
-          Organization Overview
+        <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-4">
+          <ArrowTrendingUpIcon className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500" />
+          <span className="truncate">Organization Overview</span>
         </h2>
       </div>
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden transform hover:scale-105">
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 p-4">
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 p-3 sm:p-4">
             <div className="flex items-center justify-between">
-              <UserGroupIcon className="h-8 w-8 text-white" />
-              <span className="text-blue-100 dark:text-blue-200 text-sm font-medium">Total</span>
+              <UserGroupIcon className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+              <span className="text-blue-100 dark:text-blue-200 text-xs sm:text-sm font-medium">Total</span>
             </div>
           </div>
-          <div className="p-6">
-            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.totalUsers}</div>
-            <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('dashboard.totalUsers')}</div>
-            <div className="flex items-center mt-3 text-sm text-blue-600 dark:text-blue-400">
-              <ArrowTrendingUpIcon className="h-4 w-4 mr-1" />
+          <div className="p-4 sm:p-6">
+            <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.totalUsers}</div>
+            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">{t('dashboard.totalUsers')}</div>
+            <div className="flex items-center mt-2 sm:mt-3 text-xs sm:text-sm text-blue-600 dark:text-blue-400">
+              <ArrowTrendingUpIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
               <span>Active directory</span>
             </div>
           </div>
@@ -396,22 +396,22 @@ const Dashboard = () => {
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Choose an action to get started with your workflow</p>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {hasPermission('userManagement') && (
             <>
               <Link
                 to="/onboarding"
                 className="group bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:border-green-200 dark:hover:border-green-700"
               >
-                <div className="p-6">
-                  <div className="flex items-center mb-4">
-                    <div className="bg-green-100 dark:bg-green-900/30 rounded-lg p-3 group-hover:bg-green-200 dark:group-hover:bg-green-800/40 transition-colors">
-                      <UserPlusIcon className="h-8 w-8 text-green-600 dark:text-green-400" />
+                <div className="p-4 sm:p-6">
+                  <div className="flex items-center mb-3 sm:mb-4">
+                    <div className="bg-green-100 dark:bg-green-900/30 rounded-lg p-2 sm:p-3 group-hover:bg-green-200 dark:group-hover:bg-green-800/40 transition-colors">
+                      <UserPlusIcon className="h-6 w-6 sm:h-8 sm:w-8 text-green-600 dark:text-green-400" />
                     </div>
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Start Onboarding</h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">Set up a new employee with all necessary accounts and resources</p>
-                  <div className="flex items-center text-green-600 dark:text-green-400 font-medium">
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Start Onboarding</h3>
+                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-3 sm:mb-4">Set up a new employee with all necessary accounts and resources</p>
+                  <div className="flex items-center text-green-600 dark:text-green-400 font-medium text-sm sm:text-base">
                     <span>Get started</span>
                     <svg className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -424,15 +424,15 @@ const Dashboard = () => {
                 to="/offboarding"
                 className="group bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:border-red-200 dark:hover:border-red-700"
               >
-                <div className="p-6">
-                  <div className="flex items-center mb-4">
-                    <div className="bg-red-100 dark:bg-red-900/30 rounded-lg p-3 group-hover:bg-red-200 dark:group-hover:bg-red-800/40 transition-colors">
-                      <UserMinusIcon className="h-8 w-8 text-red-600 dark:text-red-400" />
+                <div className="p-4 sm:p-6">
+                  <div className="flex items-center mb-3 sm:mb-4">
+                    <div className="bg-red-100 dark:bg-red-900/30 rounded-lg p-2 sm:p-3 group-hover:bg-red-200 dark:group-hover:bg-red-800/40 transition-colors">
+                      <UserMinusIcon className="h-6 w-6 sm:h-8 sm:w-8 text-red-600 dark:text-red-400" />
                     </div>
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Start Offboarding</h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">Process departing employee accounts and data securely</p>
-                  <div className="flex items-center text-red-600 dark:text-red-400 font-medium">
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Start Offboarding</h3>
+                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-3 sm:mb-4">Process departing employee accounts and data securely</p>
+                  <div className="flex items-center text-red-600 dark:text-red-400 font-medium text-sm sm:text-base">
                     <span>Begin process</span>
                     <svg className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -445,9 +445,9 @@ const Dashboard = () => {
                 to="/transfer"
                 className="group bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:border-purple-200 dark:hover:border-purple-700"
               >
-                <div className="p-6">
-                  <div className="flex items-center mb-4">
-                    <div className="bg-purple-100 dark:bg-purple-900/30 rounded-lg p-3 group-hover:bg-purple-200 dark:group-hover:bg-purple-800/40 transition-colors">
+                <div className="p-4 sm:p-6">
+                  <div className="flex items-center mb-3 sm:mb-4">
+                    <div className="bg-purple-100 dark:bg-purple-900/30 rounded-lg p-2 sm:p-3 group-hover:bg-purple-200 dark:group-hover:bg-purple-800/40 transition-colors">
                       <ArrowTrendingUpIcon className="h-8 w-8 text-purple-600 dark:text-purple-400" />
                     </div>
                   </div>
