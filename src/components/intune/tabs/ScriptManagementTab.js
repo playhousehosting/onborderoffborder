@@ -47,7 +47,7 @@ import {
   Assessment as StatsIcon,
   Assignment as AssignmentIcon
 } from '@mui/icons-material';
-import intuneScriptService from '../../services/intune/intuneScriptService';
+import intuneScriptService from '../../services/intune/intuneScriptService.js';
 
 export default function ScriptManagementTab({ onSuccess, onError }) {
   const [loading, setLoading] = useState(false);
