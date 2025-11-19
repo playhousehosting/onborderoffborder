@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
 import msalGraphService from '../../services/msalGraphService';
 import toast from 'react-hot-toast';

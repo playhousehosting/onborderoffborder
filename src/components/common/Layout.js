@@ -20,6 +20,7 @@ import {
   ArrowPathIcon,
   ChatBubbleLeftRightIcon,
   SparklesIcon,
+  ArrowsRightLeftIcon,
 } from '@heroicons/react/24/outline';
 
 const Layout = ({ children }) => {
@@ -44,6 +45,13 @@ const Layout = ({ children }) => {
       href: '/offboarding',
       icon: UserMinusIcon,
       current: location.pathname.startsWith('/offboarding') && location.pathname !== '/scheduled-offboarding',
+      permission: 'userManagement'
+    },
+    {
+      name: t('nav.transfer'),
+      href: '/transfer',
+      icon: ArrowsRightLeftIcon,
+      current: location.pathname.startsWith('/transfer'),
       permission: 'userManagement'
     },
     {
