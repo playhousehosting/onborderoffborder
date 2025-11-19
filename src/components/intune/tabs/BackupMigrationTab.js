@@ -40,6 +40,7 @@ import {
 } from '@mui/icons-material';
 
 import { intuneExportService } from '../../../services/intune/intuneExportService';
+import { intuneImportService, IMPORT_MODES } from '../../../services/intune/intuneImportService';
 
 const BackupMigrationTab = ({ onSuccess, onError }) => {
   const [loading, setLoading] = useState(false);
@@ -47,6 +48,13 @@ const BackupMigrationTab = ({ onSuccess, onError }) => {
   const [exportResult, setExportResult] = useState(null);
   const [availablePolicyTypes, setAvailablePolicyTypes] = useState([]);
   const [selectedTypes, setSelectedTypes] = useState({});
+  
+  // Import state
+  const [importProgress, setImportProgress] = useState(null);
+  const [importResult, setImportResult] = useState(null);
+  const [importFile, setImportFile] = useState(null);
+  const [importMode, setImportMode] = useState(IMPORT_MODES.SKIP);
+  const [importValidation, setImportValidation] = useState(null);
 
   useEffect(() => {
     loadAvailablePolicyTypes();
@@ -123,6 +131,64 @@ const BackupMigrationTab = ({ onSuccess, onError }) => {
 
   const getSelectedCount = () => {
     return Object.values(selectedTypes).filter(Boolean).length;
+  };
+
+  const handleFileSelect = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      
+      // Validate import file
+      const validation = intuneImportService.validateImportFile(data);
+      setImportValidation(validation);
+      
+      if (validation.valid) {
+        setImportFile(data);
+        onSuccess(`File validated: ${validation.policyCount} policies found`);
+      } else {
+        onError(`Invalid import file: ${validation.errors.join(', ')}`);
+        setImportFile(null);
+      }
+    } catch (error) {
+      onError(`Failed to read import file: ${error.message}`);
+      setImportFile(null);
+      setImportValidation(null);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!importFile) {
+      onError('Please select a file to import');
+      return;
+    }
+
+    setLoading(true);
+    setImportProgress({ current: 0, total: 100, message: 'Starting import...' });
+    setImportResult(null);
+
+    try {
+      const results = await intuneImportService.importPolicies(
+        importFile,
+        { mode: importMode },
+        (current, total, message) => {
+          setImportProgress({ current, total, message });
+        }
+      );
+
+      setImportResult(results);
+      onSuccess(`Import complete! ${results.importStats.importedPolicies} policies imported`);
+      setImportProgress(null);
+
+    } catch (error) {
+      console.error('Import failed:', error);
+      onError(`Import failed: ${error.message}`);
+      setImportProgress(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -231,82 +297,238 @@ const BackupMigrationTab = ({ onSuccess, onError }) => {
           </Card>
         </Grid>
 
-        {/* Import Section (Coming Soon) */}
+        {/* Import Section */}
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" mb={2}>
                 <ImportIcon sx={{ mr: 1, fontSize: 32, color: 'secondary.main' }} />
                 <Typography variant="h6">Import Policies</Typography>
-                <Chip label="Coming Soon" size="small" sx={{ ml: 'auto' }} />
               </Box>
               
               <Typography variant="body2" color="text.secondary" mb={2}>
-                Restore policies from a backup file with intelligent assignment mapping.
+                Restore policies from a backup file with conflict resolution.
               </Typography>
 
               <Divider sx={{ my: 2 }} />
 
-              {/* Import Feature Preview */}
-              <List dense>
-                <ListItem>
-                  <ListItemIcon>
-                    <CheckIcon color="success" fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Import from JSON backup"
-                    secondary="Restore from previously exported files"
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemIcon>
-                    <CheckIcon color="success" fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Assignment mapping"
-                    secondary="Auto-map groups between tenants"
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemIcon>
-                    <CheckIcon color="success" fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Multiple import modes"
-                    secondary="Always, Skip, Replace, or Update"
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemIcon>
-                    <CheckIcon color="success" fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Dependency resolution"
-                    secondary="Handle PolicySets and references"
-                  />
-                </ListItem>
-              </List>
+              {/* File Selection */}
+              <Box mb={2}>
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleFileSelect}
+                  style={{ display: 'none' }}
+                  id="import-file-input"
+                  disabled={loading}
+                />
+                <label htmlFor="import-file-input">
+                  <Button
+                    variant="outlined"
+                    component="span"
+                    fullWidth
+                    disabled={loading}
+                    sx={{ mb: 1 }}
+                  >
+                    {importFile ? 'Change File' : 'Select Backup File'}
+                  </Button>
+                </label>
 
+                {importValidation && importValidation.valid && (
+                  <Alert severity="success" sx={{ mt: 1 }}>
+                    <Typography variant="body2" fontWeight="bold">
+                      File Validated ✓
+                    </Typography>
+                    <Typography variant="caption">
+                      {importValidation.policyCount} policies • Exported {new Date(importValidation.exportDate).toLocaleDateString()}
+                      {importValidation.organization?.name && ` • ${importValidation.organization.name}`}
+                    </Typography>
+                  </Alert>
+                )}
+              </Box>
+
+              {/* Import Mode Selection */}
+              {importFile && (
+                <Box mb={2}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Import Mode
+                  </Typography>
+                  <FormGroup>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={importMode === IMPORT_MODES.ALWAYS}
+                          onChange={() => setImportMode(IMPORT_MODES.ALWAYS)}
+                          disabled={loading}
+                        />
+                      }
+                      label="Always - Create all policies (may create duplicates)"
+                    />
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={importMode === IMPORT_MODES.SKIP}
+                          onChange={() => setImportMode(IMPORT_MODES.SKIP)}
+                          disabled={loading}
+                        />
+                      }
+                      label="Skip - Skip if policy with same name exists"
+                    />
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={importMode === IMPORT_MODES.REPLACE}
+                          onChange={() => setImportMode(IMPORT_MODES.REPLACE)}
+                          disabled={loading}
+                        />
+                      }
+                      label="Replace - Delete existing and create new"
+                    />
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={importMode === IMPORT_MODES.UPDATE}
+                          onChange={() => setImportMode(IMPORT_MODES.UPDATE)}
+                          disabled={loading}
+                        />
+                      }
+                      label="Update - Update existing policy settings"
+                    />
+                  </FormGroup>
+                </Box>
+              )}
+
+              {/* Import Progress */}
+              {importProgress && (
+                <Box mb={2}>
+                  <Typography variant="body2" color="text.secondary" mb={1}>
+                    {importProgress.message}
+                  </Typography>
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={importProgress.current} 
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                    {importProgress.current}% complete
+                  </Typography>
+                </Box>
+              )}
+
+              {/* Import Result Summary */}
+              {importResult && (
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  <Typography variant="body2" fontWeight="bold">
+                    Import Complete!
+                  </Typography>
+                  <Typography variant="caption">
+                    {importResult.importStats.importedPolicies} imported • 
+                    {importResult.importStats.skippedPolicies} skipped • 
+                    {importResult.importStats.failedPolicies} failed
+                  </Typography>
+                </Alert>
+              )}
+
+              {/* Import Button */}
               <Button
                 fullWidth
-                variant="outlined"
+                variant="contained"
+                color="secondary"
                 size="large"
                 startIcon={<ImportIcon />}
-                disabled
-                sx={{ mt: 2 }}
+                onClick={handleImport}
+                disabled={loading || !importFile}
               >
-                Import Policies (Coming Soon)
+                {loading ? 'Importing...' : 'Import Policies'}
               </Button>
 
+              {/* Import Info */}
               <Alert severity="info" sx={{ mt: 2 }}>
                 <Typography variant="caption">
-                  📅 Import functionality will be available in the next update. 
-                  Stay tuned for assignment mapping and cross-tenant migration!
+                  💡 Import will restore policies with their settings. Assignments will be created if groups exist in the current tenant.
                 </Typography>
               </Alert>
             </CardContent>
           </Card>
         </Grid>
+
+        {/* Import Details (if completed) */}
+        {importResult && (
+          <Grid item xs={12}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Import Results
+                </Typography>
+                
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={3}>
+                    <Box textAlign="center" p={2}>
+                      <Typography variant="h3" color="success.main">
+                        {importResult.importStats?.importedPolicies || 0}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Imported
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={3}>
+                    <Box textAlign="center" p={2}>
+                      <Typography variant="h3" color="warning.main">
+                        {importResult.importStats?.skippedPolicies || 0}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Skipped
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={3}>
+                    <Box textAlign="center" p={2}>
+                      <Typography variant="h3" color="error.main">
+                        {importResult.importStats?.failedPolicies || 0}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Failed
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={3}>
+                    <Box textAlign="center" p={2}>
+                      <Typography variant="h3" color="primary.main">
+                        {importResult.importStats?.totalPolicies || 0}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Total
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+
+                {/* Failed Policies List */}
+                {importResult.failed && importResult.failed.length > 0 && (
+                  <>
+                    <Divider sx={{ my: 2 }} />
+                    <Typography variant="subtitle2" gutterBottom color="error">
+                      Failed Policies
+                    </Typography>
+                    <List dense>
+                      {importResult.failed.map((item, index) => (
+                        <ListItem key={index}>
+                          <ListItemIcon>
+                            <ErrorIcon color="error" fontSize="small" />
+                          </ListItemIcon>
+                          <ListItemText 
+                            primary={item.name}
+                            secondary={`${item.type} - ${item.error}`}
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
 
         {/* Export Details (if completed) */}
         {exportResult && (
