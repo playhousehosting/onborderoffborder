@@ -335,7 +335,7 @@ const Login = () => {
             </div>
 
             {/* Footer */}
-            <div className="pb-8 px-8 text-center space-y-3">
+            <div className="mt-8 text-center space-y-3">
             <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
               <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">🌟 Trusted by HR Teams Worldwide</p>
               <div className="flex items-center justify-center gap-2 text-xs text-gray-600 dark:text-gray-400">
@@ -366,7 +366,9 @@ const Login = () => {
                 View FAQ & Documentation
               </a>
             </div>
+            </div>
           </div>
+        </div>
         </div>
 
         {/* Additional Info Cards */}
