@@ -24,7 +24,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 const Layout = ({ children }) => {
-  const { user, logout, hasPermission } = useAuth();
+  const { user, logout, hasPermission = () => true } = useAuth() || {};
   const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
@@ -113,9 +113,9 @@ const Layout = ({ children }) => {
     navigate('/login');
   };
 
-  const filteredNavigation = navigation.filter(item => 
-    !item.permission || hasPermission(item.permission)
-  );
+  const filteredNavigation = Array.isArray(navigation) 
+    ? navigation.filter(item => !item.permission || (hasPermission && hasPermission(item.permission)))
+    : [];
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -206,7 +206,7 @@ const Layout = ({ children }) => {
   );
 };
 
-const Sidebar = ({ navigation, onItemClick }) => {
+const Sidebar = ({ navigation = [], onItemClick }) => {
   const { t } = useTranslation();
   
   return (
@@ -217,7 +217,7 @@ const Sidebar = ({ navigation, onItemClick }) => {
           <h1 className="ml-2 text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 truncate">{t('nav.appTitle')}</h1>
         </div>
         <nav className="mt-3 sm:mt-5 flex-1 px-2 space-y-1">
-          {navigation.map((item) => (
+          {Array.isArray(navigation) && navigation.map((item) => (
             <Link
               key={item.name}
               to={item.href}

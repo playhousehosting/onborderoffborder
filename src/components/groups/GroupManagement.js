@@ -66,6 +66,11 @@ const GroupManagement = () => {
   };
 
   const filterGroups = () => {
+    if (!Array.isArray(groups)) {
+      setFilteredGroups([]);
+      return;
+    }
+    
     let filtered = [...groups];
 
     // Filter by search term
@@ -168,13 +173,15 @@ const GroupManagement = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {groupTypes.map((type) => {
           const Icon = type.icon;
-          let count = groups.length;
-          if (type.value === 'distribution') {
-            count = groups.filter(g => g.mailEnabled && !g.securityEnabled).length;
-          } else if (type.value === 'security') {
-            count = groups.filter(g => g.securityEnabled).length;
-          } else if (type.value === 'microsoft365') {
-            count = groups.filter(g => g.groupTypes?.includes('Unified')).length;
+          let count = Array.isArray(groups) ? groups.length : 0;
+          if (Array.isArray(groups)) {
+            if (type.value === 'distribution') {
+              count = groups.filter(g => g.mailEnabled && !g.securityEnabled).length;
+            } else if (type.value === 'security') {
+              count = groups.filter(g => g.securityEnabled).length;
+            } else if (type.value === 'microsoft365') {
+              count = groups.filter(g => g.groupTypes?.includes('Unified')).length;
+            }
           }
 
           return (
