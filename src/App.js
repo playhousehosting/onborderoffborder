@@ -13,7 +13,7 @@ authService.setMsalInstance(msalInstance);
 
 // Components
 import Layout from './components/common/Layout';
-import MSALLogin from './components/auth/MSALLogin';
+import Login from './components/auth/Login';
 import SignUp from './components/auth/SignUp';
 import OAuthCallback from './components/auth/OAuthCallback';
 import Dashboard from './components/dashboard/Dashboard';
@@ -75,8 +75,8 @@ function App() {
               <div className="App">
                 <Routes>
                   {/* Public Routes - Always accessible */}
-                  <Route path="/login" element={<MSALLogin />} />
-                  <Route path="/login/*" element={<MSALLogin />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/login/*" element={<Login />} />
                   <Route path="/sign-up" element={<SignUp />} />
                   <Route path="/sign-up/*" element={<SignUp />} />
                   <Route path="/oauth-callback" element={<OAuthCallback />} />
