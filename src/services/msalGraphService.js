@@ -70,7 +70,13 @@ class MSALGraphService {
           errorData = { message: errorText };
         }
         
-        console.error(`❌ Graph request failed (${response.status}):`, errorData);
+        // For authentication method endpoints, 403 is expected if permissions aren't granted
+        const isAuthMethodEndpoint = cleanEndpoint.includes('/authentication/');
+        if (response.status === 403 && isAuthMethodEndpoint) {
+          console.warn(`⚠️ Insufficient permissions for ${cleanEndpoint} (this is optional)`);
+        } else {
+          console.error(`❌ Graph request failed (${response.status}):`, errorData);
+        }
         
         // Check for OAuth requirement (shouldn't happen with MSAL, but keep for compatibility)
         if (errorData.requiresOAuth) {
@@ -775,7 +781,10 @@ class MSALGraphService {
             })));
           }
         } catch (error) {
-          console.warn(`Could not fetch ${methodType.type} methods:`, error);
+          // Silently skip if permission denied (403) - these are optional features
+          if (!error.message?.includes('403') && !error.message?.includes('Forbidden')) {
+            console.warn(`Could not fetch ${methodType.type} methods:`, error);
+          }
         }
       }
 
