@@ -35,6 +35,11 @@ const TransferWizard = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionResults, setExecutionResults] = useState([]);
+  
+  // Manager search state
+  const [managerSearchTerm, setManagerSearchTerm] = useState('');
+  const [managerSearchResults, setManagerSearchResults] = useState([]);
+  const [isSearchingManager, setIsSearchingManager] = useState(false);
 
   const [transferOptions, setTransferOptions] = useState({
     transferType: 'department', // department, role, promotion, location
@@ -77,20 +82,14 @@ const TransferWizard = () => {
     loadUser();
   }, [userId]);
 
-  // Search for users
-  const handleSearch = async () => {
-    if (!searchTerm.trim()) {
-      toast.error('Please enter a search term');
-      return;
-    }
-
+  // Search for users with debounce
+  const searchUsers = async () => {
+    if (!searchTerm.trim()) return;
+    
     setIsSearching(true);
     try {
       const results = await msalGraphService.searchUsers(searchTerm);
       setSearchResults(results.value || []);
-      if (results.value?.length === 0) {
-        toast.info('No users found');
-      }
     } catch (error) {
       console.error('Search error:', error);
       toast.error('Failed to search users');
@@ -98,6 +97,48 @@ const TransferWizard = () => {
       setIsSearching(false);
     }
   };
+
+  // Debounced search effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchTerm) {
+        searchUsers();
+      } else {
+        setSearchResults([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  // Search for managers with debounce
+  const searchManagers = async () => {
+    if (!managerSearchTerm.trim()) return;
+    
+    setIsSearchingManager(true);
+    try {
+      const results = await msalGraphService.searchUsers(managerSearchTerm);
+      setManagerSearchResults(results.value || []);
+    } catch (error) {
+      console.error('Manager search error:', error);
+      toast.error('Failed to search managers');
+    } finally {
+      setIsSearchingManager(false);
+    }
+  };
+
+  // Debounced manager search effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (managerSearchTerm) {
+        searchManagers();
+      } else {
+        setManagerSearchResults([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [managerSearchTerm]);
 
   const handleSelectUser = (user) => {
     setSelectedUser(user);
@@ -370,50 +411,85 @@ const TransferWizard = () => {
         <p className="text-sm text-gray-600 mt-1">Search for the employee who is changing roles</p>
       </div>
       <div className="card-body space-y-6">
-        <div className="flex gap-3">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="Search by name or email..."
-            className="input flex-1"
-          />
-          <button onClick={handleSearch} disabled={isSearching} className="btn-primary">
-            {isSearching ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Searching...
-              </>
-            ) : (
-              'Search'
-            )}
-          </button>
-        </div>
-
-        {searchResults.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-gray-700">Search Results:</p>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {searchResults.map((user) => (
-                <div
-                  key={user.id}
-                  onClick={() => handleSelectUser(user)}
-                  className="p-4 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 cursor-pointer transition-all"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-gray-900">{user.displayName}</p>
-                      <p className="text-sm text-gray-600">{user.userPrincipalName}</p>
-                      {user.jobTitle && (
-                        <p className="text-xs text-gray-500 mt-1">{user.jobTitle} - {user.department}</p>
-                      )}
-                    </div>
-                    <ArrowRightIcon className="h-5 w-5 text-blue-500" />
+        {selectedUser ? (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="flex-shrink-0">
+                  <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center">
+                    <UserIcon className="h-8 w-8 text-blue-600" />
                   </div>
                 </div>
-              ))}
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900">{selectedUser.displayName}</h4>
+                  <p className="text-sm text-gray-600">{selectedUser.userPrincipalName}</p>
+                  {selectedUser.jobTitle && (
+                    <p className="text-sm text-gray-700 mt-1">
+                      <span className="font-medium">{selectedUser.jobTitle}</span>
+                      {selectedUser.department && ` • ${selectedUser.department}`}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedUser(null);
+                  setSearchTerm('');
+                  setSearchResults([]);
+                }}
+                className="btn-secondary"
+              >
+                Change User
+              </button>
             </div>
+          </div>
+        ) : (
+          <div>
+            <div className="mb-4">
+              <label className="form-label">Search for user</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Enter name or email"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                {isSearching && (
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {searchResults.length > 0 && (
+              <div className="card">
+                <div className="card-body">
+                  <div className="space-y-2">
+                    {searchResults.map((user) => (
+                      <div
+                        key={user.id}
+                        onClick={() => handleSelectUser(user)}
+                        className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+                      >
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-8 w-8">
+                            <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
+                              <UserIcon className="h-5 w-5 text-primary-600" />
+                            </div>
+                          </div>
+                          <div className="ml-3">
+                            <p className="text-sm font-medium text-gray-900">{user.displayName}</p>
+                            <p className="text-sm text-gray-500">{user.mail || user.userPrincipalName}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -508,17 +584,72 @@ const TransferWizard = () => {
               />
             </div>
 
-            <div>
+            <div className="relative">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                New Manager (Email)
+                New Manager
               </label>
-              <input
-                type="email"
-                value={transferOptions.newManager}
-                onChange={(e) => handleOptionChange('newManager', e.target.value)}
-                placeholder="manager@company.com"
-                className="input"
-              />
+              {transferOptions.newManager ? (
+                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-200">
+                  <UserIcon className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm text-gray-900 flex-1">{transferOptions.newManager}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleOptionChange('newManager', '');
+                      setManagerSearchTerm('');
+                      setManagerSearchResults([]);
+                    }}
+                    className="text-xs text-red-600 hover:text-red-700"
+                  >
+                    Clear
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={managerSearchTerm}
+                      onChange={(e) => setManagerSearchTerm(e.target.value)}
+                      placeholder="Search for manager by name..."
+                      className="input"
+                    />
+                    {isSearchingManager && (
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {managerSearchResults.length > 0 && (
+                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {managerSearchResults.map((manager) => (
+                        <div
+                          key={manager.id}
+                          onClick={() => {
+                            handleOptionChange('newManager', manager.mail || manager.userPrincipalName);
+                            setManagerSearchTerm('');
+                            setManagerSearchResults([]);
+                          }}
+                          className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        >
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-8 w-8">
+                              <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
+                                <UserIcon className="h-5 w-5 text-primary-600" />
+                              </div>
+                            </div>
+                            <div className="ml-3">
+                              <p className="text-sm font-medium text-gray-900">{manager.displayName}</p>
+                              <p className="text-xs text-gray-500">{manager.mail || manager.userPrincipalName}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             <div>
