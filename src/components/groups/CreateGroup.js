@@ -23,14 +23,41 @@ const CreateGroup = () => {
   }, [getAccessToken]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingDomains, setLoadingDomains] = useState(true);
+  const [availableDomains, setAvailableDomains] = useState([]);
   const [formData, setFormData] = useState({
     displayName: '',
     description: '',
     mailNickname: '',
+    selectedDomain: '',
     groupType: 'distribution', // distribution, security, microsoft365
     mailEnabled: true,
     securityEnabled: false,
   });
+
+  // Load available domains on mount
+  useEffect(() => {
+    const loadDomains = async () => {
+      try {
+        const domains = await msalGraphService.getOrganizationDomains();
+        setAvailableDomains(domains);
+        // Set default domain
+        const defaultDomain = domains.find(d => d.isDefault) || domains[0];
+        if (defaultDomain) {
+          setFormData(prev => ({ ...prev, selectedDomain: defaultDomain.name }));
+        }
+      } catch (error) {
+        console.error('Error loading domains:', error);
+        toast.error('Failed to load available domains');
+      } finally {
+        setLoadingDomains(false);
+      }
+    };
+
+    if (getAccessToken) {
+      loadDomains();
+    }
+  }, [getAccessToken]);
 
   const groupTypes = [
     {
@@ -84,6 +111,7 @@ const CreateGroup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validation
     if (!formData.displayName.trim()) {
       toast.error('Please enter a group name');
       return;
@@ -91,6 +119,18 @@ const CreateGroup = () => {
 
     if (!formData.mailNickname.trim()) {
       toast.error('Please enter an email alias');
+      return;
+    }
+
+    // Validate email alias format
+    const emailAliasRegex = /^[a-z0-9-]+$/;
+    if (!emailAliasRegex.test(formData.mailNickname)) {
+      toast.error('Email alias can only contain lowercase letters, numbers, and hyphens');
+      return;
+    }
+
+    if (!formData.selectedDomain) {
+      toast.error('Please select a domain');
       return;
     }
 
@@ -112,7 +152,8 @@ const CreateGroup = () => {
       }
 
       const newGroup = await msalGraphService.createGroup(groupData);
-      toast.success('Group created successfully');
+      const fullEmail = `${formData.mailNickname}@${formData.selectedDomain}`;
+      toast.success(`Group created successfully: ${fullEmail}`);
       navigate(`/groups/${newGroup.id}`);
     } catch (error) {
       console.error('Error creating group:', error);
@@ -205,22 +246,54 @@ const CreateGroup = () => {
             {/* Mail Nickname / Alias */}
             <div>
               <label className="form-label">
-                Email Alias *
+                Email Address *
               </label>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="text"
-                  required
-                  className="form-input"
-                  placeholder="e.g., marketing-team"
-                  value={formData.mailNickname}
-                  onChange={(e) => handleInputChange('mailNickname', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                />
-                <span className="text-gray-600">@yourdomain.com</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <input
+                    type="text"
+                    required
+                    className="form-input"
+                    placeholder="e.g., marketing-team"
+                    value={formData.mailNickname}
+                    onChange={(e) => handleInputChange('mailNickname', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Email alias (lowercase, numbers, hyphens only)
+                  </p>
+                </div>
+                <div>
+                  <select
+                    required
+                    className="form-input"
+                    value={formData.selectedDomain}
+                    onChange={(e) => handleInputChange('selectedDomain', e.target.value)}
+                    disabled={loadingDomains}
+                  >
+                    {loadingDomains ? (
+                      <option>Loading domains...</option>
+                    ) : availableDomains.length === 0 ? (
+                      <option>No domains available</option>
+                    ) : (
+                      availableDomains.map((domain) => (
+                        <option key={domain.id} value={domain.name}>
+                          @{domain.name} {domain.isDefault ? '(Default)' : ''}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Domain for email address
+                  </p>
+                </div>
               </div>
-              <p className="mt-1 text-sm text-gray-500">
-                Only lowercase letters, numbers, and hyphens allowed. No spaces or special characters.
-              </p>
+              {formData.mailNickname && formData.selectedDomain && (
+                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm font-medium text-blue-900">
+                    Full email address: <span className="font-mono">{formData.mailNickname}@{formData.selectedDomain}</span>
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Description */}

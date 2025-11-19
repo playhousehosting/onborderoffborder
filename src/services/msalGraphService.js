@@ -421,6 +421,37 @@ class MSALGraphService {
   }
 
   /**
+   * Get organization verified domains
+   */
+  async getOrganizationDomains() {
+    try {
+      const response = await this.makeRequest('/domains');
+      const domains = response.value || [];
+      
+      // Filter to verified domains only and extract domain names
+      return domains
+        .filter(domain => domain.isVerified)
+        .map(domain => ({
+          id: domain.id,
+          name: domain.id,
+          isDefault: domain.isDefault || false,
+          isInitial: domain.isInitial || false,
+        }))
+        .sort((a, b) => {
+          // Sort: default first, then initial, then alphabetically
+          if (a.isDefault) return -1;
+          if (b.isDefault) return 1;
+          if (a.isInitial) return -1;
+          if (b.isInitial) return 1;
+          return a.name.localeCompare(b.name);
+        });
+    } catch (error) {
+      console.error('Error getting organization domains:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get all devices with automatic pagination (fetches all pages)
    * (requires DeviceManagementManagedDevices.ReadWrite.All)
    */
