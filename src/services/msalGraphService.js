@@ -679,6 +679,53 @@ class MSALGraphService {
   }
 
   /**
+   * Get user sign-in logs
+   * @param {string} userId - User ID
+   * @param {number} days - Number of days to look back (default 7)
+   * @returns {Promise} Sign-in logs
+   */
+  async getUserSignInLogs(userId, days = 7) {
+    try {
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      const filter = `userId eq '${userId}' and createdDateTime ge ${startDate.toISOString()}`;
+      
+      return await this.makeRequest(`/auditLogs/signIns?$filter=${encodeURIComponent(filter)}&$top=50&$orderby=createdDateTime desc`);
+    } catch (error) {
+      console.warn('Sign-in logs not available:', error);
+      return { value: [] };
+    }
+  }
+
+  /**
+   * Get user presence information
+   * @param {string} userId - User ID
+   * @returns {Promise} User presence
+   */
+  async getUserPresence(userId) {
+    try {
+      return await this.makeRequest(`/users/${userId}/presence`);
+    } catch (error) {
+      console.warn('Presence not available:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get user's registered devices
+   * @param {string} userId - User ID
+   * @returns {Promise} Registered devices
+   */
+  async getUserRegisteredDevices(userId) {
+    try {
+      return await this.makeRequest(`/users/${userId}/registeredDevices`);
+    } catch (error) {
+      console.warn('Registered devices not available:', error);
+      return { value: [] };
+    }
+  }
+
+  /**
    * Execute Graph batch request
    */
   async batch(requests) {
