@@ -96,6 +96,13 @@ const Layout = ({ children }) => {
       current: location.pathname === '/defender',
       permission: 'defenderManagement'
     },
+    {
+      name: t('nav.groupManagement'),
+      href: '/groups',
+      icon: UserGroupIcon,
+      current: location.pathname.startsWith('/groups'),
+      permission: 'userManagement'
+    },
     { name: t('nav.faq'), href: '/faq', icon: QuestionMarkCircleIcon, current: location.pathname === '/faq' },
     { name: 'Help Center', href: '/help', icon: SparklesIcon, current: location.pathname === '/help' },
     { name: t('nav.settings'), href: '/settings', icon: CogIcon, current: location.pathname === '/settings' },

@@ -29,6 +29,9 @@ import TeamsManagement from './components/teams/TeamsManagement';
 import DefenderManagement from './components/defender/DefenderManagement';
 import ScheduledOffboarding from './components/offboarding/ScheduledOffboarding';
 import WorkflowManagement from './components/workflows/WorkflowManagement';
+import GroupManagement from './components/groups/GroupManagement';
+import GroupDetails from './components/groups/GroupDetails';
+import CreateGroup from './components/groups/CreateGroup';
 import Settings from './components/settings/Settings';
 import ConfigurationForm from './components/auth/ConfigurationForm';
 import FAQ from './components/common/FAQ';
@@ -211,6 +214,46 @@ function App() {
                     <ProtectedRoute>
                       <Layout>
                         <DefenderManagement />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/groups"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <GroupManagement />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/groups/create"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <CreateGroup />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/groups/:groupId"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <GroupDetails />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/groups/:groupId/edit"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <CreateGroup />
                       </Layout>
                     </ProtectedRoute>
                   }

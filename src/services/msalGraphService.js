@@ -300,6 +300,127 @@ class MSALGraphService {
   }
 
   /**
+   * Create a new group (distribution or security)
+   */
+  async createGroup(groupData) {
+    return await this.makeRequest('/groups', {
+      method: 'POST',
+      body: JSON.stringify(groupData),
+    });
+  }
+
+  /**
+   * Update group properties
+   */
+  async updateGroup(groupId, updates) {
+    return await this.makeRequest(`/groups/${groupId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  /**
+   * Delete group
+   */
+  async deleteGroup(groupId) {
+    return await this.makeRequest(`/groups/${groupId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Search groups
+   */
+  async searchGroups(searchTerm, options = {}) {
+    const { groupTypes = [], top = 25 } = options;
+    let filters = [];
+    
+    // Search by display name or mail
+    const searchFilter = `(startswith(displayName,'${searchTerm}') or startswith(mail,'${searchTerm}'))`;
+    
+    // Filter by group types if specified
+    if (groupTypes.length > 0) {
+      const typeFilters = groupTypes.map(type => {
+        if (type === 'distribution') {
+          return "mailEnabled eq true and securityEnabled eq false";
+        } else if (type === 'security') {
+          return "securityEnabled eq true";
+        } else if (type === 'microsoft365') {
+          return "groupTypes/any(c:c eq 'Unified')";
+        }
+        return null;
+      }).filter(f => f);
+      
+      if (typeFilters.length > 0) {
+        filters.push(`(${typeFilters.join(' or ')})`);
+      }
+    }
+    
+    filters.push(searchFilter);
+    
+    const filterString = filters.join(' and ');
+    const endpoint = `/groups?$filter=${encodeURIComponent(filterString)}&$top=${top}&$count=true`;
+    
+    return await this.makeRequest(endpoint);
+  }
+
+  /**
+   * Get group owners
+   */
+  async getGroupOwners(groupId) {
+    const response = await this.makeRequest(`/groups/${groupId}/owners`);
+    return response.value || [];
+  }
+
+  /**
+   * Add group owner
+   */
+  async addGroupOwner(groupId, userId) {
+    return await this.makeRequest(`/groups/${groupId}/owners/$ref`, {
+      method: 'POST',
+      body: JSON.stringify({
+        '@odata.id': `https://graph.microsoft.com/v1.0/users/${userId}`,
+      }),
+    });
+  }
+
+  /**
+   * Remove group owner
+   */
+  async removeGroupOwner(groupId, userId) {
+    return await this.makeRequest(`/groups/${groupId}/owners/${userId}/$ref`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Get distribution group settings
+   */
+  async getDistributionGroupSettings(groupId) {
+    try {
+      // Get group with all properties
+      const group = await this.getGroup(groupId);
+      
+      // Get members and owners
+      const [members, owners] = await Promise.all([
+        this.getGroupMembers(groupId),
+        this.getGroupOwners(groupId),
+      ]);
+      
+      return {
+        ...group,
+        membersCount: members.length,
+        ownersCount: owners.length,
+        members,
+        owners,
+      };
+    } catch (error) {
+      console.error('Error getting distribution group settings:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get all devices with automatic pagination (fetches all pages)
    * (requires DeviceManagementManagedDevices.ReadWrite.All)
    */
