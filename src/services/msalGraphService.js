@@ -70,10 +70,15 @@ class MSALGraphService {
           errorData = { message: errorText };
         }
         
-        // For authentication method endpoints, 403 is expected if permissions aren't granted
-        const isAuthMethodEndpoint = cleanEndpoint.includes('/authentication/');
-        if (response.status === 403 && isAuthMethodEndpoint) {
-          console.warn(`⚠️ Insufficient permissions for ${cleanEndpoint} (this is optional)`);
+        // For optional endpoints, 403/404 is expected if permissions aren't granted or resource doesn't exist
+        const isOptionalEndpoint = cleanEndpoint.includes('/authentication/') || 
+                                   cleanEndpoint.includes('/presence') || 
+                                   cleanEndpoint.includes('/auditLogs/') ||
+                                   cleanEndpoint.includes('/manager');
+        const isExpectedError = (response.status === 403 || response.status === 404) && isOptionalEndpoint;
+        
+        if (isExpectedError) {
+          // Silently skip - these are optional features
         } else {
           console.error(`❌ Graph request failed (${response.status}):`, errorData);
         }
@@ -189,7 +194,15 @@ class MSALGraphService {
    * Get user's manager
    */
   async getUserManager(userId) {
-    return await this.makeRequest(`/users/${userId}/manager`);
+    try {
+      return await this.makeRequest(`/users/${userId}/manager`);
+    } catch (error) {
+      // 404 is normal when user has no manager
+      if (error.message?.includes('404') || error.message?.includes('does not exist')) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   /**
@@ -853,7 +866,7 @@ class MSALGraphService {
       
       return await this.makeRequest(`/auditLogs/signIns?$filter=${encodeURIComponent(filter)}&$top=50&$orderby=createdDateTime desc`);
     } catch (error) {
-      console.warn('Sign-in logs not available:', error);
+      // Silently return empty array - requires AuditLog.Read.All permission
       return { value: [] };
     }
   }
@@ -867,7 +880,7 @@ class MSALGraphService {
     try {
       return await this.makeRequest(`/users/${userId}/presence`);
     } catch (error) {
-      console.warn('Presence not available:', error);
+      // Silently return null - requires Presence.Read.All permission
       return null;
     }
   }
