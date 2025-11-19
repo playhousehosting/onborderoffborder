@@ -73,6 +73,7 @@ import {
   CloudUpload as ADMXIcon,
   Analytics as AnalyticsIcon,
   VpnKey as RegistryIcon,
+  Code as ScriptIcon,
 } from '@mui/icons-material';
 
 import intuneService from '../../services/intuneService';
@@ -86,6 +87,7 @@ import CloneTab from './tabs/CloneTab';
 import ADMXImportTab from './tabs/ADMXImportTab';
 import AssignmentAnalyticsTab from './tabs/AssignmentAnalyticsTab';
 import RegistrySettingsTab from './tabs/RegistrySettingsTab';
+import ScriptManagementTab from './tabs/ScriptManagementTab';
 
 // ========== MAIN COMPONENT ==========
 
@@ -153,6 +155,7 @@ const IntuneManagement = () => {
           <Tab icon={<ADMXIcon />} label="ADMX Import" />
           <Tab icon={<AnalyticsIcon />} label="Assignment Analytics" />
           <Tab icon={<RegistryIcon />} label="Registry Settings" />
+          <Tab icon={<ScriptIcon />} label="Script Management" />
         </Tabs>
       </Paper>
 
@@ -169,6 +172,7 @@ const IntuneManagement = () => {
         {activeTab === 9 && <ADMXImportTab onSuccess={showSuccess} onError={showError} />}
         {activeTab === 10 && <AssignmentAnalyticsTab onSuccess={showSuccess} onError={showError} />}
         {activeTab === 11 && <RegistrySettingsTab onSuccess={showSuccess} onError={showError} />}
+        {activeTab === 12 && <ScriptManagementTab onSuccess={showSuccess} onError={showError} />}
       </Box>
     </Container>
   );
