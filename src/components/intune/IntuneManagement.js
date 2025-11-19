@@ -71,6 +71,7 @@ import {
   Description as DocumentIcon,
   ContentCopy as CloneIcon,
   CloudUpload as ADMXIcon,
+  Analytics as AnalyticsIcon,
 } from '@mui/icons-material';
 
 import intuneService from '../../services/intuneService';
@@ -82,6 +83,7 @@ import ComparisonTab from './tabs/ComparisonTab';
 import DocumentationTab from './tabs/DocumentationTab';
 import CloneTab from './tabs/CloneTab';
 import ADMXImportTab from './tabs/ADMXImportTab';
+import AssignmentAnalyticsTab from './tabs/AssignmentAnalyticsTab';
 
 // ========== MAIN COMPONENT ==========
 
@@ -147,6 +149,7 @@ const IntuneManagement = () => {
           <Tab icon={<DocumentIcon />} label="Documentation" />
           <Tab icon={<CloneIcon />} label="Bulk Clone" />
           <Tab icon={<ADMXIcon />} label="ADMX Import" />
+          <Tab icon={<AnalyticsIcon />} label="Assignment Analytics" />
         </Tabs>
       </Paper>
 
@@ -161,6 +164,7 @@ const IntuneManagement = () => {
         {activeTab === 7 && <DocumentationTab onSuccess={showSuccess} onError={showError} />}
         {activeTab === 8 && <CloneTab onSuccess={showSuccess} onError={showError} />}
         {activeTab === 9 && <ADMXImportTab onSuccess={showSuccess} onError={showError} />}
+        {activeTab === 10 && <AssignmentAnalyticsTab onSuccess={showSuccess} onError={showError} />}
       </Box>
     </Container>
   );
