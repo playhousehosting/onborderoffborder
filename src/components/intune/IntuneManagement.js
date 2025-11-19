@@ -67,6 +67,7 @@ import {
   Refresh as RefreshIcon,
   FilterList as FilterIcon,
   CloudDownload as BackupIcon,
+  Compare as CompareIcon,
 } from '@mui/icons-material';
 
 import intuneService from '../../services/intuneService';
@@ -74,6 +75,7 @@ import wingetService from '../../services/wingetService';
 import settingsCatalogService from '../../services/settingsCatalogService';
 import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
 import BackupMigrationTab from './tabs/BackupMigrationTab';
+import ComparisonTab from './tabs/ComparisonTab';
 
 // ========== MAIN COMPONENT ==========
 
@@ -135,6 +137,7 @@ const IntuneManagement = () => {
           <Tab icon={<CheckCircleIcon />} label="Compliance" />
           <Tab icon={<ReportsIcon />} label="Reports" />
           <Tab icon={<BackupIcon />} label="Backup & Migration" />
+          <Tab icon={<CompareIcon />} label="Comparison" />
         </Tabs>
       </Paper>
 
@@ -145,6 +148,7 @@ const IntuneManagement = () => {
         {activeTab === 3 && <ComplianceTab onSuccess={showSuccess} onError={showError} />}
         {activeTab === 4 && <ReportsTab onSuccess={showSuccess} onError={showError} />}
         {activeTab === 5 && <BackupMigrationTab onSuccess={showSuccess} onError={showError} />}
+        {activeTab === 6 && <ComparisonTab onSuccess={showSuccess} onError={showError} />}
       </Box>
     </Container>
   );
