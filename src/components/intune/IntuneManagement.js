@@ -89,6 +89,7 @@ import AssignmentAnalyticsTab from './tabs/AssignmentAnalyticsTab';
 import RegistrySettingsTab from './tabs/RegistrySettingsTab';
 import ScriptManagementTab from './tabs/ScriptManagementTab';
 import ComplianceReportingTab from './tabs/ComplianceReportingTab';
+import AppProtectionPoliciesTab from './tabs/AppProtectionPoliciesTab';
 
 // ========== MAIN COMPONENT ==========
 
@@ -158,6 +159,7 @@ const IntuneManagement = () => {
           <Tab icon={<RegistryIcon />} label="Registry Settings" />
           <Tab icon={<ScriptIcon />} label="Script Management" />
           <Tab icon={<ReportsIcon />} label="Compliance Reporting" />
+          <Tab icon={<SecurityIcon />} label="App Protection" />
         </Tabs>
       </Paper>
 
@@ -176,6 +178,7 @@ const IntuneManagement = () => {
         {activeTab === 11 && <RegistrySettingsTab onSuccess={showSuccess} onError={showError} />}
         {activeTab === 12 && <ScriptManagementTab onSuccess={showSuccess} onError={showError} />}
         {activeTab === 13 && <ComplianceReportingTab onSuccess={showSuccess} onError={showError} />}
+        {activeTab === 14 && <AppProtectionPoliciesTab onSuccess={showSuccess} onError={showError} />}
       </Box>
     </Container>
   );
