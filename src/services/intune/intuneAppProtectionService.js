@@ -3,7 +3,7 @@
  * Manages App Protection Policies (MAM) for iOS, Android, and Windows
  */
 
-import msalGraphService from '../msalGraphService.js';
+import msalGraphService from '../msalGraphService';
 
 class IntuneAppProtectionService {
   constructor() {

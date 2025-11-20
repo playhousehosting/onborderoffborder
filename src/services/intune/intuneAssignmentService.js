@@ -3,7 +3,7 @@
  * Analyze policy and app assignments, detect conflicts, generate reports
  */
 
-import msalGraphService from '../msalGraphService.js';
+import msalGraphService from '../msalGraphService';
 
 class IntuneAssignmentService {
   /**

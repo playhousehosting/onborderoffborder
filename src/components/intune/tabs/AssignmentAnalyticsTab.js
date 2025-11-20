@@ -35,7 +35,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   Search as SearchIcon
 } from '@mui/icons-material';
-import intuneAssignmentService from '../../services/intune/intuneAssignmentService.js';
+import intuneAssignmentService from '../../../services/intune/intuneAssignmentService';
 
 export default function AssignmentAnalyticsTab({ onSuccess, onError }) {
   const [loading, setLoading] = useState(false);

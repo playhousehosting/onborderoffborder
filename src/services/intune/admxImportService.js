@@ -4,7 +4,7 @@
  * Uses MSAL authentication via Convex proxy
  */
 
-import msalGraphService from '../msalGraphService.js';
+import msalGraphService from '../msalGraphService';
 
 class ADMXImportService {
   constructor() {

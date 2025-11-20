@@ -5,7 +5,7 @@
  * Uses MSAL authentication via Convex proxy
  */
 
-import msalGraphService from '../msalGraphService.js';
+import msalGraphService from '../msalGraphService';
 
 // Policy type definitions with Graph API endpoints
 const POLICY_TYPES = {

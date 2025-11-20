@@ -53,7 +53,7 @@ import {
   Devices as DeviceIcon,
   LocationOn as LocationIcon
 } from '@mui/icons-material';
-import intuneConditionalAccessService from '../../services/intune/intuneConditionalAccessService.js';
+import intuneConditionalAccessService from '../../../services/intune/intuneConditionalAccessService';
 
 function ConditionalAccessTab() {
   const [loading, setLoading] = useState(false);

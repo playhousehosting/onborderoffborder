@@ -57,7 +57,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   Info as InfoIcon
 } from '@mui/icons-material';
-import intuneAppProtectionService from '../../services/intune/intuneAppProtectionService.js';
+import intuneAppProtectionService from '../../../services/intune/intuneAppProtectionService';
 
 function AppProtectionPoliciesTab() {
   const [loading, setLoading] = useState(false);

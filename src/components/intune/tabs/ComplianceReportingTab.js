@@ -35,7 +35,7 @@ import {
   Warning as WarningIcon,
   PieChart as ChartIcon
 } from '@mui/icons-material';
-import intuneComplianceReportService from '../../services/intune/intuneComplianceReportService.js';
+import intuneComplianceReportService from '../../../services/intune/intuneComplianceReportService';
 
 function ComplianceReportingTab() {
   const [loading, setLoading] = useState(false);
