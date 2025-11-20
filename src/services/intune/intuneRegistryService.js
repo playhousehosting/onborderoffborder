@@ -3,7 +3,7 @@
  * Create and manage Windows Registry-based configuration policies
  */
 
-import msalGraphService from '../msalGraphService';
+import msalGraphService from '../msalGraphService.js';
 
 class IntuneRegistryService {
   /**

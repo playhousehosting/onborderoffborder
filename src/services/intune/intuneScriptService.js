@@ -3,7 +3,7 @@
  * Manage PowerShell and Shell scripts for Windows, macOS, and Linux devices
  */
 
-import msalGraphService from '../msalGraphService';
+import msalGraphService from '../msalGraphService.js';
 
 class IntuneScriptService {
   /**

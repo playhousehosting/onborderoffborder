@@ -1,9 +1,9 @@
 /**
  * Intune Assignment Analytics Service
- * Analyzes policy assignments, detects conflicts, and generates coverage reports
+ * Analyze policy and app assignments, detect conflicts, generate reports
  */
 
-import msalGraphService from '../msalGraphService';
+import msalGraphService from '../msalGraphService.js';
 
 class IntuneAssignmentService {
   /**

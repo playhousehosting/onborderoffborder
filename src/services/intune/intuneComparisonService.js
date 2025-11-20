@@ -5,7 +5,7 @@
  * Uses MSAL authentication via Convex proxy
  */
 
-import msalGraphService from '../msalGraphService';
+import msalGraphService from '../msalGraphService.js';
 
 // Comparison result types
 export const DIFF_TYPES = {
