@@ -41,7 +41,7 @@ import {
   Code as CodeIcon,
   Settings as SettingsIcon
 } from '@mui/icons-material';
-import intuneRegistryService from '../../services/intune/intuneRegistryService';
+import intuneRegistryService from '../../services/intune/intuneRegistryService.js';
 
 export default function RegistrySettingsTab({ onSuccess, onError }) {
   const [loading, setLoading] = useState(false);
