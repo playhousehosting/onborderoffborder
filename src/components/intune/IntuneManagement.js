@@ -90,6 +90,7 @@ import RegistrySettingsTab from './tabs/RegistrySettingsTab';
 import ScriptManagementTab from './tabs/ScriptManagementTab';
 import ComplianceReportingTab from './tabs/ComplianceReportingTab';
 import AppProtectionPoliciesTab from './tabs/AppProtectionPoliciesTab';
+import ConditionalAccessTab from './tabs/ConditionalAccessTab';
 
 // ========== MAIN COMPONENT ==========
 
@@ -160,6 +161,7 @@ const IntuneManagement = () => {
           <Tab icon={<ScriptIcon />} label="Script Management" />
           <Tab icon={<ReportsIcon />} label="Compliance Reporting" />
           <Tab icon={<SecurityIcon />} label="App Protection" />
+          <Tab icon={<LockIcon />} label="Conditional Access" />
         </Tabs>
       </Paper>
 
@@ -179,6 +181,7 @@ const IntuneManagement = () => {
         {activeTab === 12 && <ScriptManagementTab onSuccess={showSuccess} onError={showError} />}
         {activeTab === 13 && <ComplianceReportingTab onSuccess={showSuccess} onError={showError} />}
         {activeTab === 14 && <AppProtectionPoliciesTab onSuccess={showSuccess} onError={showError} />}
+        {activeTab === 15 && <ConditionalAccessTab onSuccess={showSuccess} onError={showError} />}
       </Box>
     </Container>
   );
