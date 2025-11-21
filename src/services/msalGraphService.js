@@ -93,7 +93,22 @@ class MSALGraphService {
         throw new Error(errorData.message || `Request failed: ${response.status}`);
       }
 
-      const data = await response.json();
+      // Handle empty responses (204 No Content or empty body)
+      const contentType = response.headers.get('content-type');
+      const contentLength = response.headers.get('content-length');
+      
+      if (response.status === 204 || contentLength === '0' || !contentType?.includes('application/json')) {
+        console.log(`✅ Graph request successful (no content)`);
+        return null;
+      }
+
+      const text = await response.text();
+      if (!text || text.trim() === '') {
+        console.log(`✅ Graph request successful (empty response)`);
+        return null;
+      }
+
+      const data = JSON.parse(text);
       console.log(`✅ Graph request successful:`, data);
       return data;
     } catch (error) {
