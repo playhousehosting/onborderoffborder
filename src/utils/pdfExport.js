@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+// Import autoTable - this extends jsPDF prototype automatically
+import 'jspdf-autotable';
 
 /**
  * Export offboarding results to a comprehensive PDF report
