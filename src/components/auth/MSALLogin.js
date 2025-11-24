@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMSALAuth } from '../../contexts/MSALAuthContext';
-import { useConvexAuth } from '../../contexts/ConvexAuthContext';
+import { useAuth } from '../../contexts/ConvexAuthContext';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 
 const MSALLogin = () => {
   const { isAuthenticated, loading, login } = useMSALAuth();
-  const convexAuth = useConvexAuth();
+  const convexAuth = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
