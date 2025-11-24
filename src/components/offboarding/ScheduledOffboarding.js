@@ -298,12 +298,29 @@ const ScheduledOffboarding = () => {
   };
 
   const executeScheduledOffboarding = async (scheduleId) => {
-    if (!window.confirm('Are you sure you want to execute this scheduled offboarding now?')) {
+    if (!window.confirm('Are you sure you want to execute this scheduled offboarding now? This will immediately disable the user account and perform all selected offboarding actions.')) {
+      return;
+    }
+
+    // Find the schedule record to get user details and actions
+    const schedule = scheduledOffboardings.find(s => s.id === scheduleId);
+    if (!schedule) {
+      toast.error('Schedule not found');
+      return;
+    }
+
+    if (!hasPermission('userManagement')) {
+      toast.error('You do not have permission to perform offboarding operations');
       return;
     }
 
     setExecutingId(scheduleId);
     setExecutionProgress(0);
+
+    const results = [];
+    const startTime = Date.now();
+    const user = schedule.user;
+    const actions = schedule.actions;
 
     try {
       const sessionId = getSessionId();
@@ -313,28 +330,256 @@ const ScheduledOffboarding = () => {
         return;
       }
 
-      // Simulate progress for better UX
-      const progressInterval = setInterval(() => {
-        setExecutionProgress((prev) => Math.min(prev + 10, 90));
-      }, 300);
-
+      // Mark as in-progress in Convex
       await convex.mutation(api.offboarding.execute, {
         sessionId,
         offboardingId: scheduleId,
       });
 
-      clearInterval(progressInterval);
+      // Calculate total steps
+      const totalSteps = Object.values(actions).filter(v => v === true).length + 1; // +1 for revoke sessions
+      let currentStep = 0;
+
+      const updateProgress = () => {
+        currentStep++;
+        setExecutionProgress(Math.round((currentStep / totalSteps) * 100));
+      };
+
+      // 1. Disable account (CRITICAL: Do this first)
+      if (actions.disableAccount) {
+        try {
+          await service.disableUser(user.id);
+          results.push({
+            action: 'disableAccount',
+            status: 'success',
+            message: 'Account has been disabled',
+            timestamp: Date.now(),
+          });
+        } catch (error) {
+          results.push({
+            action: 'disableAccount',
+            status: 'error',
+            message: error.message,
+            timestamp: Date.now(),
+          });
+        }
+        updateProgress();
+      }
+
+      // 2. Revoke all sign-in sessions (CRITICAL: Always do after disabling)
+      try {
+        await service.revokeUserSessions(user.id);
+        results.push({
+          action: 'revokeSessions',
+          status: 'success',
+          message: 'All active sessions and refresh tokens have been revoked',
+          timestamp: Date.now(),
+        });
+      } catch (error) {
+        results.push({
+          action: 'revokeSessions',
+          status: 'error',
+          message: error.message,
+          timestamp: Date.now(),
+        });
+      }
+      updateProgress();
+
+      // 3. Revoke access (licenses)
+      if (actions.revokeAccess) {
+        try {
+          const licenseResult = await service.removeAllLicenses(user.id);
+          results.push({
+            action: 'revokeAccess',
+            status: 'success',
+            message: `Removed ${licenseResult?.removedCount || 0} license(s)`,
+            timestamp: Date.now(),
+          });
+        } catch (error) {
+          results.push({
+            action: 'revokeAccess',
+            status: 'error',
+            message: error.message,
+            timestamp: Date.now(),
+          });
+        }
+        updateProgress();
+      }
+
+      // 4. Remove from groups
+      if (actions.removeFromGroups) {
+        try {
+          const groupsData = await service.getUserGroups(user.id);
+          const groups = groupsData.value || [];
+          let removedCount = 0;
+          let failedCount = 0;
+
+          for (const group of groups) {
+            try {
+              await service.removeUserFromGroup(group.id, user.id);
+              removedCount++;
+            } catch (error) {
+              if (!error.isExpected) failedCount++;
+            }
+          }
+
+          results.push({
+            action: 'removeFromGroups',
+            status: failedCount === groups.length && groups.length > 0 ? 'error' : 'success',
+            message: groups.length === 0 
+              ? 'User was not a member of any groups' 
+              : `Removed from ${removedCount} groups${failedCount > 0 ? ` (${failedCount} failed)` : ''}`,
+            timestamp: Date.now(),
+          });
+        } catch (error) {
+          results.push({
+            action: 'removeFromGroups',
+            status: 'error',
+            message: error.message,
+            timestamp: Date.now(),
+          });
+        }
+        updateProgress();
+      }
+
+      // 5. Convert to shared mailbox
+      if (actions.convertToSharedMailbox) {
+        try {
+          await service.convertToSharedMailbox(user.id);
+          results.push({
+            action: 'convertToSharedMailbox',
+            status: 'success',
+            message: 'Mailbox converted to shared mailbox',
+            timestamp: Date.now(),
+          });
+        } catch (error) {
+          results.push({
+            action: 'convertToSharedMailbox',
+            status: 'error',
+            message: error.message,
+            timestamp: Date.now(),
+          });
+        }
+        updateProgress();
+      }
+
+      // 6. Backup data
+      if (actions.backupData) {
+        try {
+          await service.backupUserData(user.id);
+          results.push({
+            action: 'backupData',
+            status: 'success',
+            message: 'Data backup initiated successfully',
+            timestamp: Date.now(),
+          });
+        } catch (error) {
+          results.push({
+            action: 'backupData',
+            status: 'warning',
+            message: `Backup may require manual action: ${error.message}`,
+            timestamp: Date.now(),
+          });
+        }
+        updateProgress();
+      }
+
+      // 7. Remove devices
+      if (actions.removeDevices) {
+        try {
+          const devicesData = await service.getUserDevices(user.mail || user.id);
+          const devices = devicesData?.value || [];
+          let processedCount = 0;
+          let failedCount = 0;
+
+          for (const device of devices) {
+            try {
+              await service.retireDevice(device.id);
+              processedCount++;
+            } catch (error) {
+              failedCount++;
+            }
+          }
+
+          results.push({
+            action: 'removeDevices',
+            status: failedCount === devices.length && devices.length > 0 ? 'error' : 'success',
+            message: devices.length === 0 
+              ? 'User had no enrolled devices' 
+              : `Retired ${processedCount} devices${failedCount > 0 ? ` (${failedCount} failed)` : ''}`,
+            timestamp: Date.now(),
+          });
+        } catch (error) {
+          results.push({
+            action: 'removeDevices',
+            status: 'warning',
+            message: `Could not retrieve devices: ${error.message}`,
+            timestamp: Date.now(),
+          });
+        }
+        updateProgress();
+      }
+
       setExecutionProgress(100);
-      
+
+      // Log execution results to Convex
+      const endTime = Date.now();
+      const hasErrors = results.some(r => r.status === 'error');
+      const allSuccess = results.every(r => r.status === 'success' || r.status === 'skipped');
+      const overallStatus = allSuccess ? 'completed' : hasErrors ? 'partial' : 'completed';
+
+      try {
+        await convex.mutation(api.offboarding.logExecution, {
+          sessionId,
+          offboardingId: scheduleId,
+          targetUserId: user.id,
+          targetUserName: user.displayName,
+          targetUserEmail: user.mail,
+          executionType: 'scheduled',
+          startTime,
+          endTime,
+          status: overallStatus,
+          actions: results,
+        });
+      } catch (logError) {
+        console.error('Failed to log execution:', logError);
+      }
+
       setTimeout(() => {
-        toast.success('Offboarding executed successfully');
+        toast.success(hasErrors 
+          ? 'Offboarding completed with some errors - check the report for details' 
+          : 'Offboarding executed successfully');
         setExecutingId(null);
         setExecutionProgress(0);
         fetchScheduledOffboardings();
       }, 500);
+
     } catch (error) {
       console.error('Error executing scheduled offboarding:', error);
-      toast.error('Failed to execute offboarding');
+      
+      // Log failure to Convex
+      try {
+        const sessionId = getSessionId();
+        if (sessionId) {
+          await convex.mutation(api.offboarding.logExecution, {
+            sessionId,
+            offboardingId: scheduleId,
+            targetUserId: user.id,
+            targetUserName: user.displayName,
+            targetUserEmail: user.mail,
+            executionType: 'scheduled',
+            startTime,
+            endTime: Date.now(),
+            status: 'failed',
+            actions: results,
+            error: error.message,
+          });
+        }
+      } catch (logError) {
+        console.error('Failed to log error:', logError);
+      }
+
+      toast.error('Failed to execute offboarding: ' + error.message);
       setExecutingId(null);
       setExecutionProgress(0);
     }
