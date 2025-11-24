@@ -199,6 +199,13 @@ export const ConvexAuthProvider = ({ children }) => {
   };
 
   /**
+   * Check if user has a specific permission
+   */
+  const hasPermission = (permission) => {
+    return permissions[permission] === true;
+  };
+
+  /**
    * Logout
    */
   const logout = async () => {
@@ -235,6 +242,7 @@ export const ConvexAuthProvider = ({ children }) => {
     user,
     loading,
     permissions,
+    hasPermission,
     configure,
     loginAppOnly,
     loginOAuth2,
