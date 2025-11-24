@@ -67,10 +67,8 @@ const Dashboard = () => {
         if (hasPermission('userManagement')) {
           // Get ALL user statistics using pagination
           logger.debug('📊 Fetching all users with pagination...');
-          // Explicitly request accountEnabled field to ensure it's included in response
-          const usersData = await service.getAllUsers({ 
-            select: 'id,displayName,userPrincipalName,accountEnabled' 
-          });
+          // getAllUsers already includes accountEnabled in its select fields
+          const usersData = await service.getAllUsers('', 100);
           const totalUsers = usersData.value?.length || 0;
           
           // Filter active users (accountEnabled === true)
