@@ -17,6 +17,12 @@ import {
   TrashIcon,
   PencilIcon,
   PlayIcon,
+  DocumentTextIcon,
+  XCircleIcon,
+  ExclamationCircleIcon,
+  MinusCircleIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
 } from '@heroicons/react/24/outline';
 
 const ScheduledOffboarding = () => {
@@ -48,6 +54,11 @@ const ScheduledOffboarding = () => {
   const [editingSchedule, setEditingSchedule] = useState(null);
   const [executingId, setExecutingId] = useState(null);
   const [executionProgress, setExecutionProgress] = useState(0);
+  
+  // Execution report state
+  const [viewingReportId, setViewingReportId] = useState(null);
+  const [executionLogs, setExecutionLogs] = useState(null);
+  const [loadingReport, setLoadingReport] = useState(false);
 
   const [scheduleForm, setScheduleForm] = useState({
     userId: '',
@@ -351,6 +362,81 @@ const ScheduledOffboarding = () => {
       console.error('Error deleting scheduled offboarding:', error);
       toast.error('Failed to delete scheduled offboarding');
     }
+  };
+
+  const viewExecutionReport = async (scheduleId) => {
+    // Toggle off if already viewing this report
+    if (viewingReportId === scheduleId) {
+      setViewingReportId(null);
+      setExecutionLogs(null);
+      return;
+    }
+
+    setViewingReportId(scheduleId);
+    setLoadingReport(true);
+    setExecutionLogs(null);
+
+    try {
+      const sessionId = getSessionId();
+      if (!sessionId) {
+        toast.error('Session not found. Please log in again.');
+        setViewingReportId(null);
+        setLoadingReport(false);
+        return;
+      }
+
+      const logs = await convex.query(api.offboarding.getExecutionLogs, {
+        sessionId,
+        offboardingId: scheduleId,
+        limit: 1, // Get the most recent execution for this offboarding
+      });
+
+      if (logs && logs.length > 0) {
+        setExecutionLogs(logs[0]);
+      } else {
+        setExecutionLogs(null);
+        toast.info('No execution report available yet');
+      }
+    } catch (error) {
+      console.error('Error fetching execution logs:', error);
+      toast.error('Failed to load execution report');
+      setViewingReportId(null);
+    } finally {
+      setLoadingReport(false);
+    }
+  };
+
+  const getActionStatusIcon = (status) => {
+    switch (status) {
+      case 'success':
+        return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
+      case 'error':
+        return <XCircleIcon className="h-5 w-5 text-red-500" />;
+      case 'warning':
+        return <ExclamationCircleIcon className="h-5 w-5 text-yellow-500" />;
+      case 'skipped':
+        return <MinusCircleIcon className="h-5 w-5 text-gray-400" />;
+      default:
+        return null;
+    }
+  };
+
+  const getActionStatusBadge = (status) => {
+    const styles = {
+      success: 'bg-green-100 text-green-800',
+      error: 'bg-red-100 text-red-800',
+      warning: 'bg-yellow-100 text-yellow-800',
+      skipped: 'bg-gray-100 text-gray-600',
+    };
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${styles[status] || 'bg-gray-100 text-gray-600'}`}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </span>
+    );
+  };
+
+  const formatTimestamp = (timestamp) => {
+    return new Date(timestamp).toLocaleString();
   };
 
   const editScheduledOffboarding = (schedule) => {
@@ -884,6 +970,21 @@ const ScheduledOffboarding = () => {
                             >
                               <TrashIcon className="h-4 w-4" />
                             </button>
+                            {/* View Report button for completed/failed offboardings */}
+                            {(schedule.status === 'completed' || schedule.status === 'failed') && (
+                              <button
+                                onClick={() => viewExecutionReport(schedule.id)}
+                                className="text-indigo-600 hover:text-indigo-900 flex items-center"
+                                title="View Execution Report"
+                              >
+                                <DocumentTextIcon className="h-4 w-4" />
+                                {viewingReportId === schedule.id ? (
+                                  <ChevronUpIcon className="h-3 w-3 ml-0.5" />
+                                ) : (
+                                  <ChevronDownIcon className="h-3 w-3 ml-0.5" />
+                                )}
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -908,6 +1009,135 @@ const ScheduledOffboarding = () => {
                                 </div>
                               </div>
                             </div>
+                          </td>
+                        </tr>
+                      )}
+                      {/* Execution Report Panel */}
+                      {viewingReportId === schedule.id && (
+                        <tr>
+                          <td colSpan="6" className="px-6 py-4 bg-gray-50">
+                            {loadingReport ? (
+                              <div className="flex items-center justify-center py-4">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+                                <span className="ml-2 text-sm text-gray-600">Loading execution report...</span>
+                              </div>
+                            ) : executionLogs ? (
+                              <div className="space-y-4">
+                                {/* Report Header */}
+                                <div className="flex items-center justify-between border-b border-gray-200 pb-3">
+                                  <div>
+                                    <h3 className="text-lg font-medium text-gray-900">
+                                      Execution Report
+                                    </h3>
+                                    <p className="text-sm text-gray-500">
+                                      {executionLogs.targetUserName} ({executionLogs.targetUserEmail})
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-sm text-gray-500">
+                                      Started: {formatTimestamp(executionLogs.startTime)}
+                                    </p>
+                                    {executionLogs.endTime && (
+                                      <p className="text-sm text-gray-500">
+                                        Ended: {formatTimestamp(executionLogs.endTime)}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Summary Stats */}
+                                <div className="grid grid-cols-4 gap-4">
+                                  <div className="bg-white p-3 rounded-lg border border-gray-200">
+                                    <div className="text-2xl font-bold text-gray-900">{executionLogs.totalActions}</div>
+                                    <div className="text-xs text-gray-500">Total Actions</div>
+                                  </div>
+                                  <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                                    <div className="text-2xl font-bold text-green-600">{executionLogs.successfulActions}</div>
+                                    <div className="text-xs text-green-600">Successful</div>
+                                  </div>
+                                  <div className="bg-red-50 p-3 rounded-lg border border-red-200">
+                                    <div className="text-2xl font-bold text-red-600">{executionLogs.failedActions}</div>
+                                    <div className="text-xs text-red-600">Failed</div>
+                                  </div>
+                                  <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                    <div className="text-2xl font-bold text-gray-500">{executionLogs.skippedActions}</div>
+                                    <div className="text-xs text-gray-500">Skipped</div>
+                                  </div>
+                                </div>
+
+                                {/* Overall Status */}
+                                <div className={`p-3 rounded-lg ${
+                                  executionLogs.status === 'completed' ? 'bg-green-100 border border-green-300' :
+                                  executionLogs.status === 'partial' ? 'bg-yellow-100 border border-yellow-300' :
+                                  executionLogs.status === 'failed' ? 'bg-red-100 border border-red-300' :
+                                  'bg-blue-100 border border-blue-300'
+                                }`}>
+                                  <div className="flex items-center">
+                                    {executionLogs.status === 'completed' && <CheckCircleIcon className="h-5 w-5 text-green-600 mr-2" />}
+                                    {executionLogs.status === 'partial' && <ExclamationCircleIcon className="h-5 w-5 text-yellow-600 mr-2" />}
+                                    {executionLogs.status === 'failed' && <XCircleIcon className="h-5 w-5 text-red-600 mr-2" />}
+                                    {executionLogs.status === 'in-progress' && <ClockIcon className="h-5 w-5 text-blue-600 mr-2" />}
+                                    <span className={`font-medium ${
+                                      executionLogs.status === 'completed' ? 'text-green-800' :
+                                      executionLogs.status === 'partial' ? 'text-yellow-800' :
+                                      executionLogs.status === 'failed' ? 'text-red-800' :
+                                      'text-blue-800'
+                                    }`}>
+                                      Status: {executionLogs.status.charAt(0).toUpperCase() + executionLogs.status.slice(1)}
+                                    </span>
+                                  </div>
+                                  {executionLogs.error && (
+                                    <p className="mt-2 text-sm text-red-700">{executionLogs.error}</p>
+                                  )}
+                                </div>
+
+                                {/* Action Details */}
+                                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                                  <div className="bg-gray-100 px-4 py-2 border-b border-gray-200">
+                                    <h4 className="text-sm font-medium text-gray-700">Action Details</h4>
+                                  </div>
+                                  <div className="divide-y divide-gray-200">
+                                    {executionLogs.actions && executionLogs.actions.length > 0 ? (
+                                      executionLogs.actions.map((action, index) => (
+                                        <div key={index} className="px-4 py-3 flex items-start">
+                                          <div className="flex-shrink-0 mt-0.5">
+                                            {getActionStatusIcon(action.status)}
+                                          </div>
+                                          <div className="ml-3 flex-1">
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-sm font-medium text-gray-900">
+                                                {action.action.split(/(?=[A-Z])/).join(' ')}
+                                              </span>
+                                              {getActionStatusBadge(action.status)}
+                                            </div>
+                                            <p className="text-sm text-gray-600 mt-1">{action.message}</p>
+                                            {action.details && (
+                                              <p className="text-xs text-gray-500 mt-1 font-mono bg-gray-100 p-1 rounded">
+                                                {action.details}
+                                              </p>
+                                            )}
+                                            <p className="text-xs text-gray-400 mt-1">
+                                              {formatTimestamp(action.timestamp)}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <div className="px-4 py-3 text-sm text-gray-500">
+                                        No detailed action logs available
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-center py-4">
+                                <DocumentTextIcon className="mx-auto h-8 w-8 text-gray-400" />
+                                <p className="mt-2 text-sm text-gray-500">
+                                  No execution report available for this offboarding.
+                                </p>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       )}

@@ -4,17 +4,20 @@ import { v } from "convex/values";
 /**
  * Convert a date/time in a specific timezone to UTC timestamp
  * This properly handles timezone conversion by using the IANA timezone
+ * 
+ * Example: User enters 9:00 AM in America/New_York (UTC-5)
+ * Goal: Return UTC timestamp for 14:00 UTC (9:00 + 5 hours)
  */
 function parseInTimezone(dateStr: string, timeStr: string, timezone: string): number {
-  // Create the datetime string in ISO format (YYYY-MM-DDTHH:mm)
-  const localDateTimeString = `${dateStr}T${timeStr}`;
+  // Parse the user's input
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const [hour, minute] = timeStr.split(':').map(Number);
   
-  // Parse as if it's in the specified timezone by formatting with that timezone
-  // then parsing back. This ensures we get the correct UTC timestamp.
-  const date = new Date(localDateTimeString);
+  // Strategy: Use a reference point to calculate the timezone offset
+  // Create a reference date in UTC
+  const referenceUTC = new Date(Date.UTC(year, month - 1, day, 12, 0, 0)); // noon UTC
   
-  // Get the offset for the specified timezone at this date
-  // Format the date in the target timezone and extract the components
+  // Format this UTC time in the target timezone to see what local time it represents
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
     year: 'numeric',
@@ -22,32 +25,34 @@ function parseInTimezone(dateStr: string, timeStr: string, timezone: string): nu
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit',
     hour12: false,
   });
   
-  // Parse the original datetime components
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const [hour, minute] = timeStr.split(':').map(Number);
+  const parts = formatter.formatToParts(referenceUTC);
+  const localHour = Number(parts.find(p => p.type === 'hour')?.value);
+  const localMinute = Number(parts.find(p => p.type === 'minute')?.value);
+  const localDay = Number(parts.find(p => p.type === 'day')?.value);
   
-  // Create a date object in UTC with these values
-  const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+  // Calculate the offset in minutes (positive = ahead of UTC, negative = behind UTC)
+  // If UTC 12:00 shows as 07:00 in the target timezone, offset is -5 hours
+  let offsetMinutes = (localHour * 60 + localMinute) - (12 * 60 + 0);
   
-  // Get the offset by formatting the UTC date in the target timezone
-  const parts = formatter.formatToParts(utcDate);
-  const tzYear = Number(parts.find(p => p.type === 'year')?.value);
-  const tzMonth = Number(parts.find(p => p.type === 'month')?.value);
-  const tzDay = Number(parts.find(p => p.type === 'day')?.value);
-  const tzHour = Number(parts.find(p => p.type === 'hour')?.value);
-  const tzMinute = Number(parts.find(p => p.type === 'minute')?.value);
+  // Handle day boundary crossings
+  if (localDay > day) {
+    offsetMinutes += 24 * 60; // Timezone is ahead (e.g., UTC+13)
+  } else if (localDay < day) {
+    offsetMinutes -= 24 * 60; // Timezone is behind (e.g., UTC-11)
+  }
   
-  // Calculate the offset
-  const tzDate = new Date(Date.UTC(tzYear, tzMonth - 1, tzDay, tzHour, tzMinute, 0));
-  const offset = utcDate.getTime() - tzDate.getTime();
+  // Create the user's intended time as if it were UTC
+  const naiveUTC = Date.UTC(year, month - 1, day, hour, minute, 0);
   
-  // Apply the offset to get the correct UTC time for our desired local time
-  const targetDate = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
-  return targetDate.getTime() - offset;
+  // To convert local time to UTC: subtract the offset
+  // If timezone is UTC-5 (offsetMinutes = -300), and user wants 9:00 local:
+  // 9:00 local - (-300 min) = 9:00 + 5 hours = 14:00 UTC ✓
+  const utcTimestamp = naiveUTC - (offsetMinutes * 60 * 1000);
+  
+  return utcTimestamp;
 }
 
 /**
