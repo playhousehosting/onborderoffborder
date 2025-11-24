@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import msalGraphService from '../../services/msalGraphService';
+import { graphService } from '../../services/graphService';
 import { useMSALAuth } from '../../contexts/MSALAuthContext';
+import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
 import { useDebounce } from '../../hooks/useDebounce';
 import { logger } from '../../utils/logger';
 import { SkeletonTable } from '../common/Skeleton';
@@ -19,13 +21,25 @@ import {
 } from '@heroicons/react/24/outline';
 
 const UserSearch = () => {
-  const { hasPermission, getAccessToken } = useMSALAuth();
-  const service = msalGraphService;
+  const msalAuth = useMSALAuth();
+  const convexAuth = useConvexAuth();
   
-  // Set up MSAL graph service with token function
+  // Determine which auth is active
+  const isConvexAuth = convexAuth.isAuthenticated;
+  const isMSALAuth = msalAuth.isAuthenticated;
+  const hasPermission = (permission) => {
+    return isConvexAuth ? convexAuth.hasPermission(permission) : msalAuth.hasPermission(permission);
+  };
+  
+  // Initialize MSAL graph service only when using MSAL auth
   useEffect(() => {
-    msalGraphService.setGetTokenFunction(getAccessToken);
-  }, [getAccessToken]);
+    if (isMSALAuth && msalAuth.getAccessToken) {
+      service.setGetTokenFunction(msalAuth.getAccessToken);
+    }
+  }, [isMSALAuth, msalAuth.getAccessToken]);
+  
+  // Select appropriate Graph service based on auth mode
+  const service = isConvexAuth ? graphService : msalGraphService;
   const [users, setUsers] = useState([]);
   const [allUsers, setAllUsers] = useState([]); // Store all users for client-side filtering
   const [loading, setLoading] = useState(false);
@@ -462,3 +476,4 @@ const UserSearch = () => {
 };
 
 export default UserSearch;
+

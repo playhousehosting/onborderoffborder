@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
+import { useMSALAuth } from '../../contexts/MSALAuthContext';
+import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
 import msalGraphService from '../../services/msalGraphService';
+import { graphService } from '../../services/graphService';
 import toast from 'react-hot-toast';
 import {
   ArrowPathIcon,
@@ -19,14 +21,25 @@ import {
 const TransferWizard = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { hasPermission, getAccessToken } = useAuth();
+  const msalAuth = useMSALAuth();
+  const convexAuth = useConvexAuth();
   
-  // Initialize MSAL graph service with token function
+  // Determine which auth is active
+  const isConvexAuth = convexAuth.isAuthenticated;
+  const isMSALAuth = msalAuth.isAuthenticated;
+  const hasPermission = (permission) => {
+    return isConvexAuth ? convexAuth.hasPermission(permission) : msalAuth.hasPermission(permission);
+  };
+  
+  // Initialize MSAL graph service only when using MSAL auth
   useEffect(() => {
-    if (getAccessToken) {
-      msalGraphService.setGetTokenFunction(getAccessToken);
+    if (isMSALAuth && msalAuth.getAccessToken) {
+      service.setGetTokenFunction(msalAuth.getAccessToken);
     }
-  }, [getAccessToken]);
+  }, [isMSALAuth, msalAuth.getAccessToken]);
+  
+  // Select appropriate Graph service based on auth mode
+  const service = isConvexAuth ? graphService : msalGraphService;
   
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -69,7 +82,7 @@ const TransferWizard = () => {
     const loadUser = async () => {
       if (userId) {
         try {
-          const user = await msalGraphService.getUserById(userId);
+          const user = await service.getUserById(userId);
           setSelectedUser(user);
           setCurrentStep(2);
         } catch (error) {
@@ -88,7 +101,7 @@ const TransferWizard = () => {
     
     setIsSearching(true);
     try {
-      const results = await msalGraphService.searchUsers(searchTerm);
+      const results = await service.searchUsers(searchTerm);
       setSearchResults(results.value || []);
     } catch (error) {
       console.error('Search error:', error);
@@ -117,7 +130,7 @@ const TransferWizard = () => {
     
     setIsSearchingManager(true);
     try {
-      const results = await msalGraphService.searchUsers(managerSearchTerm);
+      const results = await service.searchUsers(managerSearchTerm);
       setManagerSearchResults(results.value || []);
     } catch (error) {
       console.error('Manager search error:', error);
@@ -219,7 +232,7 @@ const TransferWizard = () => {
       if (batchRequests.length > 0) {
         try {
           console.log(`Executing ${batchRequests.length} operations in batch request...`);
-          const batchResponse = await msalGraphService.batchRequest(batchRequests);
+          const batchResponse = await service.batchRequest(batchRequests);
           
           // Process batch responses
           batchResponse.responses.forEach((response) => {
@@ -256,7 +269,7 @@ const TransferWizard = () => {
       // 2. Update manager if specified (needs manager search first)
       if (transferOptions.newManager) {
         try {
-          await msalGraphService.updateUserManager(selectedUser.id, transferOptions.newManager);
+          await service.updateUserManager(selectedUser.id, transferOptions.newManager);
           results.push({
             action: 'Manager Assignment',
             status: 'success',
@@ -292,7 +305,7 @@ const TransferWizard = () => {
       // 4. Send notification to user
       if (transferOptions.notifyUser) {
         try {
-          await msalGraphService.sendTransferNotification(
+          await service.sendTransferNotification(
             selectedUser.id,
             transferOptions,
             'user'
@@ -314,7 +327,7 @@ const TransferWizard = () => {
       // 5. Send notification to manager
       if (transferOptions.notifyManager && transferOptions.newManager) {
         try {
-          await msalGraphService.sendTransferNotification(
+          await service.sendTransferNotification(
             transferOptions.newManager,
             transferOptions,
             'manager'
@@ -1022,3 +1035,4 @@ const TransferWizard = () => {
 };
 
 export default TransferWizard;
+

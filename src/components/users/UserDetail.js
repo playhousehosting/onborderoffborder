@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import msalGraphService from '../../services/msalGraphService';
-import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
+import { graphService } from '../../services/graphService';
+import { useMSALAuth } from '../../contexts/MSALAuthContext';
+import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
 import toast from 'react-hot-toast';
 import {
   UserIcon,
@@ -20,14 +22,25 @@ import {
 
 const UserDetail = () => {
   const { userId } = useParams();
-  const { hasPermission, getAccessToken } = useAuth();
+  const msalAuth = useMSALAuth();
+  const convexAuth = useConvexAuth();
   
-  // Initialize MSAL graph service with token function
+  // Determine which auth is active
+  const isConvexAuth = convexAuth.isAuthenticated;
+  const isMSALAuth = msalAuth.isAuthenticated;
+  const hasPermission = (permission) => {
+    return isConvexAuth ? convexAuth.hasPermission(permission) : msalAuth.hasPermission(permission);
+  };
+  
+  // Initialize MSAL graph service only when using MSAL auth
   useEffect(() => {
-    if (getAccessToken) {
-      msalGraphService.setGetTokenFunction(getAccessToken);
+    if (isMSALAuth && msalAuth.getAccessToken) {
+      service.setGetTokenFunction(msalAuth.getAccessToken);
     }
-  }, [getAccessToken]);
+  }, [isMSALAuth, msalAuth.getAccessToken]);
+  
+  // Select appropriate Graph service based on auth mode
+  const service = isConvexAuth ? graphService : msalGraphService;
   
   const [user, setUser] = useState(null);
   const [userGroups, setUserGroups] = useState([]);
@@ -47,12 +60,12 @@ const UserDetail = () => {
       setLoading(true);
       
       // Fetch user details
-      const userData = await msalGraphService.getUserById(userId);
+      const userData = await service.getUserById(userId);
       setUser(userData);
       
       // Fetch user groups
       try {
-        const groupsData = await msalGraphService.getUserGroups(userId);
+        const groupsData = await service.getUserGroups(userId);
         setUserGroups(groupsData.value || []);
       } catch (error) {
         console.warn('Could not fetch user groups:', error);
@@ -61,7 +74,7 @@ const UserDetail = () => {
       // Fetch user devices if user has device management permission
       if (hasPermission('deviceManagement')) {
         try {
-          const devicesData = await msalGraphService.getUserDevices(userData.userPrincipalName);
+          const devicesData = await service.getUserDevices(userData.userPrincipalName);
           setUserDevices(devicesData.value || []);
         } catch (error) {
           console.warn('Could not fetch user devices:', error);
@@ -70,7 +83,7 @@ const UserDetail = () => {
       
       // Fetch user licenses
       try {
-        const licensesData = await msalGraphService.getUserLicenses(userId);
+        const licensesData = await service.getUserLicenses(userId);
         setUserLicenses(licensesData || []);
       } catch (error) {
         console.warn('Could not fetch user licenses:', error);
@@ -484,3 +497,4 @@ const UserDetail = () => {
 };
 
 export default UserDetail;
+
