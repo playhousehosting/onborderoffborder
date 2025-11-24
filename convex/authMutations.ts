@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
 const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
@@ -206,7 +206,33 @@ export const getStatus = query({
 });
 
 /**
- * Get credentials (encrypted) for a session
+ * Internal query to get credentials (for use by actions)
+ */
+export const getCredentialsInternal = internalQuery({
+  args: {
+    sessionId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const session = await ctx.db
+      .query("sessions")
+      .withIndex("by_session_id", (q) => q.eq("sessionId", args.sessionId))
+      .first();
+
+    if (!session || !session.credentials) {
+      throw new Error("No credentials found");
+    }
+
+    // Check if session has expired
+    if (session.expiresAt < Date.now()) {
+      throw new Error("Session expired");
+    }
+
+    return { encryptedCredentials: session.credentials, tenantId: session.tenantId };
+  },
+});
+
+/**
+ * Get credentials (encrypted) for a session - public query
  */
 export const getCredentials = query({
   args: {

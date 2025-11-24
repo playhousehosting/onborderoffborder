@@ -45,8 +45,8 @@ export const loginAppOnly = action({
     sessionId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Get encrypted credentials
-    const credsData = await ctx.runQuery(api.authMutations.getCredentials, {
+    // Get encrypted credentials using internal query
+    const credsData = await ctx.runQuery(api.authMutations.getCredentialsInternal, {
       sessionId: args.sessionId,
     });
 
@@ -95,7 +95,7 @@ export const getDecryptedCredentials = action({
     sessionId: v.string(),
   },
   handler: async (ctx, args) => {
-    const credsData = await ctx.runQuery(api.authMutations.getCredentials, {
+    const credsData = await ctx.runQuery(api.authMutations.getCredentialsInternal, {
       sessionId: args.sessionId,
     });
 
@@ -111,8 +111,8 @@ export const getAppOnlyToken = action({
     sessionId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Get encrypted credentials
-    const credsData = await ctx.runQuery(api.authMutations.getCredentials, {
+    // Get encrypted credentials using internal query
+    const credsData = await ctx.runQuery(api.authMutations.getCredentialsInternal, {
       sessionId: args.sessionId,
     });
 
