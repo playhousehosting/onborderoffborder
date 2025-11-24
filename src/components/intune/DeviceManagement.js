@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import msalGraphService from '../../services/msalGraphService';
-import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
+import { graphService } from '../../services/graphService';
+import { useMSALAuth } from '../../contexts/MSALAuthContext';
+import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
 import toast from 'react-hot-toast';
 import {
   ComputerDesktopIcon,
@@ -12,14 +14,22 @@ import {
 } from '@heroicons/react/24/outline';
 
 const DeviceManagement = () => {
-  const { hasPermission, getAccessToken } = useAuth();
+  const msalAuth = useMSALAuth();
+  const convexAuth = useConvexAuth();
   
-  // Initialize MSAL graph service with token function
+  const isConvexAuth = convexAuth.isAuthenticated;
+  const isMSALAuth = msalAuth.isAuthenticated;
+  const hasPermission = (permission) => {
+    return isConvexAuth ? convexAuth.hasPermission(permission) : msalAuth.hasPermission(permission);
+  };
+  
   useEffect(() => {
-    if (getAccessToken) {
-      msalGraphService.setGetTokenFunction(getAccessToken);
+    if (isMSALAuth && msalAuth.getAccessToken) {
+      service.setGetTokenFunction(msalAuth.getAccessToken);
     }
-  }, [getAccessToken]);
+  }, [isMSALAuth, msalAuth.getAccessToken]);
+  
+  const service = isConvexAuth ? graphService : msalGraphService;
   
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -49,7 +59,7 @@ const DeviceManagement = () => {
       }
       
       const skip = (currentPage - 1) * devicesPerPage;
-      const response = await msalGraphService.makeRequest(
+      const response = await service.makeRequest(
         `/deviceManagement/managedDevices?$top=${devicesPerPage}&$skip=${skip}${filterQuery}&$select=id,deviceName,manufacturer,model,operatingSystem,osVersion,complianceState,lastSyncDateTime,userPrincipalName,serialNumber`
       );
       
@@ -87,7 +97,7 @@ const DeviceManagement = () => {
 
   const handleRetireDevice = async (deviceId) => {
     try {
-      await msalGraphService.retireDevice(deviceId);
+      await service.retireDevice(deviceId);
       toast.success('Device retired successfully');
       fetchDevices();
     } catch (error) {
@@ -102,7 +112,7 @@ const DeviceManagement = () => {
     }
 
     try {
-      await msalGraphService.wipeDevice(deviceId, false, false);
+      await service.wipeDevice(deviceId, false, false);
       toast.success('Device wipe initiated successfully');
       fetchDevices();
     } catch (error) {
@@ -113,7 +123,7 @@ const DeviceManagement = () => {
 
   const handleSyncDevice = async (deviceId) => {
     try {
-      await msalGraphService.syncDevice(deviceId);
+      await service.syncDevice(deviceId);
       toast.success('Device sync initiated successfully');
       fetchDevices();
     } catch (error) {
@@ -134,7 +144,7 @@ const DeviceManagement = () => {
 
     try {
       for (const deviceId of selectedDevices) {
-        await msalGraphService.retireDevice(deviceId);
+        await service.retireDevice(deviceId);
       }
       toast.success(`${selectedDevices.length} device(s) retired successfully`);
       setSelectedDevices([]);
@@ -157,7 +167,7 @@ const DeviceManagement = () => {
 
     try {
       for (const deviceId of selectedDevices) {
-        await msalGraphService.wipeDevice(deviceId, false, false);
+        await service.wipeDevice(deviceId, false, false);
       }
       toast.success(`Wipe initiated for ${selectedDevices.length} device(s)`);
       setSelectedDevices([]);
@@ -434,3 +444,4 @@ const DeviceManagement = () => {
 };
 
 export default DeviceManagement;
+

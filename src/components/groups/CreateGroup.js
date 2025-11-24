@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
+import { useMSALAuth } from '../../contexts/MSALAuthContext';
+import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
 import msalGraphService from '../../services/msalGraphService';
+import { graphService } from '../../services/graphService';
 import toast from 'react-hot-toast';
 import {
   ArrowLeftIcon,
@@ -14,13 +16,19 @@ import {
 
 const CreateGroup = () => {
   const navigate = useNavigate();
-  const { getAccessToken } = useAuth();
+  const msalAuth = useMSALAuth();
+  const convexAuth = useConvexAuth();
+  
+  const isConvexAuth = convexAuth.isAuthenticated;
+  const isMSALAuth = msalAuth.isAuthenticated;
 
   useEffect(() => {
-    if (getAccessToken) {
-      msalGraphService.setGetTokenFunction(getAccessToken);
+    if (isMSALAuth && msalAuth.getAccessToken) {
+      service.setGetTokenFunction(msalAuth.getAccessToken);
     }
-  }, [getAccessToken]);
+  }, [isMSALAuth, msalAuth.getAccessToken]);
+  
+  const service = isConvexAuth ? graphService : msalGraphService;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingDomains, setLoadingDomains] = useState(true);
@@ -39,7 +47,7 @@ const CreateGroup = () => {
   useEffect(() => {
     const loadDomains = async () => {
       try {
-        const domains = await msalGraphService.getOrganizationDomains();
+        const domains = await service.getOrganizationDomains();
         setAvailableDomains(domains);
         // Set default domain
         const defaultDomain = domains.find(d => d.isDefault) || domains[0];
@@ -151,7 +159,7 @@ const CreateGroup = () => {
         groupData.groupTypes = selectedType.groupTypes;
       }
 
-      const newGroup = await msalGraphService.createGroup(groupData);
+      const newGroup = await service.createGroup(groupData);
       const fullEmail = `${formData.mailNickname}@${formData.selectedDomain}`;
       toast.success(`Group created successfully: ${fullEmail}`);
       navigate(`/groups/${newGroup.id}`);
@@ -364,3 +372,4 @@ const CreateGroup = () => {
 };
 
 export default CreateGroup;
+

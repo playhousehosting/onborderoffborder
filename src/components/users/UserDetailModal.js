@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import msalGraphService from '../../services/msalGraphService';
+import { graphService } from '../../services/graphService';
+import { useMSALAuth } from '../../contexts/MSALAuthContext';
+import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
 import toast from 'react-hot-toast';
 import {
   XMarkIcon,
@@ -23,14 +26,19 @@ import {
 } from '@heroicons/react/24/outline';
 
 const UserDetailModal = ({ user, onClose, onUserUpdated }) => {
-  // Initialize MSAL graph service with token function
+  const msalAuth = useMSALAuth();
+  const convexAuth = useConvexAuth();
+  
+  const isConvexAuth = convexAuth.isAuthenticated;
+  const isMSALAuth = msalAuth.isAuthenticated;
+  
   useEffect(() => {
-    const initializeAuth = async () => {
-      // Token function should already be set by parent component
-      // This component doesn't have access to getAccessToken directly
-    };
-    initializeAuth();
-  }, []);
+    if (isMSALAuth && msalAuth.getAccessToken) {
+      service.setGetTokenFunction(msalAuth.getAccessToken);
+    }
+  }, [isMSALAuth, msalAuth.getAccessToken]);
+  
+  const service = isConvexAuth ? graphService : msalGraphService;
   
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -59,11 +67,11 @@ const UserDetailModal = ({ user, onClose, onUserUpdated }) => {
         devicesResponse,
         managerResponse
       ] = await Promise.allSettled([
-        msalGraphService.getUserSignInLogs(user.id, 7),
-        msalGraphService.getUserAuthenticationMethods(user.id),
-        msalGraphService.getUserPresence(user.id),
-        msalGraphService.getUserRegisteredDevices(user.id),
-        msalGraphService.getUserManager(user.id)
+        service.getUserSignInLogs(user.id, 7),
+        service.getUserAuthenticationMethods(user.id),
+        service.getUserPresence(user.id),
+        service.getUserRegisteredDevices(user.id),
+        service.getUserManager(user.id)
       ]);
 
       if (signInLogsResponse.status === 'fulfilled') {
@@ -100,7 +108,7 @@ const UserDetailModal = ({ user, onClose, onUserUpdated }) => {
 
     try {
       setProcessing(true);
-      const response = await msalGraphService.resetUserPassword(user.id);
+      const response = await service.resetUserPassword(user.id);
       
       toast.success(
         <div>
@@ -133,12 +141,12 @@ const UserDetailModal = ({ user, onClose, onUserUpdated }) => {
     try {
       setProcessing(true);
       const methodType = method['@odata.type'].split('.').pop().replace('AuthenticationMethod', '');
-      await msalGraphService.deleteUserAuthenticationMethod(user.id, method.id, methodType);
+      await service.deleteUserAuthenticationMethod(user.id, method.id, methodType);
       
       toast.success(`${methodName} removed successfully`);
       
       // Reload auth methods
-      const updatedMethods = await msalGraphService.getUserAuthenticationMethods(user.id);
+      const updatedMethods = await service.getUserAuthenticationMethods(user.id);
       setAuthMethods(updatedMethods.value || []);
     } catch (error) {
       console.error('Error revoking auth method:', error);
@@ -159,10 +167,10 @@ const UserDetailModal = ({ user, onClose, onUserUpdated }) => {
       setProcessing(true);
       
       if (user.accountEnabled) {
-        await msalGraphService.disableUserAccount(user.id);
+        await service.disableUserAccount(user.id);
         toast.success('Account disabled successfully');
       } else {
-        await msalGraphService.enableUserAccount(user.id);
+        await service.enableUserAccount(user.id);
         toast.success('Account enabled successfully');
       }
 
@@ -186,7 +194,7 @@ const UserDetailModal = ({ user, onClose, onUserUpdated }) => {
 
     try {
       setProcessing(true);
-      await msalGraphService.revokeUserSessions(user.id);
+      await service.revokeUserSessions(user.id);
       toast.success('All sessions revoked successfully');
     } catch (error) {
       console.error('Error revoking sessions:', error);
@@ -806,3 +814,4 @@ const UserDetailModal = ({ user, onClose, onUserUpdated }) => {
 };
 
 export default UserDetailModal;
+

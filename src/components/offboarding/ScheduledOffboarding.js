@@ -3,7 +3,9 @@ import { useConvex } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { getSessionId } from '../../services/convexService';
 import msalGraphService from '../../services/msalGraphService';
-import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
+import { graphService } from '../../services/graphService';
+import { useMSALAuth } from '../../contexts/MSALAuthContext';
+import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
 import toast from 'react-hot-toast';
 import {
   CalendarIcon,
@@ -19,14 +21,22 @@ import {
 
 const ScheduledOffboarding = () => {
   const convex = useConvex();
-  const { hasPermission, getAccessToken } = useAuth();
+  const msalAuth = useMSALAuth();
+  const convexAuth = useConvexAuth();
   
-  // Initialize MSAL graph service with token function
+  const isConvexAuth = convexAuth.isAuthenticated;
+  const isMSALAuth = msalAuth.isAuthenticated;
+  const hasPermission = (permission) => {
+    return isConvexAuth ? convexAuth.hasPermission(permission) : msalAuth.hasPermission(permission);
+  };
+  
   useEffect(() => {
-    if (getAccessToken) {
-      msalGraphService.setGetTokenFunction(getAccessToken);
+    if (isMSALAuth && msalAuth.getAccessToken) {
+      service.setGetTokenFunction(msalAuth.getAccessToken);
     }
-  }, [getAccessToken]);
+  }, [isMSALAuth, msalAuth.getAccessToken]);
+  
+  const service = isConvexAuth ? graphService : msalGraphService;
   
   const [scheduledOffboardings, setScheduledOffboardings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -179,7 +189,7 @@ const ScheduledOffboarding = () => {
     
     try {
       setSearching(true);
-      const results = await msalGraphService.searchUsers(searchTerm);
+      const results = await service.searchUsers(searchTerm);
       setSearchResults(results.value || []);
     } catch (error) {
       console.error('Error searching users:', error);
@@ -922,3 +932,4 @@ const ScheduledOffboarding = () => {
 };
 
 export default ScheduledOffboarding;
+

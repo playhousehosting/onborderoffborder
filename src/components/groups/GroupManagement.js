@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
+import { useMSALAuth } from '../../contexts/MSALAuthContext';
+import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
 import msalGraphService from '../../services/msalGraphService';
+import { graphService } from '../../services/graphService';
 import toast from 'react-hot-toast';
 import {
   UserGroupIcon,
@@ -21,14 +23,22 @@ import {
 const GroupManagement = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { hasPermission, getAccessToken } = useAuth();
+  const msalAuth = useMSALAuth();
+  const convexAuth = useConvexAuth();
   
-  // Initialize MSAL graph service with token function
+  const isConvexAuth = convexAuth.isAuthenticated;
+  const isMSALAuth = msalAuth.isAuthenticated;
+  const hasPermission = (permission) => {
+    return isConvexAuth ? convexAuth.hasPermission(permission) : msalAuth.hasPermission(permission);
+  };
+  
   useEffect(() => {
-    if (getAccessToken) {
-      msalGraphService.setGetTokenFunction(getAccessToken);
+    if (isMSALAuth && msalAuth.getAccessToken) {
+      service.setGetTokenFunction(msalAuth.getAccessToken);
     }
-  }, [getAccessToken]);
+  }, [isMSALAuth, msalAuth.getAccessToken]);
+  
+  const service = isConvexAuth ? graphService : msalGraphService;
 
   const [groups, setGroups] = useState([]);
   const [filteredGroups, setFilteredGroups] = useState([]);
@@ -55,7 +65,7 @@ const GroupManagement = () => {
   const loadGroups = async () => {
     setLoading(true);
     try {
-      const response = await msalGraphService.getAllGroups({
+      const response = await service.getAllGroups({
         select: 'id,displayName,mail,mailEnabled,securityEnabled,groupTypes,description,createdDateTime,memberCount',
       });
       setGroups(response?.value || []);
@@ -135,7 +145,7 @@ const GroupManagement = () => {
     }
 
     try {
-      await msalGraphService.deleteGroup(groupId);
+      await service.deleteGroup(groupId);
       toast.success(t('groups.deleteSuccess'));
       loadGroups();
     } catch (error) {
@@ -354,3 +364,4 @@ const GroupManagement = () => {
 };
 
 export default GroupManagement;
+

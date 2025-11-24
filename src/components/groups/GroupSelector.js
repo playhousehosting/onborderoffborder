@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import msalGraphService from '../../services/msalGraphService';
+import { graphService } from '../../services/graphService';
+import { useMSALAuth } from '../../contexts/MSALAuthContext';
+import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
 import {
   UserGroupIcon,
   MagnifyingGlassIcon,
@@ -31,6 +34,19 @@ const GroupSelector = ({
   placeholder = 'Search for groups...',
   required = false,
 }) => {
+  const msalAuth = useMSALAuth();
+  const convexAuth = useConvexAuth();
+  
+  const isConvexAuth = convexAuth.isAuthenticated;
+  const isMSALAuth = msalAuth.isAuthenticated;
+  
+  useEffect(() => {
+    if (isMSALAuth && msalAuth.getAccessToken) {
+      service.setGetTokenFunction(msalAuth.getAccessToken);
+    }
+  }, [isMSALAuth, msalAuth.getAccessToken]);
+  
+  const service = isConvexAuth ? graphService : msalGraphService;
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -53,7 +69,7 @@ const GroupSelector = ({
 
     setIsSearching(true);
     try {
-      const results = await msalGraphService.searchGroups(searchTerm, {
+      const results = await service.searchGroups(searchTerm, {
         groupTypes,
         top: 20,
       });
@@ -237,3 +253,4 @@ const GroupSelector = ({
 };
 
 export default GroupSelector;
+

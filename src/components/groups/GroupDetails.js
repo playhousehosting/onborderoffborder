@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
+import { useMSALAuth } from '../../contexts/MSALAuthContext';
+import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
 import msalGraphService from '../../services/msalGraphService';
+import { graphService } from '../../services/graphService';
 import toast from 'react-hot-toast';
 import {
   ArrowLeftIcon,
@@ -20,13 +22,19 @@ import {
 const GroupDetails = () => {
   const { groupId } = useParams();
   const navigate = useNavigate();
-  const { getAccessToken } = useAuth();
+  const msalAuth = useMSALAuth();
+  const convexAuth = useConvexAuth();
+  
+  const isConvexAuth = convexAuth.isAuthenticated;
+  const isMSALAuth = msalAuth.isAuthenticated;
 
   useEffect(() => {
-    if (getAccessToken) {
-      msalGraphService.setGetTokenFunction(getAccessToken);
+    if (isMSALAuth && msalAuth.getAccessToken) {
+      service.setGetTokenFunction(msalAuth.getAccessToken);
     }
-  }, [getAccessToken]);
+  }, [isMSALAuth, msalAuth.getAccessToken]);
+  
+  const service = isConvexAuth ? graphService : msalGraphService;
 
   const [group, setGroup] = useState(null);
   const [members, setMembers] = useState([]);
@@ -59,9 +67,9 @@ const GroupDetails = () => {
     setLoading(true);
     try {
       const [groupData, membersData, ownersData] = await Promise.all([
-        msalGraphService.getGroup(groupId),
-        msalGraphService.getGroupMembers(groupId),
-        msalGraphService.getGroupOwners(groupId),
+        service.getGroup(groupId),
+        service.getGroupMembers(groupId),
+        service.getGroupOwners(groupId),
       ]);
       
       setGroup(groupData);
@@ -80,7 +88,7 @@ const GroupDetails = () => {
 
     setIsSearching(true);
     try {
-      const results = await msalGraphService.searchUsers(searchTerm);
+      const results = await service.searchUsers(searchTerm);
       setSearchResults(results.value || []);
     } catch (error) {
       console.error('Error searching users:', error);
@@ -92,7 +100,7 @@ const GroupDetails = () => {
 
   const handleAddMember = async (user) => {
     try {
-      await msalGraphService.addUserToGroup(groupId, user.id);
+      await service.addUserToGroup(groupId, user.id);
       toast.success(`Added ${user.displayName} to group`);
       setShowAddMemberModal(false);
       setSearchTerm('');
@@ -110,7 +118,7 @@ const GroupDetails = () => {
     }
 
     try {
-      await msalGraphService.removeUserFromGroup(groupId, userId);
+      await service.removeUserFromGroup(groupId, userId);
       toast.success(`Removed ${userName} from group`);
       loadGroupDetails();
     } catch (error) {
@@ -121,7 +129,7 @@ const GroupDetails = () => {
 
   const handleAddOwner = async (user) => {
     try {
-      await msalGraphService.addGroupOwner(groupId, user.id);
+      await service.addGroupOwner(groupId, user.id);
       toast.success(`Added ${user.displayName} as owner`);
       setShowAddOwnerModal(false);
       setSearchTerm('');
@@ -139,7 +147,7 @@ const GroupDetails = () => {
     }
 
     try {
-      await msalGraphService.removeGroupOwner(groupId, userId);
+      await service.removeGroupOwner(groupId, userId);
       toast.success(`Removed ${userName} as owner`);
       loadGroupDetails();
     } catch (error) {
@@ -154,7 +162,7 @@ const GroupDetails = () => {
     }
 
     try {
-      await msalGraphService.deleteGroup(groupId);
+      await service.deleteGroup(groupId);
       toast.success('Group deleted successfully');
       navigate('/groups');
     } catch (error) {
@@ -504,3 +512,4 @@ const GroupDetails = () => {
 };
 
 export default GroupDetails;
+
