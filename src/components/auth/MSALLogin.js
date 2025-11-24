@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMSALAuth } from '../../contexts/MSALAuthContext';
+import { useConvexAuth } from '../../contexts/ConvexAuthContext';
 import { useTranslation } from 'react-i18next';
-import { PublicClientApplication } from '@azure/msal-browser';
 import toast from 'react-hot-toast';
 
 const MSALLogin = () => {
   const { isAuthenticated, loading, login } = useMSALAuth();
+  const convexAuth = useConvexAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -37,13 +38,16 @@ const MSALLogin = () => {
     }
   }, [t]);
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (either MSAL SSO or ConvexAuth app-only)
   useEffect(() => {
     if (isAuthenticated && !loading) {
-      console.log('✅ User authenticated, redirecting to dashboard');
+      console.log('✅ MSAL user authenticated, redirecting to dashboard');
+      navigate('/dashboard', { replace: true });
+    } else if (convexAuth.isAuthenticated && !convexAuth.loading) {
+      console.log('✅ App-only user authenticated, redirecting to dashboard');
       navigate('/dashboard', { replace: true });
     }
-  }, [isAuthenticated, loading, navigate]);
+  }, [isAuthenticated, loading, convexAuth.isAuthenticated, convexAuth.loading, navigate]);
 
   const handleMicrosoftLogin = async () => {
     try {
@@ -69,37 +73,23 @@ const MSALLogin = () => {
         localStorage.removeItem('customTenantConfig');
       }
       
-      // Create MSAL config for custom tenant
-      const msalConfig = {
-        auth: {
-          clientId: configForm.clientId,
-          authority: `https://login.microsoftonline.com/${configForm.tenantId}`,
-          redirectUri: window.location.origin
-        },
-        cache: {
-          cacheLocation: 'localStorage',
-          storeAuthStateInCookie: false
-        }
-      };
-
-      // Initialize MSAL instance
-      const msalInstance = new PublicClientApplication(msalConfig);
-      await msalInstance.initialize();
-
-      // Use client credentials flow (app-only authentication)
-      // Note: Client credentials flow requires backend implementation
-      // For now, we'll use interactive login and store the config
-      const loginRequest = {
-        scopes: ['https://graph.microsoft.com/.default']
-      };
-
-      await msalInstance.loginRedirect(loginRequest);
+      // Use Convex-based app-only authentication (client credentials flow)
+      // This is separate from MSAL SSO and doesn't require user interaction
+      console.log('🔧 Configuring custom tenant credentials...');
+      await convexAuth.configure(
+        configForm.clientId,
+        configForm.tenantId,
+        configForm.clientSecret
+      );
       
-      toast.success(t('login.authSuccess') || 'Successfully authenticated');
+      console.log('🔑 Logging in with app-only mode...');
+      await convexAuth.loginAppOnly();
+      
+      toast.success(t('login.authSuccess') || 'Successfully authenticated with app credentials');
       navigate('/dashboard');
     } catch (error) {
       console.error('❌ App authentication error:', error);
-      toast.error(error.message || t('login.authFailed') || 'Authentication failed');
+      toast.error(error.message || t('login.authFailed') || 'Authentication failed. Please check your credentials.');
     } finally {
       setIsConfiguring(false);
     }
