@@ -17,6 +17,27 @@ const Login = () => {
     clientSecret: ''
   });
   const [isConfiguring, setIsConfiguring] = useState(false);
+  const [rememberCredentials, setRememberCredentials] = useState(false);
+  const [savedCredentialsAvailable, setSavedCredentialsAvailable] = useState(false);
+
+  // Load saved credentials on component mount
+  useEffect(() => {
+    const savedConfig = localStorage.getItem('customTenantConfig');
+    if (savedConfig) {
+      try {
+        const parsed = JSON.parse(savedConfig);
+        setConfigForm({
+          clientId: parsed.clientId || '',
+          tenantId: parsed.tenantId || '',
+          clientSecret: parsed.clientSecret || ''
+        });
+        setRememberCredentials(true);
+        setSavedCredentialsAvailable(true);
+      } catch (error) {
+        console.error('Failed to load saved credentials:', error);
+      }
+    }
+  }, []);
 
   // Redirect if already authenticated (Clerk or App-only)
   useEffect(() => {
@@ -31,6 +52,18 @@ const Login = () => {
     setIsConfiguring(true);
     
     try {
+      // Save credentials if remember option is checked
+      if (rememberCredentials) {
+        localStorage.setItem('customTenantConfig', JSON.stringify({
+          clientId: configForm.clientId,
+          tenantId: configForm.tenantId,
+          clientSecret: configForm.clientSecret
+        }));
+      } else {
+        // Clear saved credentials if remember is unchecked
+        localStorage.removeItem('customTenantConfig');
+      }
+      
       // First configure credentials
       await convexAuth.configure(
         configForm.clientId,
@@ -49,6 +82,18 @@ const Login = () => {
     } finally {
       setIsConfiguring(false);
     }
+  };
+
+  const handleClearSavedCredentials = () => {
+    localStorage.removeItem('customTenantConfig');
+    setConfigForm({
+      clientId: '',
+      tenantId: '',
+      clientSecret: ''
+    });
+    setRememberCredentials(false);
+    setSavedCredentialsAvailable(false);
+    toast.success(t('login.credentialsCleared') || 'Saved credentials cleared');
   };
 
   if (!isLoaded) {
@@ -252,6 +297,17 @@ const Login = () => {
                     </svg>
                   </button>
                 </div>
+                
+                {/* Saved credentials indicator */}
+                {savedCredentialsAvailable && (
+                  <div className="mb-3 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>{t('login.savedCredentialsLoaded') || 'Saved credentials loaded'}</span>
+                  </div>
+                )}
+                
                 <form onSubmit={handleAppLogin} className="space-y-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -292,6 +348,32 @@ const Login = () => {
                       required
                     />
                   </div>
+                  
+                  {/* Remember credentials checkbox */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="rememberCredentials"
+                      checked={rememberCredentials}
+                      onChange={(e) => setRememberCredentials(e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="rememberCredentials" className="text-sm text-gray-700 dark:text-gray-300">
+                      {t('login.rememberCredentials') || 'Remember my credentials on this device'}
+                    </label>
+                  </div>
+
+                  {/* Clear saved credentials button */}
+                  {savedCredentialsAvailable && (
+                    <button
+                      type="button"
+                      onClick={handleClearSavedCredentials}
+                      className="w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    >
+                      {t('login.clearSavedCredentials') || 'Clear Saved Credentials'}
+                    </button>
+                  )}
+                  
                   <button
                     type="submit"
                     disabled={isConfiguring}

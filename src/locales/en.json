@@ -375,6 +375,78 @@
     "signingIn": "Signing in...",
     "signOut": "Sign Out"
   },
+  "login": {
+    "loading": "Loading...",
+    "welcome": "Welcome to Employee Life Cycle Portal",
+    "subtitle": "Streamline your HR operations with automated workflows for onboarding, offboarding, transfers, and more",
+    "signInToGetStarted": "Sign In to Get Started",
+    "accessDashboard": "Access your HR management dashboard",
+    "or": "Or",
+    "useAppCredentials": "Use App Credentials (Admin)",
+    "bringYourOwnTenant": "Bring Your Own Azure AD Tenant",
+    "appAuthentication": "App Authentication",
+    "customTenantAuth": "Custom Tenant Authentication",
+    "clientId": "Client ID",
+    "clientIdPlaceholder": "00000000-0000-0000-0000-000000000000",
+    "tenantId": "Tenant ID",
+    "tenantIdPlaceholder": "00000000-0000-0000-0000-000000000000",
+    "clientSecret": "Client Secret",
+    "clientSecretPlaceholder": "Enter client secret",
+    "signInWithAppCredentials": "Sign in with App Credentials",
+    "authenticating": "Authenticating...",
+    "authSuccess": "Successfully authenticated with app credentials",
+    "authFailed": "Authentication failed. Please check your credentials.",
+    "rememberCredentials": "Remember my credentials on this device",
+    "clearSavedCredentials": "Clear Saved Credentials",
+    "credentialsCleared": "Saved credentials cleared",
+    "savedCredentialsLoaded": "Saved credentials loaded",
+    "whyTeamsLove": "Why Teams Love This Portal",
+    "secureSSO": "🔐 Secure single sign-on with Clerk authentication",
+    "streamlinedHR": "👥 Streamlined employee onboarding & offboarding",
+    "automatedWorkflows": "⚡ Automated workflows for maximum efficiency",
+    "globalTeams": "🌍 Built for global teams, available 24/7",
+    "twoAuthMethods": "🔑 Two Authentication Methods Available",
+    "clerkSSO": "✨ Clerk SSO: For user accounts with role-based permissions",
+    "appCredentials": "🛡️ App Credentials: For admin access with full permissions",
+    "tenantCredentials": "🔐 Custom Tenant: Bring your own Azure AD configuration",
+    "trustedWorldwide": "🌟 Trusted by HR Teams Worldwide",
+    "copyright": "© 2025 Employee Life Cycle Portal",
+    "poweredBy": "Powered by Microsoft Graph API & Clerk Authentication",
+    "builtBy": "Built with ❤️ by Kameron McCain",
+    "viewFAQ": "View FAQ & Documentation",
+    "features": {
+      "onboarding": {
+        "title": "Employee Onboarding",
+        "description": "Create accounts, assign licenses, set up email, and provision devices automatically"
+      },
+      "offboarding": {
+        "title": "Employee Offboarding",
+        "description": "Disable accounts, revoke licenses, set auto-replies, and transfer files securely"
+      },
+      "transfers": {
+        "title": "Transfers & Promotions",
+        "description": "Manage department changes, role updates, and location transfers seamlessly"
+      },
+      "groups": {
+        "title": "Group Management",
+        "description": "Create and manage distribution lists, security groups, and Microsoft 365 groups"
+      }
+    },
+    "infoCards": {
+      "security": {
+        "title": "Enterprise Security",
+        "description": "Bank-level encryption, MFA support, and Azure AD integration for maximum security"
+      },
+      "automation": {
+        "title": "Automated Workflows",
+        "description": "Save hours with automated provisioning, deprovisioning, and compliance workflows"
+      },
+      "support": {
+        "title": "24/7 Global Access",
+        "description": "Available worldwide with multi-language support and dedicated help resources"
+      }
+    }
+  },
   "defender": {
     "title": "Microsoft Defender Security Center",
     "subtitle": "Monitor and respond to security threats across your organization",
