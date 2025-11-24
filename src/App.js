@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { MsalProvider } from '@azure/msal-react';
-import { MSALAuthProvider, useMSALAuth as useAuth } from './contexts/MSALAuthContext';
+import { MSALAuthProvider, useMSALAuth } from './contexts/MSALAuthContext';
+import { useAuth as useConvexAuth } from './contexts/ConvexAuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Toaster } from 'react-hot-toast';
 import { msalInstance } from './config/msalConfig';
@@ -39,11 +40,18 @@ import Help from './components/common/Help';
 import NotFound from './components/common/NotFound';
 import ErrorBoundary from './components/common/ErrorBoundary';
 
-// Protected Route Component
+// Protected Route Component - Checks both MSAL and Convex authentication
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading, user } = useAuth();
+  const msalAuth = useMSALAuth();
+  const convexAuth = useConvexAuth();
   
-  console.log(`🔒 ProtectedRoute check - isAuthenticated: ${isAuthenticated}, loading: ${loading}, user: ${user?.displayName || 'none'}`);
+  // Check if either authentication method is active
+  const isAuthenticated = msalAuth.isAuthenticated || convexAuth.isAuthenticated;
+  const loading = msalAuth.loading || convexAuth.loading;
+  const user = msalAuth.user || convexAuth.user;
+  const authMode = msalAuth.isAuthenticated ? 'MSAL' : convexAuth.isAuthenticated ? 'Convex' : 'none';
+  
+  console.log(`🔒 ProtectedRoute check - Mode: ${authMode}, isAuthenticated: ${isAuthenticated}, loading: ${loading}, user: ${user?.displayName || 'none'}`);
   
   if (loading) {
     return (
@@ -61,7 +69,7 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
   
-  console.log('✅ ProtectedRoute: Access granted');
+  console.log(`✅ ProtectedRoute: Access granted via ${authMode}`);
   return children;
 };
 
