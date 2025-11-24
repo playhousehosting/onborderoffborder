@@ -78,10 +78,11 @@ class MSALGraphService {
         const isExpectedError = (response.status === 403 || response.status === 404) && isOptionalEndpoint;
         
         if (isExpectedError) {
-          // Silently skip - these are optional features
-        } else {
-          console.error(`❌ Graph request failed (${response.status}):`, errorData);
+          // Silently return null for optional features without permissions
+          return null;
         }
+        
+        console.error(`❌ Graph request failed (${response.status}):`, errorData);
         
         // Check for OAuth requirement (shouldn't happen with MSAL, but keep for compatibility)
         if (errorData.requiresOAuth) {
@@ -820,20 +821,14 @@ class MSALGraphService {
       ];
 
       for (const methodType of methodTypes) {
-        try {
-          const data = await this.makeRequest(`/users/${userId}/authentication/${methodType.endpoint}`);
-          if (data && data.value) {
-            methods.push(...data.value.map(method => ({
-              ...method,
-              methodType: methodType.type,
-              displayName: methodType.labelFn(method)
-            })));
-          }
-        } catch (error) {
-          // Silently skip if permission denied (403) - these are optional features
-          if (!error.message?.includes('403') && !error.message?.includes('Forbidden')) {
-            console.warn(`Could not fetch ${methodType.type} methods:`, error);
-          }
+        // makeRequest returns null for optional endpoints without permissions (no error thrown)
+        const data = await this.makeRequest(`/users/${userId}/authentication/${methodType.endpoint}`);
+        if (data && data.value) {
+          methods.push(...data.value.map(method => ({
+            ...method,
+            methodType: methodType.type,
+            displayName: methodType.labelFn(method)
+          })));
         }
       }
 
