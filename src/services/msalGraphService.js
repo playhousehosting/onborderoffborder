@@ -77,9 +77,20 @@ class MSALGraphService {
                                    cleanEndpoint.includes('/manager');
         const isExpectedError = (response.status === 403 || response.status === 404) && isOptionalEndpoint;
         
+        // EntitlementGrant errors are expected for certain enterprise apps (Graph API limitation)
+        const isEntitlementGrantError = response.status === 400 && 
+                                       errorData.message?.includes('EntitlementGrant');
+        
         if (isExpectedError) {
           // Silently return null for optional features without permissions
           return null;
+        }
+        
+        if (isEntitlementGrantError) {
+          // Silently fail for apps that don't support removal via API
+          const error = new Error(errorData.message);
+          error.isExpected = true;
+          throw error;
         }
         
         console.error(`❌ Graph request failed (${response.status}):`, errorData);
@@ -113,7 +124,10 @@ class MSALGraphService {
       console.log(`✅ Graph request successful:`, data);
       return data;
     } catch (error) {
-      console.error('❌ Graph request error:', error);
+      // Don't log expected errors (marked with isExpected flag)
+      if (!error.isExpected) {
+        console.error('❌ Graph request error:', error);
+      }
       throw error;
     }
   }

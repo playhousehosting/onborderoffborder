@@ -660,7 +660,10 @@ const OffboardingWizard = () => {
                 removedCount++;
               } catch (error) {
                 failedCount++;
-                logger.warn(`Failed to remove from ${app.appDisplayName}:`, error);
+                // Don't log EntitlementGrant errors (known Graph API limitation)
+                if (!error.isExpected) {
+                  logger.warn(`Failed to remove from ${app.appDisplayName}:`, error);
+                }
               }
             }
 
