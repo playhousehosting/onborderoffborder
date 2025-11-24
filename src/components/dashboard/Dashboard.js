@@ -4,7 +4,7 @@ import { useMSALAuth } from '../../contexts/MSALAuthContext';
 import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
 import { useTranslation } from 'react-i18next';
 import msalGraphService from '../../services/msalGraphService';
-import graphService from '../../services/graphService';
+import { graphService } from '../../services/graphService';
 import { logger } from '../../utils/logger';
 import { SkeletonDashboard } from '../common/Skeleton';
 import toast from 'react-hot-toast';
