@@ -13,6 +13,7 @@ class MSALGraphService {
     // Convert .convex.cloud to .convex.site for HTTP actions
     this.baseUrl = convexUrl.replace('.convex.cloud', '.convex.site').replace('/api', '');
     this.proxyPath = '/msal-proxy/graph';
+    this.betaProxyPath = '/msal-proxy/graph-beta';
     this._getTokenFunction = null;
   }
 
@@ -143,6 +144,70 @@ class MSALGraphService {
       if (!error.isExpected) {
         console.error('❌ Graph request error:', error);
       }
+      throw error;
+    }
+  }
+
+  /**
+   * Make authenticated request to Graph BETA API via proxy
+   * Uses /beta endpoint instead of /v1.0 for features not yet in stable API
+   */
+  async makeBetaRequest(endpoint, options = {}) {
+    try {
+      const accessToken = await this.getAccessToken();
+      if (!accessToken) {
+        throw new Error('No MSAL access token available. Please sign in with Microsoft.');
+      }
+
+      // Ensure endpoint starts with / for proper path construction
+      const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+      const url = `${this.baseUrl}${this.betaProxyPath}${cleanEndpoint}`;
+      
+      console.log(`📡 MSAL Graph BETA request: ${url}`);
+
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+          ...options.headers,
+        },
+        credentials: 'omit',
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText };
+        }
+        
+        console.error(`❌ Graph BETA request failed (${response.status}):`, errorData);
+        throw new Error(errorData.message || `Request failed: ${response.status}`);
+      }
+
+      // Handle empty responses
+      const contentType = response.headers.get('content-type');
+      const contentLength = response.headers.get('content-length');
+      
+      if (response.status === 204 || contentLength === '0' || !contentType?.includes('application/json')) {
+        console.log(`✅ Graph BETA request successful (no content)`);
+        return null;
+      }
+
+      const text = await response.text();
+      if (!text || text.trim() === '') {
+        console.log(`✅ Graph BETA request successful (empty response)`);
+        return null;
+      }
+
+      const data = JSON.parse(text);
+      console.log(`✅ Graph BETA request successful:`, data);
+      return data;
+    } catch (error) {
+      console.error('❌ Graph BETA request error:', error);
       throw error;
     }
   }

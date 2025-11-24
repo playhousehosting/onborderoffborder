@@ -1,4 +1,12 @@
-import { graphService } from './graphService';
+import { getActiveService } from './serviceFactory';
+
+/**
+ * Helper to get the current graph service based on auth mode
+ */
+const graphService = { 
+  makeRequest: (...args) => getActiveService().makeRequest(...args),
+  makeBetaRequest: (...args) => getActiveService().makeBetaRequest?.(...args)
+};
 
 /**
  * Comprehensive Lifecycle Workflows Service

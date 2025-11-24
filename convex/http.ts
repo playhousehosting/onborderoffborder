@@ -2,7 +2,7 @@ import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { auth } from "./authInit";
 import { initiateAdminConsent, handleAdminConsentCallback } from "./adminConsent";
-import { health, graphGet, graphPost, graphPatch, graphDelete, graphOptions } from "./msalProxy";
+import { health, graphGet, graphPost, graphPatch, graphDelete, graphOptions, graphBetaGet, graphBetaPost } from "./msalProxy";
 
 const http = httpRouter();
 
@@ -58,6 +58,25 @@ http.route({
   pathPrefix: "/msal-proxy/graph/",
   method: "DELETE",
   handler: graphDelete,
+});
+
+// MSAL proxy endpoints for Graph BETA API access
+http.route({
+  pathPrefix: "/msal-proxy/graph-beta/",
+  method: "OPTIONS",
+  handler: graphOptions,
+});
+
+http.route({
+  pathPrefix: "/msal-proxy/graph-beta/",
+  method: "GET",
+  handler: graphBetaGet,
+});
+
+http.route({
+  pathPrefix: "/msal-proxy/graph-beta/",
+  method: "POST",
+  handler: graphBetaPost,
 });
 
 export default http;

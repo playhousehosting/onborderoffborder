@@ -400,3 +400,145 @@ export const graphDelete = httpAction(async (ctx, request) => {
     });
   }
 });
+
+// ========== BETA API HANDLERS ==========
+// These proxy to the Graph API beta endpoint instead of v1.0
+
+/**
+ * Proxy GET requests to Microsoft Graph BETA API
+ */
+export const graphBetaGet = httpAction(async (ctx, request) => {
+  try {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({
+        error: 'Unauthorized',
+        message: 'Please sign in with your Microsoft account'
+      }), {
+        status: 401,
+        headers: { ...getCorsHeaders(), 'Content-Type': 'application/json' },
+      });
+    }
+
+    const accessToken = authHeader.substring(7);
+    const url = new URL(request.url);
+    const graphPath = url.pathname.replace('/msal-proxy/graph-beta', '') || '/me';
+    const graphUrl = `https://graph.microsoft.com/beta${graphPath}${url.search}`;
+    
+    console.log(`📡 Proxying BETA GET request to: ${graphUrl}`);
+
+    const graphResponse = await fetch(graphUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'ConsistencyLevel': 'eventual',
+      },
+    });
+
+    const responseText = await graphResponse.text();
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch {
+      responseData = { value: responseText };
+    }
+
+    if (!graphResponse.ok) {
+      console.error(`❌ Graph BETA API error (${graphResponse.status}):`, responseData);
+      return new Response(JSON.stringify({
+        error: 'Graph API Error',
+        message: responseData.error?.message || 'Failed to fetch from Microsoft Graph Beta',
+        details: responseData
+      }), {
+        status: graphResponse.status,
+        headers: { ...getCorsHeaders(), 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log(`✅ Graph BETA API request successful`);
+    return new Response(JSON.stringify(responseData), {
+      status: 200,
+      headers: { ...getCorsHeaders(), 'Content-Type': 'application/json' },
+    });
+  } catch (error: any) {
+    console.error('❌ Proxy error:', error);
+    return new Response(JSON.stringify({
+      error: 'Proxy Error',
+      message: error.message || 'Internal server error'
+    }), {
+      status: 500,
+      headers: { ...getCorsHeaders(), 'Content-Type': 'application/json' },
+    });
+  }
+});
+
+/**
+ * Proxy POST requests to Microsoft Graph BETA API
+ */
+export const graphBetaPost = httpAction(async (ctx, request) => {
+  try {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({
+        error: 'Unauthorized',
+        message: 'Please sign in with your Microsoft account'
+      }), {
+        status: 401,
+        headers: { ...getCorsHeaders(), 'Content-Type': 'application/json' },
+      });
+    }
+
+    const accessToken = authHeader.substring(7);
+    const url = new URL(request.url);
+    const graphPath = url.pathname.replace('/msal-proxy/graph-beta', '') || '/me';
+    const graphUrl = `https://graph.microsoft.com/beta${graphPath}${url.search}`;
+    const bodyText = await request.text();
+    
+    console.log(`📡 Proxying BETA POST request to: ${graphUrl}`);
+
+    const graphResponse = await fetch(graphUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: bodyText,
+    });
+
+    const responseText = await graphResponse.text();
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch {
+      responseData = { value: responseText };
+    }
+
+    if (!graphResponse.ok) {
+      console.error(`❌ Graph BETA API error (${graphResponse.status}):`, responseData);
+      return new Response(JSON.stringify({
+        error: 'Graph API Error',
+        message: responseData.error?.message || 'Failed to post to Microsoft Graph Beta',
+        details: responseData
+      }), {
+        status: graphResponse.status,
+        headers: { ...getCorsHeaders(), 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log(`✅ Graph BETA API POST successful`);
+    return new Response(JSON.stringify(responseData), {
+      status: 200,
+      headers: { ...getCorsHeaders(), 'Content-Type': 'application/json' },
+    });
+  } catch (error: any) {
+    console.error('❌ Proxy error:', error);
+    return new Response(JSON.stringify({
+      error: 'Proxy Error',
+      message: error.message || 'Internal server error'
+    }), {
+      status: 500,
+      headers: { ...getCorsHeaders(), 'Content-Type': 'application/json' },
+    });
+  }
+});

@@ -7,6 +7,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { Toaster } from 'react-hot-toast';
 import { msalInstance } from './config/msalConfig';
 import { authService } from './services/authService';
+import { setActiveService } from './services/serviceFactory';
 import './index.css';
 
 // Initialize authService with MSAL instance
@@ -50,6 +51,15 @@ const ProtectedRoute = ({ children }) => {
   const loading = msalAuth.loading || convexAuth.loading;
   const user = msalAuth.user || convexAuth.user;
   const authMode = msalAuth.isAuthenticated ? 'MSAL' : convexAuth.isAuthenticated ? 'Convex' : 'none';
+  
+  // Set the active service based on auth mode
+  useEffect(() => {
+    if (msalAuth.isAuthenticated) {
+      setActiveService('msal', msalAuth);
+    } else if (convexAuth.isAuthenticated) {
+      setActiveService('convex');
+    }
+  }, [msalAuth.isAuthenticated, convexAuth.isAuthenticated, msalAuth]);
   
   console.log(`🔒 ProtectedRoute check - Mode: ${authMode}, isAuthenticated: ${isAuthenticated}, loading: ${loading}, user: ${user?.displayName || 'none'}`);
   

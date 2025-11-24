@@ -12,8 +12,16 @@
  * - https://learn.microsoft.com/en-us/graph/api/informationprotectionpolicy-list-labels
  */
 
-import { graphService } from './graphService';
+import { getActiveService } from './serviceFactory';
 import { logger } from '../utils/logger';
+
+/**
+ * Helper to get the current graph service based on auth mode
+ */
+const graphService = { 
+  makeRequest: (...args) => getActiveService().makeRequest(...args),
+  makeBetaRequest: (...args) => getActiveService().makeBetaRequest?.(...args)
+};
 
 const isDemoMode = process.env.REACT_APP_DEMO_MODE === 'true';
 

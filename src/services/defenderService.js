@@ -22,13 +22,19 @@
  * - SecurityActions.ReadWrite.All - Manage security actions (quarantine release, block/allow lists)
  */
 
-import { graphService } from './graphService';
+import { getActiveService } from './serviceFactory';
+
+/**
+ * Get the current graph service based on auth mode
+ */
+const getService = () => getActiveService();
 
 /**
  * Get security alerts from Microsoft Defender
  * Uses /security/alerts_v2 endpoint
  */
 export async function getSecurityAlerts(filters = {}) {
+  const service = getService();
   let endpoint = '/security/alerts_v2';
   const queryParams = [];
 
@@ -51,7 +57,7 @@ export async function getSecurityAlerts(filters = {}) {
 
   endpoint += (queryParams.length > 0 ? '&' : '?') + '$top=50&$orderby=createdDateTime desc';
 
-  return await graphService.makeRequest(endpoint, {});
+  return await service.makeRequest(endpoint, {});
 }
 
 /**
@@ -59,6 +65,7 @@ export async function getSecurityAlerts(filters = {}) {
  * Uses /security/incidents endpoint
  */
 export async function getSecurityIncidents(filters = {}) {
+  const service = getService();
   let endpoint = '/security/incidents';
   const queryParams = [];
 
@@ -75,7 +82,7 @@ export async function getSecurityIncidents(filters = {}) {
 
   endpoint += (queryParams.length > 0 ? '&' : '?') + '$top=50&$orderby=lastUpdateDateTime desc&$expand=alerts';
 
-  return await graphService.makeRequest(endpoint, {});
+  return await service.makeRequest(endpoint, {});
 }
 
 /**
@@ -83,7 +90,8 @@ export async function getSecurityIncidents(filters = {}) {
  * Uses /security/secureScores endpoint
  */
 export async function getSecureScore() {
-  const response = await graphService.makeRequest(
+  const service = getService();
+  const response = await service.makeRequest(
     '/security/secureScores?$top=1&$orderby=createdDateTime desc',
     {}
   );
@@ -100,7 +108,8 @@ export async function getSecureScore() {
  * Uses /security/secureScoreControlProfiles endpoint
  */
 export async function getSecurityRecommendations() {
-  const response = await graphService.makeRequest(
+  const service = getService();
+  const response = await service.makeRequest(
     '/security/secureScoreControlProfiles?$top=20&$orderby=rank',
     {}
   );
@@ -132,11 +141,12 @@ export async function getSecurityRecommendations() {
  * Note: Uses Microsoft Graph BETA API as v1.0 doesn't support this endpoint
  */
 export async function getVulnerabilities() {
+  const service = getService();
   // Note: This endpoint is only available in beta Microsoft Graph API
   // Vulnerability management data requires Microsoft Defender Vulnerability Management license
   
   try {
-    const response = await graphService.makeBetaRequest(
+    const response = await service.makeBetaRequest(
       '/security/vulnerabilities?$top=100',
       {}
     );
@@ -200,7 +210,8 @@ export async function getQuarantinedMessages(filters = {}) {
  * Release quarantined message
  */
 export async function releaseQuarantinedMessage(messageId, releaseToAll = false) {
-  return await graphService.makeRequest(
+  const service = getService();
+  return await service.makeRequest(
     `/security/threatSubmission/emailThreats/${messageId}/release`,
     {
       method: 'POST',
@@ -215,7 +226,8 @@ export async function releaseQuarantinedMessage(messageId, releaseToAll = false)
  * Delete quarantined message
  */
 export async function deleteQuarantinedMessage(messageId) {
-  return await graphService.makeRequest(
+  const service = getService();
+  return await service.makeRequest(
     `/security/threatSubmission/emailThreats/${messageId}`,
     {
       method: 'DELETE'
@@ -228,15 +240,16 @@ export async function deleteQuarantinedMessage(messageId) {
  * Note: Uses Microsoft Graph BETA API as v1.0 doesn't support this endpoint
  */
 export async function getTenantAllowBlockList() {
+  const service = getService();
   // Note: This endpoint is only available in beta Microsoft Graph API
   // Exchange Online allow/block lists require proper Exchange permissions
   
   try {
     const [allowDomains, blockDomains, allowSenders, blockSenders] = await Promise.all([
-      graphService.makeBetaRequest('/security/tenantAllowBlockList/allowedDomains?$top=100', {}),
-      graphService.makeBetaRequest('/security/tenantAllowBlockList/blockedDomains?$top=100', {}),
-      graphService.makeBetaRequest('/security/tenantAllowBlockList/allowedSenders?$top=100', {}),
-      graphService.makeBetaRequest('/security/tenantAllowBlockList/blockedSenders?$top=100', {})
+      service.makeBetaRequest('/security/tenantAllowBlockList/allowedDomains?$top=100', {}),
+      service.makeBetaRequest('/security/tenantAllowBlockList/blockedDomains?$top=100', {}),
+      service.makeBetaRequest('/security/tenantAllowBlockList/allowedSenders?$top=100', {}),
+      service.makeBetaRequest('/security/tenantAllowBlockList/blockedSenders?$top=100', {})
     ]);
 
     return {
@@ -262,7 +275,8 @@ export async function getTenantAllowBlockList() {
  * Add domain to allow list
  */
 export async function addDomainToAllowList(domain, notes = '') {
-  const response = await graphService.makeRequest(
+  const service = getService();
+  const response = await service.makeRequest(
     '/security/tenantAllowBlockList/allowedDomains',
     {
       method: 'POST',
@@ -280,7 +294,8 @@ export async function addDomainToAllowList(domain, notes = '') {
  * Add domain to block list
  */
 export async function addDomainToBlockList(domain, notes = '') {
-  const response = await graphService.makeRequest(
+  const service = getService();
+  const response = await service.makeRequest(
     '/security/tenantAllowBlockList/blockedDomains',
     {
       method: 'POST',
@@ -298,7 +313,8 @@ export async function addDomainToBlockList(domain, notes = '') {
  * Remove domain from allow list
  */
 export async function removeDomainFromAllowList(entryId) {
-  await graphService.makeRequest(
+  const service = getService();
+  await service.makeRequest(
     `/security/tenantAllowBlockList/allowedDomains/${entryId}`,
     {
       method: 'DELETE'
@@ -311,7 +327,8 @@ export async function removeDomainFromAllowList(entryId) {
  * Remove domain from block list
  */
 export async function removeDomainFromBlockList(entryId) {
-  await graphService.makeRequest(
+  const service = getService();
+  await service.makeRequest(
     `/security/tenantAllowBlockList/blockedDomains/${entryId}`,
     {
       method: 'DELETE'
@@ -324,7 +341,8 @@ export async function removeDomainFromBlockList(entryId) {
  * Add sender to allow list
  */
 export async function addSenderToAllowList(email, notes = '') {
-  const response = await graphService.makeRequest(
+  const service = getService();
+  const response = await service.makeRequest(
     '/security/tenantAllowBlockList/allowedSenders',
     {
       method: 'POST',
@@ -342,7 +360,8 @@ export async function addSenderToAllowList(email, notes = '') {
  * Add sender to block list
  */
 export async function addSenderToBlockList(email, notes = '') {
-  const response = await graphService.makeRequest(
+  const service = getService();
+  const response = await service.makeRequest(
     '/security/tenantAllowBlockList/blockedSenders',
     {
       method: 'POST',
@@ -360,7 +379,8 @@ export async function addSenderToBlockList(email, notes = '') {
  * Update security alert
  */
 export async function updateAlert(alertId, updates) {
-  return await graphService.makeRequest(
+  const service = getService();
+  return await service.makeRequest(
     `/security/alerts_v2/${alertId}`,
     {
       method: 'PATCH',
@@ -373,7 +393,8 @@ export async function updateAlert(alertId, updates) {
  * Update security incident
  */
 export async function updateIncident(incidentId, updates) {
-  return await graphService.makeRequest(
+  const service = getService();
+  return await service.makeRequest(
     `/security/incidents/${incidentId}`,
     {
       method: 'PATCH',
