@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useMSALAuth } from '../../contexts/MSALAuthContext';
+import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
 import { useTranslation } from 'react-i18next';
 import msalGraphService from '../../services/msalGraphService';
+import graphService from '../../services/graphService';
 import { logger } from '../../utils/logger';
 import { SkeletonDashboard } from '../common/Skeleton';
 import toast from 'react-hot-toast';
@@ -22,7 +24,8 @@ import {
 } from '@heroicons/react/24/outline';
 
 const Dashboard = () => {
-  const { user, hasPermission, getAccessToken } = useMSALAuth();
+  const msalAuth = useMSALAuth();
+  const convexAuth = useConvexAuth();
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const [stats, setStats] = useState({
@@ -38,18 +41,27 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [recentActivity, setRecentActivity] = useState([]);
 
-  // Set up MSAL graph service with token function
+  // Determine which auth is active
+  const isConvexAuth = convexAuth.isAuthenticated;
+  const isMSALAuth = msalAuth.isAuthenticated;
+  const user = msalAuth.user || convexAuth.user;
+  const hasPermission = msalAuth.hasPermission || convexAuth.hasPermission;
+
+  // Set up MSAL graph service with token function (only if using MSAL)
   useEffect(() => {
-    msalGraphService.setGetTokenFunction(getAccessToken);
-  }, [getAccessToken]);
+    if (isMSALAuth && msalAuth.getAccessToken) {
+      msalGraphService.setGetTokenFunction(msalAuth.getAccessToken);
+    }
+  }, [isMSALAuth, msalAuth.getAccessToken]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
 
-        // Use MSAL graph service
-        const service = msalGraphService;
+        // Use appropriate service based on auth mode
+        const service = isConvexAuth ? graphService : msalGraphService;
+        console.log(`📊 Dashboard using ${isConvexAuth ? 'Convex' : 'MSAL'} Graph service`);
         
         // Only fetch data if user has permissions
         if (hasPermission('userManagement')) {
