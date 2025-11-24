@@ -1,12 +1,41 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMSALAuth } from '../../contexts/MSALAuthContext';
 import { useTranslation } from 'react-i18next';
+import { PublicClientApplication } from '@azure/msal-browser';
+import toast from 'react-hot-toast';
 
 const MSALLogin = () => {
   const { isAuthenticated, loading, login } = useMSALAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
+
+  // Custom tenant form state
+  const [configForm, setConfigForm] = useState({
+    clientId: '',
+    tenantId: '',
+    clientSecret: ''
+  });
+  const [isConfiguring, setIsConfiguring] = useState(false);
+  const [rememberCredentials, setRememberCredentials] = useState(false);
+  const [savedCredentialsAvailable, setSavedCredentialsAvailable] = useState(false);
+
+  // Load saved credentials on mount
+  useEffect(() => {
+    const savedConfig = localStorage.getItem('customTenantConfig');
+    if (savedConfig) {
+      try {
+        const parsedConfig = JSON.parse(savedConfig);
+        setConfigForm(parsedConfig);
+        setSavedCredentialsAvailable(true);
+        setRememberCredentials(true);
+        toast.success(t('login.savedCredentialsLoaded') || 'Saved credentials loaded');
+      } catch (error) {
+        console.error('Failed to load saved credentials:', error);
+        localStorage.removeItem('customTenantConfig');
+      }
+    }
+  }, [t]);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -22,6 +51,66 @@ const MSALLogin = () => {
     } catch (error) {
       console.error('❌ Microsoft login error:', error);
     }
+  };
+
+  const handleAppLogin = async (e) => {
+    e.preventDefault();
+    setIsConfiguring(true);
+    
+    try {
+      // Save credentials if remember option is checked
+      if (rememberCredentials) {
+        localStorage.setItem('customTenantConfig', JSON.stringify({
+          clientId: configForm.clientId,
+          tenantId: configForm.tenantId,
+          clientSecret: configForm.clientSecret
+        }));
+      } else {
+        localStorage.removeItem('customTenantConfig');
+      }
+      
+      // Create MSAL config for custom tenant
+      const msalConfig = {
+        auth: {
+          clientId: configForm.clientId,
+          authority: `https://login.microsoftonline.com/${configForm.tenantId}`,
+          redirectUri: window.location.origin
+        },
+        cache: {
+          cacheLocation: 'localStorage',
+          storeAuthStateInCookie: false
+        }
+      };
+
+      // Initialize MSAL instance
+      const msalInstance = new PublicClientApplication(msalConfig);
+      await msalInstance.initialize();
+
+      // Use client credentials flow (app-only authentication)
+      // Note: Client credentials flow requires backend implementation
+      // For now, we'll use interactive login and store the config
+      const loginRequest = {
+        scopes: ['https://graph.microsoft.com/.default']
+      };
+
+      await msalInstance.loginRedirect(loginRequest);
+      
+      toast.success(t('login.authSuccess') || 'Successfully authenticated');
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('❌ App authentication error:', error);
+      toast.error(error.message || t('login.authFailed') || 'Authentication failed');
+    } finally {
+      setIsConfiguring(false);
+    }
+  };
+
+  const handleClearSavedCredentials = () => {
+    localStorage.removeItem('customTenantConfig');
+    setConfigForm({ clientId: '', tenantId: '', clientSecret: '' });
+    setSavedCredentialsAvailable(false);
+    setRememberCredentials(false);
+    toast.success(t('login.credentialsCleared') || 'Saved credentials cleared');
   };
 
   if (loading) {
@@ -110,130 +199,219 @@ const MSALLogin = () => {
           </div>
         </div>
 
-        {/* Main Login Card */}
-        <div className="max-w-md mx-auto">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-8 text-white relative overflow-hidden">
-            {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full -ml-24 -mb-24"></div>
-            
-            <div className="relative z-10">
-              <div className="flex justify-center mb-4">
-                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 shadow-xl">
-                  <svg className="h-14 w-14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                  </svg>
+        {/* Authentication Section - Side by Side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12 max-w-7xl mx-auto">
+          {/* Microsoft SSO Card */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 p-8 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full -ml-24 -mb-24"></div>
+              
+              <div className="relative z-10">
+                <div className="flex justify-center mb-4">
+                  <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 shadow-xl">
+                    <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
                 </div>
+                <h2 className="text-2xl font-bold text-center mb-2">
+                  {t('login.microsoftSSO') || 'Microsoft SSO'}
+                </h2>
+                <p className="text-blue-50 text-center text-sm">
+                  {t('login.microsoftSSODescription') || 'Sign in with your organization account'}
+                </p>
               </div>
-              <h1 className="text-3xl font-bold text-center mb-2">
-                Welcome Worldwide Admins 🌍
-              </h1>
-              <p className="text-blue-50 text-center text-base mb-1">
-                Employee Life Cycle Portal
-              </p>
-              <p className="text-blue-100 text-center text-sm">
-                Empowering HR teams across the globe
-              </p>
-            </div>
-          </div>
-
-          {/* Sign In Section */}
-          <div className="p-8">
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                Sign In with Microsoft
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                Use your Microsoft 365 account to access the portal
-              </p>
             </div>
 
-            {/* Microsoft Sign In Button */}
-            <button
-              onClick={handleMicrosoftLogin}
-              className="w-full bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl mb-6"
-            >
-              <svg className="w-6 h-6" viewBox="0 0 23 23" fill="none">
-                <path fill="#f3f3f3" d="M0 0h23v23H0z"/>
-                <path fill="#f35325" d="M1 1h10v10H1z"/>
-                <path fill="#81bc06" d="M12 1h10v10H12z"/>
-                <path fill="#05a6f0" d="M1 12h10v10H1z"/>
-                <path fill="#ffba08" d="M12 12h10v10H12z"/>
-              </svg>
-              <span className="text-lg">Sign in with Microsoft</span>
-            </button>
+            {/* Sign In Section */}
+            <div className="p-8">
+              <div className="text-center mb-6">
+                <p className="text-gray-600 dark:text-gray-400">
+                  {t('login.useM365Account') || 'Use your Microsoft 365 account to access the portal'}
+                </p>
+              </div>
 
-            {/* Features */}
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-5 border border-green-100 dark:border-green-800 shadow-sm">
-              <h3 className="text-sm font-semibold text-green-900 dark:text-green-100 mb-4 flex items-center gap-2">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              {/* Microsoft Sign In Button */}
+              <button
+                onClick={handleMicrosoftLogin}
+                disabled={loading}
+                className="w-full bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl mb-6 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg className="w-6 h-6" viewBox="0 0 23 23" fill="none">
+                  <path fill="#f3f3f3" d="M0 0h23v23H0z"/>
+                  <path fill="#f35325" d="M1 1h10v10H1z"/>
+                  <path fill="#81bc06" d="M12 1h10v10H12z"/>
+                  <path fill="#05a6f0" d="M1 12h10v10H1z"/>
+                  <path fill="#ffba08" d="M12 12h10v10H12z"/>
                 </svg>
-                Why Teams Love This Portal
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-r from-green-400 to-green-500 flex items-center justify-center shadow-sm">
-                    <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                <span className="text-lg">{t('login.signInMicrosoft') || 'Sign in with Microsoft'}</span>
+              </button>
+
+              {/* Features */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-5 border border-blue-100 dark:border-blue-800 shadow-sm">
+                <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3">
+                  {t('login.benefits') || 'Benefits'}
+                </h3>
+                <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                  <li className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    {t('login.ssoSecurity') || 'Secure SSO authentication'}
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    {t('login.mfaSupport') || 'MFA support'}
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    {t('login.yourPermissions') || 'Uses your permissions'}
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Custom Tenant Card */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-600 via-violet-600 to-purple-700 p-8 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full -ml-24 -mb-24"></div>
+              
+              <div className="relative z-10">
+                <div className="flex justify-center mb-4">
+                  <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 shadow-xl">
+                    <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                   </div>
-                  <span className="font-medium">🔐 Secure native Microsoft SSO authentication</span>
                 </div>
-                <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-r from-green-400 to-green-500 flex items-center justify-center shadow-sm">
-                    <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <span className="font-medium">🌍 Multi-tenant support for any organization</span>
-                </div>
-                <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-r from-green-400 to-green-500 flex items-center justify-center shadow-sm">
-                    <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <span className="font-medium">👥 Streamlined employee lifecycle management</span>
-                </div>
-                <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-r from-green-400 to-green-500 flex items-center justify-center shadow-sm">
-                    <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <span className="font-medium">⚡ Direct Graph API access with your permissions</span>
-                </div>
+                <h2 className="text-2xl font-bold text-center mb-2">
+                  {t('login.customTenant') || 'Custom Tenant'}
+                </h2>
+                <p className="text-purple-50 text-center text-sm">
+                  {t('login.customTenantDescription') || 'Use your own Azure app credentials'}
+                </p>
               </div>
             </div>
 
-            {/* Security Note */}
-            <div className="mt-6 text-center">
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                🔒 OAuth 2.0 + OpenID Connect • Your credentials stay with Microsoft
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Works with any Azure AD / Microsoft 365 tenant
-              </p>
+            {/* Custom Tenant Form */}
+            <div className="p-8">
+              {savedCredentialsAvailable && (
+                <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <p className="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    {t('login.savedCredentialsLoaded') || 'Saved credentials loaded'}
+                  </p>
+                </div>
+              )}
+
+              <form onSubmit={handleAppLogin} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {t('login.clientId') || 'Client ID'}
+                  </label>
+                  <input
+                    type="text"
+                    value={configForm.clientId}
+                    onChange={(e) => setConfigForm({ ...configForm, clientId: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {t('login.tenantId') || 'Tenant ID'}
+                  </label>
+                  <input
+                    type="text"
+                    value={configForm.tenantId}
+                    onChange={(e) => setConfigForm({ ...configForm, tenantId: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {t('login.clientSecret') || 'Client Secret'}
+                  </label>
+                  <input
+                    type="password"
+                    value={configForm.clientSecret}
+                    onChange={(e) => setConfigForm({ ...configForm, clientSecret: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="••••••••••••••••••••"
+                    required
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={rememberCredentials}
+                      onChange={(e) => setRememberCredentials(e.target.checked)}
+                      className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      {t('login.rememberCredentials') || 'Remember my credentials'}
+                    </span>
+                  </label>
+                  {savedCredentialsAvailable && (
+                    <button
+                      type="button"
+                      onClick={handleClearSavedCredentials}
+                      className="text-sm text-red-600 dark:text-red-400 hover:underline"
+                    >
+                      {t('login.clearSavedCredentials') || 'Clear'}
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isConfiguring}
+                  className="w-full bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isConfiguring ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      {t('login.configuring') || 'Configuring...'}
+                    </span>
+                  ) : (
+                    t('login.signInCustom') || 'Sign in with Custom Tenant'
+                  )}
+                </button>
+              </form>
+
+              {/* Info */}
+              <div className="mt-6 bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4 border border-purple-100 dark:border-purple-800">
+                <h3 className="text-sm font-semibold text-purple-900 dark:text-purple-100 mb-2">
+                  {t('login.customTenantInfo') || 'What is this?'}
+                </h3>
+                <p className="text-xs text-purple-800 dark:text-purple-200">
+                  {t('login.customTenantInfoDescription') || 'Use your own Azure app registration to authenticate with full control over permissions and scopes.'}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* Additional Info */}
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Need help? Check our{' '}
-            <a href="/faq" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
-              FAQ
-            </a>
-            {' '}or{' '}
-            <a href="/help" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
-              Help Center
-            </a>
-          </p>
-        </div>
         </div>
 
         {/* Additional Info Cards */}
