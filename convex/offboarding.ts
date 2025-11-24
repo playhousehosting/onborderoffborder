@@ -2,6 +2,55 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 /**
+ * Convert a date/time in a specific timezone to UTC timestamp
+ * This properly handles timezone conversion by using the IANA timezone
+ */
+function parseInTimezone(dateStr: string, timeStr: string, timezone: string): number {
+  // Create the datetime string in ISO format (YYYY-MM-DDTHH:mm)
+  const localDateTimeString = `${dateStr}T${timeStr}`;
+  
+  // Parse as if it's in the specified timezone by formatting with that timezone
+  // then parsing back. This ensures we get the correct UTC timestamp.
+  const date = new Date(localDateTimeString);
+  
+  // Get the offset for the specified timezone at this date
+  // Format the date in the target timezone and extract the components
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+  
+  // Parse the original datetime components
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const [hour, minute] = timeStr.split(':').map(Number);
+  
+  // Create a date object in UTC with these values
+  const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+  
+  // Get the offset by formatting the UTC date in the target timezone
+  const parts = formatter.formatToParts(utcDate);
+  const tzYear = Number(parts.find(p => p.type === 'year')?.value);
+  const tzMonth = Number(parts.find(p => p.type === 'month')?.value);
+  const tzDay = Number(parts.find(p => p.type === 'day')?.value);
+  const tzHour = Number(parts.find(p => p.type === 'hour')?.value);
+  const tzMinute = Number(parts.find(p => p.type === 'minute')?.value);
+  
+  // Calculate the offset
+  const tzDate = new Date(Date.UTC(tzYear, tzMonth - 1, tzDay, tzHour, tzMinute, 0));
+  const offset = utcDate.getTime() - tzDate.getTime();
+  
+  // Apply the offset to get the correct UTC time for our desired local time
+  const targetDate = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+  return targetDate.getTime() - offset;
+}
+
+/**
  * Validate session and extract tenant context
  */
 async function validateSession(ctx: any, sessionId: string) {
@@ -127,14 +176,11 @@ export const create = mutation({
 
     const now = Date.now();
     
-    // Combine date and time with timezone into a UTC timestamp
-    // Format: YYYY-MM-DDTHH:mm for the datetime string
-    const localDateTimeString = `${args.scheduledDate}T${args.scheduledTime}`;
     const timezone = args.timezone || 'UTC';
     
     // Parse the date in the specified timezone and convert to UTC timestamp
-    const offboardingDateTime = new Date(localDateTimeString);
-    const offboardingTimestamp = offboardingDateTime.getTime();
+    const offboardingTimestamp = parseInTimezone(args.scheduledDate, args.scheduledTime, timezone);
+    const offboardingDateTime = new Date(offboardingTimestamp);
 
     const offboardingId = await ctx.db.insert("scheduled_offboarding", {
       tenantId: session.tenantId,
@@ -246,9 +292,8 @@ export const update = mutation({
       updates.userPrincipalName = args.userEmail;
     }
     if (args.scheduledDate !== undefined && args.scheduledTime !== undefined) {
-      const localDateTimeString = `${args.scheduledDate}T${args.scheduledTime}`;
-      const offboardingDateTime = new Date(localDateTimeString);
-      updates.offboardingDate = offboardingDateTime.getTime();
+      const timezone = args.timezone || record.timezone || 'UTC';
+      updates.offboardingDate = parseInTimezone(args.scheduledDate, args.scheduledTime, timezone);
     }
     if (args.timezone !== undefined) {
       updates.timezone = args.timezone;
