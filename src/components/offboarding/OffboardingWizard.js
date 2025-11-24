@@ -386,11 +386,20 @@ const OffboardingWizard = () => {
             message: `Password has been reset to a random 12-character password. Store securely if needed.`,
           });
         } catch (error) {
-          results.push({
-            action: 'Reset Password',
-            status: 'error',
-            message: error.message,
-          });
+          // Don't show error for expected permission issues
+          if (error.isExpected) {
+            results.push({
+              action: 'Reset Password',
+              status: 'skipped',
+              message: 'Insufficient permissions (requires UserAuthenticationMethod.ReadWrite.All)',
+            });
+          } else {
+            results.push({
+              action: 'Reset Password',
+              status: 'error',
+              message: error.message,
+            });
+          }
         }
       } else {
         results.push({
@@ -557,8 +566,11 @@ const OffboardingWizard = () => {
                 await msalGraphService.removeUserFromGroup(group.id, selectedUser.id);
                 removedCount++;
               } catch (error) {
-                failedCount++;
-                logger.warn(`Failed to remove from group ${group.displayName}:`, error);
+                // Don't log or count expected errors (mail-enabled, on-prem synced groups)
+                if (!error.isExpected) {
+                  failedCount++;
+                  logger.warn(`Failed to remove from group ${group.displayName}:`, error);
+                }
               }
             }
             

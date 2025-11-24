@@ -77,18 +77,33 @@ class MSALGraphService {
                                    cleanEndpoint.includes('/manager');
         const isExpectedError = (response.status === 403 || response.status === 404) && isOptionalEndpoint;
         
-        // EntitlementGrant errors are expected for certain enterprise apps (Graph API limitation)
-        const isEntitlementGrantError = response.status === 400 && 
-                                       errorData.message?.includes('EntitlementGrant');
+        // Password reset 403 is expected if app lacks UserAuthenticationMethod.ReadWrite.All permission
+        const isPasswordResetPermissionError = response.status === 403 && 
+                                               options.method === 'PATCH' &&
+                                               cleanEndpoint.match(/^\/users\/[^/]+$/) &&
+                                               errorData.message?.includes('Insufficient privileges');
         
-        if (isExpectedError) {
-          // Silently return null for optional features without permissions
-          return null;
-        }
+        // Group removal 400 errors for mail-enabled security groups and on-prem synced groups
+        const isGroupRemovalRestriction = response.status === 400 && 
+                                         options.method === 'DELETE' &&
+                                         cleanEndpoint.includes('/groups/') &&
+                                         cleanEndpoint.includes('/members/') &&
+                                         (errorData.message?.includes('mail-enabled security') ||
+                                          errorData.message?.includes('distribution list') ||
+                                          errorData.message?.includes('on-premises mastered') ||
+                                          errorData.message?.includes('Directory Sync'));
         
-        if (isEntitlementGrantError) {
-          // Silently fail for apps that don't support removal via API
-          const error = new Error(errorData.message);
+        // EntitlementGrant and app role assignment errors (Graph API limitations)
+        const isAppRoleRemovalError = response.status === 400 && 
+                                     options.method === 'DELETE' &&
+                                     cleanEndpoint.includes('/appRoleAssignments/') &&
+                                     (errorData.message?.includes('EntitlementGrant') ||
+                                      errorData.message?.includes('Permission grants') ||
+                                      errorData.message?.includes('does not exist or one of its queried reference-property objects are not present'));
+        
+        if (isExpectedError || isPasswordResetPermissionError || isGroupRemovalRestriction || isAppRoleRemovalError) {
+          // Silently fail for expected errors and return null or throw expected error
+          const error = new Error(errorData.message || 'Expected API limitation');
           error.isExpected = true;
           throw error;
         }
