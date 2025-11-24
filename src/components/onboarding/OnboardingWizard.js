@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import msalGraphService from '../../services/msalGraphService';
-import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
+import { graphService } from '../../services/graphService';
+import { useMSALAuth } from '../../contexts/MSALAuthContext';
+import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
 import { getGroupsForDepartment, hasMappedGroups } from '../../utils/departmentMappings';
 import { logger } from '../../utils/logger';
 import { apiConfig } from '../../config/apiConfig';
@@ -28,15 +30,26 @@ import {
 const OnboardingWizard = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { hasPermission, getAccessToken } = useAuth();
+  const msalAuth = useMSALAuth();
+  const convexAuth = useConvexAuth();
   const convex = useConvex();
   
-  // Initialize MSAL graph service with token function
+  // Determine which auth is active
+  const isConvexAuth = convexAuth.isAuthenticated;
+  const isMSALAuth = msalAuth.isAuthenticated;
+  const hasPermission = (permission) => {
+    return isConvexAuth ? convexAuth.hasPermission(permission) : msalAuth.hasPermission(permission);
+  };
+  
+  // Initialize MSAL graph service only when using MSAL auth
   useEffect(() => {
-    if (getAccessToken) {
-      msalGraphService.setGetTokenFunction(getAccessToken);
+    if (isMSALAuth && msalAuth.getAccessToken) {
+      service.setGetTokenFunction(msalAuth.getAccessToken);
     }
-  }, [getAccessToken]);
+  }, [isMSALAuth, msalAuth.getAccessToken]);
+  
+  // Select appropriate Graph service based on auth mode
+  const service = isConvexAuth ? graphService : msalGraphService;
   
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -151,7 +164,7 @@ const OnboardingWizard = () => {
       // Fetch groups
       let groupsData = { value: [] };
       try {
-        groupsData = await msalGraphService.getAllGroups();
+        groupsData = await service.getAllGroups();
         console.log(`✅ Loaded ${groupsData.value?.length || 0} groups`);
       } catch (groupError) {
         console.error('❌ Error fetching groups:', groupError);
@@ -161,7 +174,7 @@ const OnboardingWizard = () => {
       // Fetch licenses
       let licensesData = { value: [] };
       try {
-        licensesData = await msalGraphService.getAvailableLicenses();
+        licensesData = await service.getAvailableLicenses();
         logger.success(`✅ Loaded ${licensesData.value?.length || 0} licenses`);
       } catch (licenseError) {
         logger.error('❌ Error fetching licenses:', licenseError);
@@ -179,7 +192,7 @@ const OnboardingWizard = () => {
   const fetchUser = async (id) => {
     try {
       setLoading(true);
-      const userData = await msalGraphService.getUserById(id);
+      const userData = await service.getUserById(id);
       setSelectedUser(userData);
     } catch (error) {
       console.error('Error fetching user:', error);
@@ -198,7 +211,7 @@ const OnboardingWizard = () => {
     
     try {
       setCopyingGroups(true);
-      const results = await msalGraphService.searchUsers(term);
+      const results = await service.searchUsers(term);
       setCopyUserSearchResults(results.value || []);
     } catch (error) {
       console.error('Error searching users:', error);
@@ -215,7 +228,7 @@ const OnboardingWizard = () => {
       setSelectedCopyUser(user);
       
       console.log(`📋 Copying groups from ${user.displayName}...`);
-      const userGroups = await msalGraphService.getUserGroups(user.id);
+      const userGroups = await service.getUserGroups(user.id);
       
       if (userGroups.value && userGroups.value.length > 0) {
         const groupIds = userGroups.value.map(g => g.id);
@@ -238,7 +251,7 @@ const OnboardingWizard = () => {
     
     try {
       setSearching(true);
-      const results = await msalGraphService.searchUsers(searchTerm);
+      const results = await service.searchUsers(searchTerm);
       setSearchResults(results.value || []);
     } catch (error) {
       console.error('Error searching users:', error);
@@ -420,9 +433,9 @@ const OnboardingWizard = () => {
       if (onboardingOptions.enableAccount) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Enabling account and setting password...', currentStep: prev.currentStep + 1 }));
         try {
-          await msalGraphService.enableUser(selectedUser.id);
+          await service.enableUser(selectedUser.id);
           if (onboardingOptions.setPassword) {
-            await msalGraphService.setUserPassword(
+            await service.setUserPassword(
               selectedUser.id,
               onboardingOptions.temporaryPassword,
               onboardingOptions.requirePasswordChange
@@ -445,7 +458,7 @@ const OnboardingWizard = () => {
       // 2. Update user information
       setExecutionProgress(prev => ({ ...prev, currentTask: 'Updating user information...', currentStep: prev.currentStep + 1 }));
       try {
-        await msalGraphService.updateUser(selectedUser.id, {
+        await service.updateUser(selectedUser.id, {
           department: onboardingOptions.department,
           jobTitle: onboardingOptions.jobTitle,
           officeLocation: onboardingOptions.officeLocation,
@@ -468,7 +481,7 @@ const OnboardingWizard = () => {
       if (onboardingOptions.assignLicenses && onboardingOptions.selectedLicenses.length > 0) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Assigning licenses...', currentStep: prev.currentStep + 1 }));
         try {
-          await msalGraphService.assignLicenses(selectedUser.id, onboardingOptions.selectedLicenses);
+          await service.assignLicenses(selectedUser.id, onboardingOptions.selectedLicenses);
           results.push({
             action: 'License Assignment',
             status: 'success',
@@ -489,7 +502,7 @@ const OnboardingWizard = () => {
         try {
           let addedCount = 0;
           for (const groupId of onboardingOptions.selectedGroups) {
-            await msalGraphService.addUserToGroup(groupId, selectedUser.id);
+            await service.addUserToGroup(groupId, selectedUser.id);
             addedCount++;
           }
           results.push({
@@ -511,7 +524,7 @@ const OnboardingWizard = () => {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Setting up email...', currentStep: prev.currentStep + 1 }));
         try {
           if (onboardingOptions.emailAlias) {
-            await msalGraphService.setEmailAlias(selectedUser.id, onboardingOptions.emailAlias);
+            await service.setEmailAlias(selectedUser.id, onboardingOptions.emailAlias);
           }
           results.push({
             action: 'Email Setup',
@@ -531,7 +544,7 @@ const OnboardingWizard = () => {
       if (onboardingOptions.shareWelcomeKit) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Sending welcome email...', currentStep: prev.currentStep + 1 }));
         try {
-          await msalGraphService.sendWelcomeEmail(
+          await service.sendWelcomeEmail(
             selectedUser.id,
             onboardingOptions.welcomeMessage || 'Welcome to the team!',
             onboardingOptions.managerEmail
@@ -554,7 +567,7 @@ const OnboardingWizard = () => {
       if (onboardingOptions.scheduleTraining && onboardingOptions.trainingDate) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Scheduling training...', currentStep: prev.currentStep + 1 }));
         try {
-          await msalGraphService.scheduleTraining(
+          await service.scheduleTraining(
             selectedUser.id,
             onboardingOptions.trainingDate,
             onboardingOptions.managerEmail
@@ -1543,3 +1556,5 @@ const OnboardingWizard = () => {
 };
 
 export default OnboardingWizard;
+
+
