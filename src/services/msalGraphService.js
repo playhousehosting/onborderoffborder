@@ -229,11 +229,32 @@ class MSALGraphService {
   }
 
   /**
-   * Get user's groups
+   * Get user's groups (including distribution lists and security groups)
    */
   async getUserGroups(userId) {
-    const response = await this.makeRequest(`/users/${userId}/memberOf`);
-    return response.value || [];
+    try {
+      const response = await this.makeRequest(`/users/${userId}/memberOf/microsoft.graph.group?$select=id,displayName,groupTypes,mailEnabled,securityEnabled,mail`);
+      const allGroups = response.value || [];
+      
+      // Filter out dynamic groups (cannot manually remove members)
+      const nonDynamicGroups = [];
+      for (const group of allGroups) {
+        const groupTypes = group.groupTypes || [];
+        
+        // Skip dynamic membership groups
+        if (!groupTypes.includes('DynamicMembership')) {
+          nonDynamicGroups.push(group);
+        }
+      }
+      
+      return {
+        value: nonDynamicGroups,
+        total: nonDynamicGroups.length
+      };
+    } catch (error) {
+      console.error('Error fetching user groups:', error);
+      throw error;
+    }
   }
 
   /**
