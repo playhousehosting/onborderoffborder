@@ -1,6 +1,11 @@
 import jsPDF from 'jspdf';
-// Import autoTable - this extends jsPDF prototype automatically
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
+
+// Ensure autoTable is attached to jsPDF prototype
+if (typeof jsPDF.API.autoTable !== 'function') {
+  // If not automatically attached, we'll use the function directly
+  console.log('📄 jspdf-autotable: using direct function call');
+}
 
 /**
  * Export offboarding results to a comprehensive PDF report
@@ -22,6 +27,15 @@ export const exportOffboardingResultsToPDF = ({
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   let yPosition = 20;
+
+  // Helper to call autoTable - works whether it's on prototype or imported
+  const callAutoTable = (options) => {
+    if (typeof doc.autoTable === 'function') {
+      doc.autoTable(options);
+    } else {
+      autoTable(doc, options);
+    }
+  };
 
   // Helper function to add new page if needed
   const checkAddPage = (requiredSpace = 20) => {
@@ -83,7 +97,7 @@ export const exportOffboardingResultsToPDF = ({
     ['Department', user.department || 'N/A'],
   ];
 
-  doc.autoTable({
+  callAutoTable({
     startY: yPosition,
     head: [['Field', 'Value']],
     body: employeeInfo,
@@ -141,7 +155,7 @@ export const exportOffboardingResultsToPDF = ({
     ['Success Rate', `${successRate}%`],
   ];
 
-  doc.autoTable({
+  callAutoTable({
     startY: yPosition,
     body: summaryData,
     theme: 'plain',
@@ -175,7 +189,7 @@ export const exportOffboardingResultsToPDF = ({
     ['Retire Devices', options.retireDevices ? 'Yes' : 'No'],
   ];
 
-  doc.autoTable({
+  callAutoTable({
     startY: yPosition,
     head: [['Action', 'Configured']],
     body: configData,
@@ -211,7 +225,7 @@ export const exportOffboardingResultsToPDF = ({
       r.message || 'Completed successfully',
     ]);
 
-    doc.autoTable({
+    callAutoTable({
       startY: yPosition,
       head: [['Task', 'Result']],
       body: successData,
@@ -244,7 +258,7 @@ export const exportOffboardingResultsToPDF = ({
       r.message || 'Task failed',
     ]);
 
-    doc.autoTable({
+    callAutoTable({
       startY: yPosition,
       head: [['Task', 'Error Message']],
       body: errorData,
@@ -277,7 +291,7 @@ export const exportOffboardingResultsToPDF = ({
       r.message || 'Not selected',
     ]);
 
-    doc.autoTable({
+    callAutoTable({
       startY: yPosition,
       head: [['Task', 'Reason']],
       body: skippedData,
