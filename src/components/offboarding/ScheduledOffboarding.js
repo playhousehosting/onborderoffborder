@@ -710,8 +710,30 @@ const ScheduledOffboarding = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  const formatDateTime = (dateString, timeString) => {
-    return new Date(`${dateString}T${timeString}`).toLocaleString();
+  const formatDateTime = (dateString, timeString, timezone) => {
+    // Display the scheduled date/time as stored (in the specified timezone)
+    // The dateString is YYYY-MM-DD and timeString is HH:MM in the specified timezone
+    // We want to display it exactly as scheduled, not converted to local time
+    try {
+      // Parse the date and time components
+      const [year, month, day] = dateString.split('-').map(Number);
+      const [hours, minutes] = timeString.split(':').map(Number);
+      
+      // Format as a readable date/time string
+      const date = new Date(year, month - 1, day, hours, minutes);
+      
+      // Format with explicit options to show the scheduled time
+      return date.toLocaleString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (e) {
+      return `${dateString} ${timeString}`;
+    }
   };
 
   const getStatusBadge = (status) => {
@@ -1166,7 +1188,7 @@ const ScheduledOffboarding = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {formatDateTime(schedule.scheduledDate, schedule.scheduledTime)}
+                            {formatDateTime(schedule.scheduledDate, schedule.scheduledTime, schedule.timezone)}
                           </div>
                           <div className="text-xs text-gray-500">
                             {schedule.timezone}
