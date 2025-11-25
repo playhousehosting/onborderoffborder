@@ -71,41 +71,57 @@ class MSALGraphService {
           errorData = { message: errorText };
         }
         
+        // Extract the actual error message from various response formats
+        const errorMessage = errorData.error?.message || 
+                            errorData.message || 
+                            errorData.details?.error?.message ||
+                            errorText;
+        
         // For optional endpoints, 403/404 is expected if permissions aren't granted or resource doesn't exist
         const isOptionalEndpoint = cleanEndpoint.includes('/authentication/') || 
                                    cleanEndpoint.includes('/presence') || 
                                    cleanEndpoint.includes('/auditLogs/') ||
-                                   cleanEndpoint.includes('/manager');
-        const isExpectedError = (response.status === 403 || response.status === 404) && isOptionalEndpoint;
+                                   cleanEndpoint.includes('/manager') ||
+                                   cleanEndpoint.includes('/appRoleAssignments');
+        
+        // 403 Forbidden - permission not granted (handle silently for optional endpoints)
+        const isPermissionError = response.status === 403;
+        
+        // 404 Not Found - resource doesn't exist
+        const isNotFoundError = response.status === 404;
+        
+        const isExpectedError = (isPermissionError || isNotFoundError) && isOptionalEndpoint;
         
         // Password reset 403 is expected if app lacks UserAuthenticationMethod.ReadWrite.All permission
         const isPasswordResetPermissionError = response.status === 403 && 
                                                options.method === 'PATCH' &&
                                                cleanEndpoint.match(/^\/users\/[^/]+$/) &&
-                                               errorData.message?.includes('Insufficient privileges');
+                                               errorMessage?.includes('Insufficient privileges');
         
         // Group removal 400 errors for mail-enabled security groups and on-prem synced groups
         const isGroupRemovalRestriction = response.status === 400 && 
                                          options.method === 'DELETE' &&
                                          cleanEndpoint.includes('/groups/') &&
                                          cleanEndpoint.includes('/members/') &&
-                                         (errorData.message?.includes('mail-enabled security') ||
-                                          errorData.message?.includes('distribution list') ||
-                                          errorData.message?.includes('on-premises mastered') ||
-                                          errorData.message?.includes('Directory Sync'));
+                                         (errorMessage?.includes('mail-enabled security') ||
+                                          errorMessage?.includes('distribution list') ||
+                                          errorMessage?.includes('on-premises mastered') ||
+                                          errorMessage?.includes('Directory Sync'));
         
         // EntitlementGrant and app role assignment errors (Graph API limitations)
         const isAppRoleRemovalError = response.status === 400 && 
                                      options.method === 'DELETE' &&
                                      cleanEndpoint.includes('/appRoleAssignments/') &&
-                                     (errorData.message?.includes('EntitlementGrant') ||
-                                      errorData.message?.includes('Permission grants') ||
-                                      errorData.message?.includes('does not exist or one of its queried reference-property objects are not present'));
+                                     (errorMessage?.includes('EntitlementGrant') ||
+                                      errorMessage?.includes('Permission grants') ||
+                                      errorMessage?.includes('does not exist') ||
+                                      errorMessage?.includes('not present'));
         
         if (isExpectedError || isPasswordResetPermissionError || isGroupRemovalRestriction || isAppRoleRemovalError) {
           // Silently fail for expected errors and return null or throw expected error
-          const error = new Error(errorData.message || 'Expected API limitation');
+          const error = new Error(errorMessage || 'Expected API limitation');
           error.isExpected = true;
+          error.statusCode = response.status;
           throw error;
         }
         
@@ -113,12 +129,12 @@ class MSALGraphService {
         
         // Check for OAuth requirement (shouldn't happen with MSAL, but keep for compatibility)
         if (errorData.requiresOAuth) {
-          const error = new Error(errorData.message || 'Microsoft authorization required');
+          const error = new Error(errorMessage || 'Microsoft authorization required');
           error.requiresOAuth = true;
           throw error;
         }
         
-        throw new Error(errorData.message || `Request failed: ${response.status}`);
+        throw new Error(errorMessage || `Request failed: ${response.status}`);
       }
 
       // Handle empty responses (204 No Content or empty body)
@@ -890,30 +906,48 @@ class MSALGraphService {
 
   /**
    * Remove user from enterprise app
+   * Note: Requires AppRoleAssignment.ReadWrite.All permission
    */
   async removeUserFromEnterpriseApp(userId, appRoleAssignmentId) {
-    return await this.makeRequest(`/users/${userId}/appRoleAssignments/${appRoleAssignmentId}`, {
-      method: 'DELETE',
-    });
+    try {
+      return await this.makeRequest(`/users/${userId}/appRoleAssignments/${appRoleAssignmentId}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      // Handle common errors gracefully
+      if (error.message?.includes('400') || error.message?.includes('Bad Request')) {
+        console.warn(`⚠️ Could not remove app role assignment ${appRoleAssignmentId} - may already be removed or invalid`);
+        return { success: false, skipped: true, reason: 'Assignment may already be removed or is invalid' };
+      }
+      // Handle 403 Forbidden - missing permissions
+      if (error.isExpected || error.isPermissionError || 
+          error.message?.includes('403') || error.message?.includes('Authorization') || error.message?.includes('Forbidden')) {
+        console.warn(`⚠️ Missing permission to remove app role assignment. Required: AppRoleAssignment.ReadWrite.All`);
+        return { success: false, skipped: true, reason: 'Missing permission: AppRoleAssignment.ReadWrite.All' };
+      }
+      throw error;
+    }
   }
 
   /**
    * Get user's authentication methods
+   * Note: Requires UserAuthenticationMethod.Read.All or UserAuthenticationMethod.ReadWrite.All permission
    */
   async getUserAuthenticationMethods(userId) {
-    try {
-      const methods = [];
+    const methods = [];
 
-      const methodTypes = [
-        { type: 'phone', endpoint: 'phoneMethods', labelFn: m => `Phone: ${m.phoneNumber || 'Unknown'}` },
-        { type: 'email', endpoint: 'emailMethods', labelFn: m => `Email: ${m.emailAddress || 'Unknown'}` },
-        { type: 'fido2', endpoint: 'fido2Methods', labelFn: m => `FIDO2 Key: ${m.displayName || m.model || 'Unknown'}` },
-        { type: 'microsoftAuthenticator', endpoint: 'microsoftAuthenticatorMethods', labelFn: m => `Microsoft Authenticator: ${m.displayName || m.phoneAppVersion || 'Unknown'}` },
-        { type: 'windowsHelloForBusiness', endpoint: 'windowsHelloForBusinessMethods', labelFn: m => `Windows Hello: ${m.displayName || 'Unknown'}` },
-      ];
+    const methodTypes = [
+      { type: 'phone', endpoint: 'phoneMethods', labelFn: m => `Phone: ${m.phoneNumber || 'Unknown'}` },
+      { type: 'email', endpoint: 'emailMethods', labelFn: m => `Email: ${m.emailAddress || 'Unknown'}` },
+      { type: 'fido2', endpoint: 'fido2Methods', labelFn: m => `FIDO2 Key: ${m.displayName || m.model || 'Unknown'}` },
+      { type: 'microsoftAuthenticator', endpoint: 'microsoftAuthenticatorMethods', labelFn: m => `Microsoft Authenticator: ${m.displayName || m.phoneAppVersion || 'Unknown'}` },
+      { type: 'windowsHelloForBusiness', endpoint: 'windowsHelloForBusinessMethods', labelFn: m => `Windows Hello: ${m.displayName || 'Unknown'}` },
+    ];
 
-      for (const methodType of methodTypes) {
-        // makeRequest returns null for optional endpoints without permissions (no error thrown)
+    let permissionDenied = false;
+
+    for (const methodType of methodTypes) {
+      try {
         const data = await this.makeRequest(`/users/${userId}/authentication/${methodType.endpoint}`);
         if (data && data.value) {
           methods.push(...data.value.map(method => ({
@@ -922,20 +956,32 @@ class MSALGraphService {
             displayName: methodType.labelFn(method)
           })));
         }
+      } catch (error) {
+        // Handle 403 Forbidden - missing permissions
+        if (error.message?.includes('403') || error.message?.includes('Authorization') || error.message?.includes('Forbidden')) {
+          if (!permissionDenied) {
+            console.warn(`⚠️ Missing permission to read authentication methods. Required: UserAuthenticationMethod.Read.All`);
+            permissionDenied = true;
+          }
+          // Continue to try other method types - some might work
+          continue;
+        }
+        // For other errors, log but continue
+        console.warn(`⚠️ Could not fetch ${methodType.type} methods:`, error.message);
       }
-
-      return {
-        value: methods,
-        total: methods.length
-      };
-    } catch (error) {
-      console.error('Error fetching user authentication methods:', error);
-      throw error;
     }
+
+    return {
+      value: methods,
+      total: methods.length,
+      permissionDenied,
+      message: permissionDenied ? 'Some authentication methods could not be retrieved due to missing permissions' : null
+    };
   }
 
   /**
    * Remove authentication method
+   * Note: Requires UserAuthenticationMethod.ReadWrite.All permission
    */
   async removeAuthenticationMethod(userId, methodId, methodType) {
     const endpoints = {
@@ -951,9 +997,19 @@ class MSALGraphService {
       throw new Error(`Unsupported authentication method type: ${methodType}`);
     }
 
-    return await this.makeRequest(`/users/${userId}/authentication/${endpoint}/${methodId}`, {
-      method: 'DELETE',
-    });
+    try {
+      return await this.makeRequest(`/users/${userId}/authentication/${endpoint}/${methodId}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      // Handle 403 Forbidden - missing permissions
+      if (error.isExpected || error.isPermissionError || 
+          error.message?.includes('403') || error.message?.includes('Authorization') || error.message?.includes('Forbidden')) {
+        console.warn(`⚠️ Missing permission to remove ${methodType} authentication method. Required: UserAuthenticationMethod.ReadWrite.All`);
+        return { success: false, skipped: true, reason: 'Missing permission: UserAuthenticationMethod.ReadWrite.All' };
+      }
+      throw error;
+    }
   }
 
   /**
