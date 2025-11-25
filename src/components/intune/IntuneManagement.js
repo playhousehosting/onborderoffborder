@@ -74,6 +74,7 @@ import {
   Analytics as AnalyticsIcon,
   VpnKey as RegistryIcon,
   Code as ScriptIcon,
+  Security as SecurityIcon,
 } from '@mui/icons-material';
 
 import intuneService from '../../services/intuneService';
