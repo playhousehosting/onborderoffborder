@@ -97,6 +97,15 @@ export class GraphService {
   }
 
   /**
+   * Stub method for compatibility with msalGraphService interface
+   * graphService uses Convex app-only tokens, so this is a no-op
+   */
+  setGetTokenFunction(fn) {
+    // No-op: graphService uses Convex app-only tokens, not MSAL delegated tokens
+    console.log('⚠️ graphService.setGetTokenFunction called - this is a no-op for app-only auth');
+  }
+
+  /**
    * Categorize and handle Graph API errors with actionable information
    * @param {Error} error - The error object
    * @param {string} operation - Description of the operation that failed

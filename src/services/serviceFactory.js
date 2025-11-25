@@ -19,6 +19,8 @@ let _authMode = null;
  */
 export function setActiveService(mode, msalAuth = null) {
   _authMode = mode;
+  // Persist to localStorage so it survives page refreshes
+  localStorage.setItem('graphServiceAuthMode', mode);
   
   if (mode === 'msal') {
     if (msalAuth && msalAuth.getAccessToken) {
@@ -28,6 +30,8 @@ export function setActiveService(mode, msalAuth = null) {
   } else {
     _activeService = graphService;
   }
+  
+  console.log(`🔧 ServiceFactory: Active service set to ${mode}`);
 }
 
 /**
@@ -35,9 +39,22 @@ export function setActiveService(mode, msalAuth = null) {
  * @returns {object} The active graph service
  */
 export function getActiveService() {
+  // If no active service, check localStorage for persisted auth mode
   if (!_activeService) {
-    console.warn('No active service set, defaulting to graphService');
-    return graphService;
+    const persistedMode = localStorage.getItem('graphServiceAuthMode');
+    if (persistedMode === 'msal') {
+      _authMode = 'msal';
+      _activeService = msalGraphService;
+      console.log('🔧 ServiceFactory: Restored MSAL service from localStorage');
+    } else if (persistedMode === 'convex') {
+      _authMode = 'convex';
+      _activeService = graphService;
+      console.log('🔧 ServiceFactory: Restored Convex service from localStorage');
+    } else {
+      // Default to graphService but log warning
+      console.warn('🔧 ServiceFactory: No auth mode set, defaulting to graphService');
+      return graphService;
+    }
   }
   return _activeService;
 }
@@ -47,6 +64,10 @@ export function getActiveService() {
  * @returns {string} 'msal' or 'convex'
  */
 export function getAuthMode() {
+  // Check localStorage if not set in memory
+  if (!_authMode) {
+    _authMode = localStorage.getItem('graphServiceAuthMode');
+  }
   return _authMode;
 }
 
