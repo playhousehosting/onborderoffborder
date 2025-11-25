@@ -30,6 +30,31 @@ import {
   DocumentArrowDownIcon,
 } from '@heroicons/react/24/outline';
 
+// Helper function to generate a temporary password
+const generateTempPassword = () => {
+  const length = 16;
+  const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const numbers = '0123456789';
+  const symbols = '!@#$%^&*';
+  const allChars = lowercase + uppercase + numbers + symbols;
+  
+  // Ensure at least one of each required type
+  let password = 
+    lowercase[Math.floor(Math.random() * lowercase.length)] +
+    uppercase[Math.floor(Math.random() * uppercase.length)] +
+    numbers[Math.floor(Math.random() * numbers.length)] +
+    symbols[Math.floor(Math.random() * symbols.length)];
+  
+  // Fill the rest randomly
+  for (let i = password.length; i < length; i++) {
+    password += allChars[Math.floor(Math.random() * allChars.length)];
+  }
+  
+  // Shuffle the password
+  return password.split('').sort(() => Math.random() - 0.5).join('');
+};
+
 const OnboardingWizard = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
@@ -497,20 +522,81 @@ const OnboardingWizard = () => {
         }
       }
 
-      // If no selected user and not creating in on-prem AD, user should be searched/selected first
-      if (!selectedUser) {
-        toast.error('Please select a user to onboard');
+      // Create user in Azure AD (cloud-only) if in create mode and not on-prem
+      if (!selectedUser && onboardingMode === 'create' && !newUserInfo.createInOnPremAD) {
+        setExecutionProgress(prev => ({ ...prev, currentTask: 'Creating user in Azure AD...', currentStep: prev.currentStep + 1 }));
+        try {
+          const newUser = await service.createUser({
+            accountEnabled: onboardingOptions.enableAccount !== false,
+            displayName: newUserInfo.displayName,
+            givenName: newUserInfo.firstName,
+            surname: newUserInfo.lastName,
+            mailNickname: newUserInfo.mailNickname || newUserInfo.firstName.toLowerCase(),
+            userPrincipalName: newUserInfo.userPrincipalName,
+            passwordProfile: {
+              forceChangePasswordNextSignIn: onboardingOptions.requirePasswordChange !== false,
+              password: onboardingOptions.temporaryPassword || generateTempPassword(),
+            },
+            department: onboardingOptions.department || undefined,
+            jobTitle: onboardingOptions.jobTitle || undefined,
+            officeLocation: onboardingOptions.officeLocation || undefined,
+            businessPhones: onboardingOptions.businessPhone ? [onboardingOptions.businessPhone] : undefined,
+          });
+
+          createdUserId = newUser.id;
+          
+          results.push({
+            action: 'Create Azure AD User',
+            status: 'success',
+            message: `User ${newUser.displayName} created successfully in Azure AD`,
+            details: newUser,
+          });
+
+          // Use the newly created user for subsequent operations
+          // Create a user object similar to selectedUser
+          const createdUserObj = {
+            id: newUser.id,
+            displayName: newUser.displayName,
+            userPrincipalName: newUser.userPrincipalName,
+            mail: newUser.mail,
+          };
+          
+          // Continue with the rest of onboarding using this user
+          // Update selectedUser reference for subsequent operations
+          setSelectedUser(createdUserObj);
+
+        } catch (error) {
+          results.push({
+            action: 'Create Azure AD User',
+            status: 'error',
+            message: error.message || 'Failed to create user in Azure AD',
+          });
+          setExecutionResults(results);
+          setCurrentStep(4);
+          setIsExecuting(false);
+          toast.error('Failed to create user in Azure AD');
+          return;
+        }
+      }
+
+      // If still no user ID at this point, we can't proceed
+      if (!createdUserId && !selectedUser?.id) {
+        toast.error('Please select a user to onboard or fill in new user details');
         setIsExecuting(false);
         return;
       }
-      // 1. Enable account and set password
-      if (onboardingOptions.enableAccount) {
+
+      // Use createdUserId if we just created a user, otherwise use selectedUser.id
+      const targetUserId = createdUserId || selectedUser?.id;
+
+      // 1. Enable account and set password (skip if we just created the user with these settings)
+      if (onboardingOptions.enableAccount && selectedUser?.id && !createdUserId) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Enabling account and setting password...', currentStep: prev.currentStep + 1 }));
         try {
-          await service.enableUser(selectedUser.id);
+          await service.enableUser(targetUserId);
           if (onboardingOptions.setPassword) {
             await service.setUserPassword(
-              selectedUser.id,
+              targetUserId,
               onboardingOptions.temporaryPassword,
               onboardingOptions.requirePasswordChange
             );
@@ -529,10 +615,11 @@ const OnboardingWizard = () => {
         }
       }
 
-      // 2. Update user information
-      setExecutionProgress(prev => ({ ...prev, currentTask: 'Updating user information...', currentStep: prev.currentStep + 1 }));
-      try {
-        await service.updateUser(selectedUser.id, {
+      // 2. Update user information (skip if we just created the user with this info)
+      if (selectedUser?.id || !createdUserId) {
+        setExecutionProgress(prev => ({ ...prev, currentTask: 'Updating user information...', currentStep: prev.currentStep + 1 }));
+        try {
+          await service.updateUser(targetUserId, {
           department: onboardingOptions.department,
           jobTitle: onboardingOptions.jobTitle,
           officeLocation: onboardingOptions.officeLocation,
@@ -549,13 +636,14 @@ const OnboardingWizard = () => {
           status: 'error',
           message: error.message,
         });
+        }
       }
 
       // 3. Assign licenses
       if (onboardingOptions.assignLicenses && onboardingOptions.selectedLicenses.length > 0) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Assigning licenses...', currentStep: prev.currentStep + 1 }));
         try {
-          await service.assignLicenses(selectedUser.id, onboardingOptions.selectedLicenses);
+          await service.assignLicenses(targetUserId, onboardingOptions.selectedLicenses);
           results.push({
             action: 'License Assignment',
             status: 'success',
@@ -576,7 +664,7 @@ const OnboardingWizard = () => {
         try {
           let addedCount = 0;
           for (const groupId of onboardingOptions.selectedGroups) {
-            await service.addUserToGroup(groupId, selectedUser.id);
+            await service.addUserToGroup(groupId, targetUserId);
             addedCount++;
           }
           results.push({
@@ -598,7 +686,7 @@ const OnboardingWizard = () => {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Setting up email...', currentStep: prev.currentStep + 1 }));
         try {
           if (onboardingOptions.emailAlias) {
-            await service.setEmailAlias(selectedUser.id, onboardingOptions.emailAlias);
+            await service.setEmailAlias(targetUserId, onboardingOptions.emailAlias);
           }
           results.push({
             action: 'Email Setup',
@@ -619,7 +707,7 @@ const OnboardingWizard = () => {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Sending welcome email...', currentStep: prev.currentStep + 1 }));
         try {
           await service.sendWelcomeEmail(
-            selectedUser.id,
+            targetUserId,
             onboardingOptions.welcomeMessage || 'Welcome to the team!',
             onboardingOptions.managerEmail
           );
@@ -642,7 +730,7 @@ const OnboardingWizard = () => {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Scheduling training...', currentStep: prev.currentStep + 1 }));
         try {
           await service.scheduleTraining(
-            selectedUser.id,
+            targetUserId,
             onboardingOptions.trainingDate,
             onboardingOptions.managerEmail
           );
@@ -1697,96 +1785,125 @@ const OnboardingWizard = () => {
           <div>
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Onboarding Results</h3>
             
-            {/* Summary Banner */}
-            <div className={`mb-6 p-4 rounded-lg ${
-              errorCount === 0 
-                ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' 
-                : 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800'
-            }`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {errorCount === 0 ? (
-                    <CheckCircleIcon className="h-8 w-8 text-green-500" />
-                  ) : (
-                    <ExclamationTriangleIcon className="h-8 w-8 text-yellow-500" />
-                  )}
-                  <div>
-                    <h4 className={`font-semibold ${errorCount === 0 ? 'text-green-800 dark:text-green-200' : 'text-yellow-800 dark:text-yellow-200'}`}>
-                      {errorCount === 0 ? 'Onboarding Completed Successfully!' : 'Onboarding Completed with Issues'}
-                    </h4>
-                    <p className={`text-sm ${errorCount === 0 ? 'text-green-700 dark:text-green-300' : 'text-yellow-700 dark:text-yellow-300'}`}>
-                      {successCount} of {executionResults.length} tasks completed successfully
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={handleExportPDF}
-                  className="btn btn-secondary flex items-center gap-2"
-                >
-                  <DocumentArrowDownIcon className="h-5 w-5" />
-                  Export PDF Report
-                </button>
-              </div>
-            </div>
-            
-            <div className="card">
-              <div className="card-body">
-                <div className="space-y-4">
-                  {executionResults.map((result, index) => (
-                    <div
-                      key={index}
-                      className={`p-4 rounded-lg border ${
-                        result.status === 'success'
-                          ? 'bg-success-50 dark:bg-success-900/20 border-success-200 dark:border-success-800'
-                          : 'bg-danger-50 dark:bg-danger-900/20 border-danger-200 dark:border-danger-800'
-                      }`}
+            {/* Handle empty results */}
+            {executionResults.length === 0 ? (
+              <div className="card">
+                <div className="card-body text-center py-12">
+                  <ExclamationTriangleIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                  <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No Results Available</h4>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    It looks like the onboarding process didn't execute or no tasks were performed.
+                  </p>
+                  <div className="flex justify-center space-x-3">
+                    <button
+                      onClick={() => setCurrentStep(0)}
+                      className="btn btn-secondary"
                     >
-                      <div className="flex items-start">
-                        <div className="flex-shrink-0">
-                          {result.status === 'success' ? (
-                            <CheckCircleIcon className="h-5 w-5 text-success-400" />
-                          ) : (
-                            <ExclamationTriangleIcon className="h-5 w-5 text-danger-400" />
-                          )}
-                        </div>
-                        <div className="ml-3">
-                          <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">{result.action}</h4>
-                          <p className={`mt-1 text-sm ${
-                            result.status === 'success' ? 'text-success-700 dark:text-success-300' : 'text-danger-700 dark:text-danger-300'
-                          }`}>
-                            {result.message}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="mt-6 flex justify-between items-center">
-                  <button
-                    onClick={handleExportPDF}
-                    className="btn btn-outline-primary flex items-center gap-2"
-                  >
-                    <DocumentArrowDownIcon className="h-4 w-4" />
-                    Download Report
-                  </button>
-                  <div className="flex space-x-3">
+                      Start Over
+                    </button>
                     <button
                       onClick={() => navigate('/users')}
-                      className="btn btn-secondary"
+                      className="btn btn-primary"
                     >
                       Back to Users
                     </button>
-                    <button
-                      onClick={() => navigate('/dashboard')}
-                      className="btn btn-primary"
-                    >
-                      Go to Dashboard
-                    </button>
                   </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <>
+                {/* Summary Banner */}
+                <div className={`mb-6 p-4 rounded-lg ${
+                  errorCount === 0 
+                    ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' 
+                    : 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {errorCount === 0 ? (
+                        <CheckCircleIcon className="h-8 w-8 text-green-500" />
+                      ) : (
+                        <ExclamationTriangleIcon className="h-8 w-8 text-yellow-500" />
+                      )}
+                      <div>
+                        <h4 className={`font-semibold ${errorCount === 0 ? 'text-green-800 dark:text-green-200' : 'text-yellow-800 dark:text-yellow-200'}`}>
+                          {errorCount === 0 ? 'Onboarding Completed Successfully!' : 'Onboarding Completed with Issues'}
+                        </h4>
+                        <p className={`text-sm ${errorCount === 0 ? 'text-green-700 dark:text-green-300' : 'text-yellow-700 dark:text-yellow-300'}`}>
+                          {successCount} of {executionResults.length} tasks completed successfully
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleExportPDF}
+                      className="btn btn-secondary flex items-center gap-2"
+                    >
+                      <DocumentArrowDownIcon className="h-5 w-5" />
+                      Export PDF Report
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="card">
+                  <div className="card-body">
+                    <div className="space-y-4">
+                      {executionResults.map((result, index) => (
+                        <div
+                          key={index}
+                          className={`p-4 rounded-lg border ${
+                            result.status === 'success'
+                              ? 'bg-success-50 dark:bg-success-900/20 border-success-200 dark:border-success-800'
+                              : 'bg-danger-50 dark:bg-danger-900/20 border-danger-200 dark:border-danger-800'
+                          }`}
+                        >
+                          <div className="flex items-start">
+                            <div className="flex-shrink-0">
+                              {result.status === 'success' ? (
+                                <CheckCircleIcon className="h-5 w-5 text-success-400" />
+                              ) : (
+                                <ExclamationTriangleIcon className="h-5 w-5 text-danger-400" />
+                              )}
+                            </div>
+                            <div className="ml-3">
+                              <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">{result.action}</h4>
+                              <p className={`mt-1 text-sm ${
+                                result.status === 'success' ? 'text-success-700 dark:text-success-300' : 'text-danger-700 dark:text-danger-300'
+                              }`}>
+                                {result.message}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="mt-6 flex justify-between items-center">
+                      <button
+                        onClick={handleExportPDF}
+                        className="btn btn-outline-primary flex items-center gap-2"
+                      >
+                        <DocumentArrowDownIcon className="h-4 w-4" />
+                        Download Report
+                      </button>
+                      <div className="flex space-x-3">
+                        <button
+                          onClick={() => navigate('/users')}
+                          className="btn btn-secondary"
+                        >
+                          Back to Users
+                        </button>
+                        <button
+                          onClick={() => navigate('/dashboard')}
+                          className="btn btn-primary"
+                        >
+                          Go to Dashboard
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         );
 
