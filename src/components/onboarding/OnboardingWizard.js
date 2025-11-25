@@ -24,6 +24,8 @@ import {
   CalendarIcon,
   DocumentTextIcon,
   KeyIcon,
+  MagnifyingGlassIcon,
+  CloudArrowUpIcon,
 } from '@heroicons/react/24/outline';
 
 const OnboardingWizard = () => {
@@ -55,6 +57,14 @@ const OnboardingWizard = () => {
     currentStep: 0,
     totalSteps: 0,
   });
+  
+  // Onboarding mode: 'create' for new user, 'existing' for AD-synced user
+  const [onboardingMode, setOnboardingMode] = useState('create');
+  
+  // Existing user search (for AD-synced users)
+  const [existingUserSearchTerm, setExistingUserSearchTerm] = useState('');
+  const [existingUserSearchResults, setExistingUserSearchResults] = useState([]);
+  const [searchingExistingUsers, setSearchingExistingUsers] = useState(false);
   
   // Copy groups from existing user
   const [copyGroupsFromUser, setCopyGroupsFromUser] = useState(false);
@@ -195,6 +205,65 @@ const OnboardingWizard = () => {
     }
   };
 
+  // Search for existing users (AD-synced users that need M365 onboarding)
+  const searchExistingUsers = async (term) => {
+    if (!term.trim()) {
+      setExistingUserSearchResults([]);
+      return;
+    }
+    
+    try {
+      setSearchingExistingUsers(true);
+      const results = await service.searchUsers(term);
+      // Filter to show users - you can add filters here for specific criteria
+      // e.g., users without licenses, users from on-prem sync, etc.
+      setExistingUserSearchResults(results.value || []);
+    } catch (error) {
+      console.error('Error searching existing users:', error);
+      toast.error('Failed to search users');
+    } finally {
+      setSearchingExistingUsers(false);
+    }
+  };
+
+  // Handle selecting an existing user for onboarding
+  const handleSelectExistingUser = (user) => {
+    setSelectedUser(user);
+    // Pre-populate the new user info from the existing user
+    setNewUserInfo({
+      firstName: user.givenName || '',
+      lastName: user.surname || '',
+      displayName: user.displayName || '',
+      userPrincipalName: user.userPrincipalName || '',
+      mailNickname: user.mailNickname || '',
+      email: user.mail || user.userPrincipalName || '',
+      createInOnPremAD: false,
+    });
+    // Pre-populate job details if available
+    setOnboardingOptions(prev => ({
+      ...prev,
+      department: user.department || '',
+      jobTitle: user.jobTitle || '',
+      officeLocation: user.officeLocation || '',
+      businessPhone: user.businessPhones?.[0] || '',
+      managerEmail: user.manager?.mail || '',
+    }));
+    toast.success(`Selected ${user.displayName} for onboarding`);
+  };
+
+  // Debounced search for existing users
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (existingUserSearchTerm) {
+        searchExistingUsers(existingUserSearchTerm);
+      } else {
+        setExistingUserSearchResults([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [existingUserSearchTerm]);
+
   // Search for users to copy groups from
   const searchCopyUsers = async (term) => {
     if (!term.trim()) {
@@ -290,6 +359,15 @@ const OnboardingWizard = () => {
   const validateStep = () => {
     switch (steps[currentStep].id) {
       case 'user-info':
+        // For existing user mode, just check if a user is selected
+        if (onboardingMode === 'existing') {
+          if (!selectedUser) {
+            toast.error('Please search and select an existing user');
+            return false;
+          }
+          return true;
+        }
+        // For create mode, validate the new user fields
         if (!newUserInfo.firstName || !newUserInfo.lastName || !newUserInfo.userPrincipalName) {
           toast.error('Please fill in all required fields (First Name, Last Name, Username)');
           return false;
@@ -308,7 +386,8 @@ const OnboardingWizard = () => {
         }
         return true;
       case 'options':
-        if (onboardingOptions.setPassword && !onboardingOptions.temporaryPassword) {
+        // For existing users, password might not be required
+        if (onboardingMode === 'create' && onboardingOptions.setPassword && !onboardingOptions.temporaryPassword) {
           toast.error('Please provide a temporary password');
           return false;
         }
@@ -684,11 +763,204 @@ const OnboardingWizard = () => {
       case 'user-info':
         return (
           <div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">New User Information</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">User Selection</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-              Enter the details for the new employee you want to onboard.
+              Create a new user or onboard an existing user synced from Active Directory.
             </p>
             
+            {/* Mode Selector */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setOnboardingMode('create');
+                  setSelectedUser(null);
+                  setExistingUserSearchTerm('');
+                  setExistingUserSearchResults([]);
+                }}
+                className={`p-4 border-2 rounded-lg text-left transition-all ${
+                  onboardingMode === 'create'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${onboardingMode === 'create' ? 'bg-blue-100 dark:bg-blue-800' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                    <UserPlusIcon className={`h-6 w-6 ${onboardingMode === 'create' ? 'text-blue-600' : 'text-gray-500'}`} />
+                  </div>
+                  <div>
+                    <h4 className={`font-medium ${onboardingMode === 'create' ? 'text-blue-900 dark:text-blue-100' : 'text-gray-900 dark:text-gray-100'}`}>
+                      Create New User
+                    </h4>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Create a brand new user in Azure AD or On-Prem AD
+                    </p>
+                  </div>
+                </div>
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  setOnboardingMode('existing');
+                  setNewUserInfo({
+                    firstName: '',
+                    lastName: '',
+                    displayName: '',
+                    userPrincipalName: '',
+                    mailNickname: '',
+                    email: '',
+                    createInOnPremAD: false,
+                  });
+                }}
+                className={`p-4 border-2 rounded-lg text-left transition-all ${
+                  onboardingMode === 'existing'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${onboardingMode === 'existing' ? 'bg-blue-100 dark:bg-blue-800' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                    <CloudArrowUpIcon className={`h-6 w-6 ${onboardingMode === 'existing' ? 'text-blue-600' : 'text-gray-500'}`} />
+                  </div>
+                  <div>
+                    <h4 className={`font-medium ${onboardingMode === 'existing' ? 'text-blue-900 dark:text-blue-100' : 'text-gray-900 dark:text-gray-100'}`}>
+                      Onboard Existing User
+                    </h4>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Find AD-synced users and complete their M365 setup
+                    </p>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            {/* Existing User Search */}
+            {onboardingMode === 'existing' && (
+              <div className="card mb-6">
+                <div className="card-header">
+                  <div className="flex items-center gap-2">
+                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-500" />
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">Search Existing Users</h4>
+                  </div>
+                </div>
+                <div className="card-body">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className="form-input pl-10"
+                      placeholder="Search by name, email, or username..."
+                      value={existingUserSearchTerm}
+                      onChange={(e) => setExistingUserSearchTerm(e.target.value)}
+                    />
+                    <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    {searchingExistingUsers && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Selected User Display */}
+                  {selectedUser && (
+                    <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-800 flex items-center justify-center">
+                            <UserIcon className="h-6 w-6 text-green-600 dark:text-green-400" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-green-900 dark:text-green-100">{selectedUser.displayName}</p>
+                            <p className="text-sm text-green-700 dark:text-green-300">{selectedUser.userPrincipalName}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              {selectedUser.department && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200">
+                                  {selectedUser.department}
+                                </span>
+                              )}
+                              {selectedUser.jobTitle && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                                  {selectedUser.jobTitle}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedUser(null);
+                            setNewUserInfo({
+                              firstName: '',
+                              lastName: '',
+                              displayName: '',
+                              userPrincipalName: '',
+                              mailNickname: '',
+                              email: '',
+                              createInOnPremAD: false,
+                            });
+                          }}
+                          className="text-green-600 hover:text-green-700 dark:text-green-400"
+                        >
+                          Change
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Search Results */}
+                  {!selectedUser && existingUserSearchResults.length > 0 && (
+                    <div className="mt-4 border border-gray-200 dark:border-gray-700 rounded-lg divide-y divide-gray-200 dark:divide-gray-700 max-h-64 overflow-y-auto">
+                      {existingUserSearchResults.map((user) => (
+                        <button
+                          key={user.id}
+                          type="button"
+                          onClick={() => handleSelectExistingUser(user)}
+                          className="w-full p-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 text-left transition-colors"
+                        >
+                          <div className="h-10 w-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                            <UserIcon className="h-5 w-5 text-gray-500" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 dark:text-gray-100 truncate">{user.displayName}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user.userPrincipalName}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              {user.department && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                                  {user.department}
+                                </span>
+                              )}
+                              {user.onPremisesSyncEnabled && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300">
+                                  AD Synced
+                                </span>
+                              )}
+                              {!user.accountEnabled && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300">
+                                  Disabled
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <ArrowRightIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {!selectedUser && existingUserSearchTerm && existingUserSearchResults.length === 0 && !searchingExistingUsers && (
+                    <div className="mt-4 text-center py-8 text-gray-500 dark:text-gray-400">
+                      <UserIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                      <p>No users found matching "{existingUserSearchTerm}"</p>
+                      <p className="text-sm">Try a different search term</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {/* Create New User Form */}
+            {onboardingMode === 'create' && (
             <div className="card">
               <div className="card-body">
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -816,6 +1088,7 @@ const OnboardingWizard = () => {
                 </div>
               </div>
             </div>
+            )}
           </div>
         );
 
