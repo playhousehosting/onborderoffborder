@@ -28,6 +28,7 @@ import {
   MagnifyingGlassIcon,
   CloudArrowUpIcon,
   DocumentArrowDownIcon,
+  InformationCircleIcon,
 } from '@heroicons/react/24/outline';
 
 // Helper function to generate a temporary password
@@ -99,6 +100,13 @@ const OnboardingWizard = () => {
   const [copyUserSearchResults, setCopyUserSearchResults] = useState([]);
   const [selectedCopyUser, setSelectedCopyUser] = useState(null);
   const [copyingGroups, setCopyingGroups] = useState(false);
+  
+  // Track group copy details (which groups were copied vs skipped)
+  const [groupCopyDetails, setGroupCopyDetails] = useState({
+    copied: [],      // Cloud groups that can be assigned
+    skippedDynamic: [],  // Dynamic membership groups (can't add members manually)
+    skippedOnPrem: [],   // On-prem synced groups (must be managed in on-prem AD)
+  });
   
   // New user information for onboarding
   const [newUserInfo, setNewUserInfo] = useState({
@@ -310,7 +318,7 @@ const OnboardingWizard = () => {
     }
   };
 
-  // Copy groups from selected user
+  // Copy groups from selected user - filters out dynamic and on-prem groups
   const handleCopyGroupsFromUser = async (user) => {
     try {
       setCopyingGroups(true);
@@ -320,12 +328,69 @@ const OnboardingWizard = () => {
       const userGroups = await service.getUserGroups(user.id);
       
       if (userGroups.value && userGroups.value.length > 0) {
-        const groupIds = userGroups.value.map(g => g.id);
+        // Categorize groups: cloud-assignable, dynamic, and on-prem synced
+        const copied = [];
+        const skippedDynamic = [];
+        const skippedOnPrem = [];
+        
+        for (const group of userGroups.value) {
+          // Check if it's a dynamic group (has membershipRule)
+          const isDynamic = group.membershipRule || 
+                           (group.groupTypes && group.groupTypes.includes('DynamicMembership'));
+          
+          // Check if it's an on-premises synced group
+          const isOnPrem = group.onPremisesSyncEnabled === true || 
+                          group.onPremisesSecurityIdentifier != null;
+          
+          if (isDynamic) {
+            skippedDynamic.push({
+              id: group.id,
+              displayName: group.displayName,
+              reason: 'Dynamic membership - members are determined by rules'
+            });
+          } else if (isOnPrem) {
+            skippedOnPrem.push({
+              id: group.id,
+              displayName: group.displayName,
+              reason: 'On-premises synced - must be managed in on-prem AD'
+            });
+          } else {
+            // This is a cloud-enabled, non-dynamic group that can be assigned
+            copied.push({
+              id: group.id,
+              displayName: group.displayName
+            });
+          }
+        }
+        
+        // Store the details for display
+        setGroupCopyDetails({ copied, skippedDynamic, skippedOnPrem });
+        
+        // Only set the cloud-assignable groups
+        const groupIds = copied.map(g => g.id);
         handleOptionChange('selectedGroups', groupIds);
-        toast.success(`Copied ${groupIds.length} groups from ${user.displayName}`);
-        console.log(`✅ Copied ${groupIds.length} groups`);
+        
+        // Show detailed toast message
+        const skippedCount = skippedDynamic.length + skippedOnPrem.length;
+        if (copied.length > 0 && skippedCount > 0) {
+          toast.success(
+            `Copied ${copied.length} groups from ${user.displayName}. ` +
+            `Skipped ${skippedCount} groups (${skippedDynamic.length} dynamic, ${skippedOnPrem.length} on-prem).`
+          );
+        } else if (copied.length > 0) {
+          toast.success(`Copied ${copied.length} groups from ${user.displayName}`);
+        } else if (skippedCount > 0) {
+          toast.warning(
+            `All ${skippedCount} groups from ${user.displayName} were skipped ` +
+            `(${skippedDynamic.length} dynamic, ${skippedOnPrem.length} on-prem). ` +
+            `Only cloud-enabled, non-dynamic groups can be copied.`
+          );
+        }
+        
+        console.log(`✅ Copied ${copied.length} groups, skipped ${skippedCount} (${skippedDynamic.length} dynamic, ${skippedOnPrem.length} on-prem)`);
       } else {
         toast.info(`${user.displayName} is not a member of any groups`);
+        setGroupCopyDetails({ copied: [], skippedDynamic: [], skippedOnPrem: [] });
       }
     } catch (error) {
       console.error('Error copying groups:', error);
@@ -688,25 +753,92 @@ const OnboardingWizard = () => {
         }
       }
 
-      // 4. Add to groups
+      // 4. Add to groups - track individual group results
       if (onboardingOptions.addToGroups && onboardingOptions.selectedGroups.length > 0) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Adding to groups...', currentStep: prev.currentStep + 1 }));
-        try {
-          let addedCount = 0;
-          for (const groupId of onboardingOptions.selectedGroups) {
+        
+        const groupResults = {
+          added: [],
+          failed: [],
+          skippedDynamic: groupCopyDetails.skippedDynamic || [],
+          skippedOnPrem: groupCopyDetails.skippedOnPrem || [],
+        };
+        
+        for (const groupId of onboardingOptions.selectedGroups) {
+          try {
+            // Find group name from available groups or copied groups
+            const groupInfo = availableGroups.find(g => g.id === groupId) || 
+                            groupCopyDetails.copied?.find(g => g.id === groupId) ||
+                            { displayName: 'Unknown Group' };
+            
             await service.addUserToGroup(groupId, targetUserId);
-            addedCount++;
+            groupResults.added.push({
+              id: groupId,
+              displayName: groupInfo.displayName
+            });
+          } catch (error) {
+            const groupInfo = availableGroups.find(g => g.id === groupId) || 
+                            groupCopyDetails.copied?.find(g => g.id === groupId) ||
+                            { displayName: 'Unknown Group' };
+            groupResults.failed.push({
+              id: groupId,
+              displayName: groupInfo.displayName,
+              error: error.message
+            });
           }
+        }
+        
+        // Build detailed result message
+        const totalAdded = groupResults.added.length;
+        const totalFailed = groupResults.failed.length;
+        const totalSkipped = groupResults.skippedDynamic.length + groupResults.skippedOnPrem.length;
+        
+        if (totalAdded > 0 && totalFailed === 0) {
           results.push({
             action: 'Group Membership',
             status: 'success',
-            message: `Added to ${addedCount} groups`,
+            message: `Added to ${totalAdded} groups`,
+            details: {
+              added: groupResults.added,
+              skippedDynamic: groupResults.skippedDynamic,
+              skippedOnPrem: groupResults.skippedOnPrem,
+            }
           });
-        } catch (error) {
+        } else if (totalAdded > 0 && totalFailed > 0) {
+          results.push({
+            action: 'Group Membership',
+            status: 'warning',
+            message: `Added to ${totalAdded} groups, ${totalFailed} failed`,
+            details: {
+              added: groupResults.added,
+              failed: groupResults.failed,
+              skippedDynamic: groupResults.skippedDynamic,
+              skippedOnPrem: groupResults.skippedOnPrem,
+            }
+          });
+        } else if (totalFailed > 0) {
           results.push({
             action: 'Group Membership',
             status: 'error',
-            message: error.message,
+            message: `Failed to add to ${totalFailed} groups`,
+            details: {
+              failed: groupResults.failed,
+              skippedDynamic: groupResults.skippedDynamic,
+              skippedOnPrem: groupResults.skippedOnPrem,
+            }
+          });
+        }
+        
+        // Add info about skipped groups if there were any
+        if (totalSkipped > 0) {
+          results.push({
+            action: 'Groups Skipped',
+            status: 'info',
+            message: `${totalSkipped} groups skipped (${groupResults.skippedDynamic.length} dynamic, ${groupResults.skippedOnPrem.length} on-prem)`,
+            details: {
+              skippedDynamic: groupResults.skippedDynamic,
+              skippedOnPrem: groupResults.skippedOnPrem,
+            }
           });
         }
       }
@@ -1444,6 +1576,7 @@ const OnboardingWizard = () => {
                                 setSelectedCopyUser(null);
                                 setCopyUserSearchTerm('');
                                 setCopyUserSearchResults([]);
+                                setGroupCopyDetails({ copied: [], skippedDynamic: [], skippedOnPrem: [] });
                               }
                             }}
                           />
@@ -1455,26 +1588,93 @@ const OnboardingWizard = () => {
                         {copyGroupsFromUser && (
                           <div className="space-y-3">
                             {selectedCopyUser ? (
-                              <div className="p-3 bg-white border border-blue-300 rounded-lg">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center">
-                                    <UserIcon className="h-8 w-8 text-blue-600 mr-2" />
-                                    <div>
-                                      <p className="text-sm font-medium text-gray-900">{selectedCopyUser.displayName}</p>
-                                      <p className="text-xs text-gray-500">{selectedCopyUser.mail || selectedCopyUser.userPrincipalName}</p>
+                              <>
+                                <div className="p-3 bg-white border border-blue-300 rounded-lg">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center">
+                                      <UserIcon className="h-8 w-8 text-blue-600 mr-2" />
+                                      <div>
+                                        <p className="text-sm font-medium text-gray-900">{selectedCopyUser.displayName}</p>
+                                        <p className="text-xs text-gray-500">{selectedCopyUser.mail || selectedCopyUser.userPrincipalName}</p>
+                                      </div>
                                     </div>
+                                    <button
+                                      onClick={() => {
+                                        setSelectedCopyUser(null);
+                                        setCopyUserSearchTerm('');
+                                        setGroupCopyDetails({ copied: [], skippedDynamic: [], skippedOnPrem: [] });
+                                        handleOptionChange('selectedGroups', []);
+                                      }}
+                                      className="text-sm text-blue-600 hover:text-blue-800"
+                                    >
+                                      Change
+                                    </button>
                                   </div>
-                                  <button
-                                    onClick={() => {
-                                      setSelectedCopyUser(null);
-                                      setCopyUserSearchTerm('');
-                                    }}
-                                    className="text-sm text-blue-600 hover:text-blue-800"
-                                  >
-                                    Change
-                                  </button>
                                 </div>
-                              </div>
+                                
+                                {/* Show group copy summary */}
+                                {(groupCopyDetails.copied.length > 0 || 
+                                  groupCopyDetails.skippedDynamic.length > 0 || 
+                                  groupCopyDetails.skippedOnPrem.length > 0) && (
+                                  <div className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm">
+                                    <p className="font-medium text-gray-900 dark:text-gray-100 mb-2">Group Copy Summary:</p>
+                                    
+                                    {groupCopyDetails.copied.length > 0 && (
+                                      <div className="mb-2">
+                                        <p className="text-success-700 dark:text-success-400 font-medium">
+                                          ✓ {groupCopyDetails.copied.length} cloud group(s) will be added:
+                                        </p>
+                                        <ul className="ml-4 text-xs text-gray-600 dark:text-gray-400">
+                                          {groupCopyDetails.copied.slice(0, 5).map((g, i) => (
+                                            <li key={i}>• {g.displayName}</li>
+                                          ))}
+                                          {groupCopyDetails.copied.length > 5 && (
+                                            <li className="italic">...and {groupCopyDetails.copied.length - 5} more</li>
+                                          )}
+                                        </ul>
+                                      </div>
+                                    )}
+                                    
+                                    {groupCopyDetails.skippedDynamic.length > 0 && (
+                                      <div className="mb-2">
+                                        <p className="text-amber-700 dark:text-amber-400 font-medium">
+                                          ⚠ {groupCopyDetails.skippedDynamic.length} dynamic group(s) skipped:
+                                        </p>
+                                        <ul className="ml-4 text-xs text-gray-600 dark:text-gray-400">
+                                          {groupCopyDetails.skippedDynamic.slice(0, 3).map((g, i) => (
+                                            <li key={i}>• {g.displayName}</li>
+                                          ))}
+                                          {groupCopyDetails.skippedDynamic.length > 3 && (
+                                            <li className="italic">...and {groupCopyDetails.skippedDynamic.length - 3} more</li>
+                                          )}
+                                        </ul>
+                                        <p className="text-xs text-gray-500 dark:text-gray-500 ml-4 italic">
+                                          (Dynamic groups determine membership automatically via rules)
+                                        </p>
+                                      </div>
+                                    )}
+                                    
+                                    {groupCopyDetails.skippedOnPrem.length > 0 && (
+                                      <div>
+                                        <p className="text-amber-700 dark:text-amber-400 font-medium">
+                                          ⚠ {groupCopyDetails.skippedOnPrem.length} on-premises group(s) skipped:
+                                        </p>
+                                        <ul className="ml-4 text-xs text-gray-600 dark:text-gray-400">
+                                          {groupCopyDetails.skippedOnPrem.slice(0, 3).map((g, i) => (
+                                            <li key={i}>• {g.displayName}</li>
+                                          ))}
+                                          {groupCopyDetails.skippedOnPrem.length > 3 && (
+                                            <li className="italic">...and {groupCopyDetails.skippedOnPrem.length - 3} more</li>
+                                          )}
+                                        </ul>
+                                        <p className="text-xs text-gray-500 dark:text-gray-500 ml-4 italic">
+                                          (On-premises groups must be managed in Active Directory)
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </>
                             ) : (
                               <>
                                 <div className="relative">
@@ -1927,6 +2127,10 @@ const OnboardingWizard = () => {
                           className={`p-4 rounded-lg border ${
                             result.status === 'success'
                               ? 'bg-success-50 dark:bg-success-900/20 border-success-200 dark:border-success-800'
+                              : result.status === 'warning'
+                              ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
+                              : result.status === 'info'
+                              ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
                               : 'bg-danger-50 dark:bg-danger-900/20 border-danger-200 dark:border-danger-800'
                           }`}
                         >
@@ -1934,17 +2138,85 @@ const OnboardingWizard = () => {
                             <div className="flex-shrink-0">
                               {result.status === 'success' ? (
                                 <CheckCircleIcon className="h-5 w-5 text-success-400" />
+                              ) : result.status === 'warning' ? (
+                                <ExclamationTriangleIcon className="h-5 w-5 text-amber-400" />
+                              ) : result.status === 'info' ? (
+                                <InformationCircleIcon className="h-5 w-5 text-blue-400" />
                               ) : (
                                 <ExclamationTriangleIcon className="h-5 w-5 text-danger-400" />
                               )}
                             </div>
-                            <div className="ml-3">
+                            <div className="ml-3 flex-1">
                               <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">{result.action}</h4>
                               <p className={`mt-1 text-sm ${
-                                result.status === 'success' ? 'text-success-700 dark:text-success-300' : 'text-danger-700 dark:text-danger-300'
+                                result.status === 'success' ? 'text-success-700 dark:text-success-300' 
+                                : result.status === 'warning' ? 'text-amber-700 dark:text-amber-300'
+                                : result.status === 'info' ? 'text-blue-700 dark:text-blue-300'
+                                : 'text-danger-700 dark:text-danger-300'
                               }`}>
                                 {result.message}
                               </p>
+                              
+                              {/* Show group details if available */}
+                              {result.details && (result.action === 'Group Membership' || result.action === 'Groups Skipped') && (
+                                <div className="mt-3 space-y-2">
+                                  {/* Successfully added groups */}
+                                  {result.details.added && result.details.added.length > 0 && (
+                                    <div>
+                                      <p className="text-xs font-medium text-success-700 dark:text-success-300 mb-1">
+                                        ✓ Added to {result.details.added.length} group(s):
+                                      </p>
+                                      <ul className="text-xs text-success-600 dark:text-success-400 ml-4 list-disc">
+                                        {result.details.added.map((g, i) => (
+                                          <li key={i}>{g.displayName}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Failed groups */}
+                                  {result.details.failed && result.details.failed.length > 0 && (
+                                    <div>
+                                      <p className="text-xs font-medium text-danger-700 dark:text-danger-300 mb-1">
+                                        ✗ Failed to add to {result.details.failed.length} group(s):
+                                      </p>
+                                      <ul className="text-xs text-danger-600 dark:text-danger-400 ml-4 list-disc">
+                                        {result.details.failed.map((g, i) => (
+                                          <li key={i}>{g.displayName}: {g.error}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Skipped dynamic groups */}
+                                  {result.details.skippedDynamic && result.details.skippedDynamic.length > 0 && (
+                                    <div>
+                                      <p className="text-xs font-medium text-amber-700 dark:text-amber-300 mb-1">
+                                        ⚠ Skipped {result.details.skippedDynamic.length} dynamic group(s):
+                                      </p>
+                                      <ul className="text-xs text-amber-600 dark:text-amber-400 ml-4 list-disc">
+                                        {result.details.skippedDynamic.map((g, i) => (
+                                          <li key={i}>{g.displayName} - {g.reason}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Skipped on-prem groups */}
+                                  {result.details.skippedOnPrem && result.details.skippedOnPrem.length > 0 && (
+                                    <div>
+                                      <p className="text-xs font-medium text-amber-700 dark:text-amber-300 mb-1">
+                                        ⚠ Skipped {result.details.skippedOnPrem.length} on-premises group(s):
+                                      </p>
+                                      <ul className="text-xs text-amber-600 dark:text-amber-400 ml-4 list-disc">
+                                        {result.details.skippedOnPrem.map((g, i) => (
+                                          <li key={i}>{g.displayName} - {g.reason}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
