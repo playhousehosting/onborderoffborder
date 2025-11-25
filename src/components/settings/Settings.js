@@ -4,6 +4,8 @@ import { useMSALAuth } from '../../contexts/MSALAuthContext';
 import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
 import { getActiveService, getAuthMode } from '../../services/serviceFactory';
 import { isDemoMode } from '../../config/authConfig';
+import { useAction } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import toast from 'react-hot-toast';
 import {
   CogIcon,
@@ -38,6 +40,18 @@ const Settings = () => {
     tenantId: '',
     clientSecret: '',
   });
+  
+  // Service credentials for scheduled offboarding (stored in Convex)
+  const [serviceCredentials, setServiceCredentials] = useState({
+    clientId: '',
+    tenantId: '',
+    clientSecret: '',
+  });
+  const [isSavingService, setIsSavingService] = useState(false);
+  const [serviceCredentialsStatus, setServiceCredentialsStatus] = useState('unknown'); // 'unknown', 'configured', 'not-configured'
+  
+  // Convex action to configure credentials
+  const configureCredentials = useAction(api.authActions.configure);
   const [preferences, setPreferences] = useState({
     notifications: true,
     autoRefresh: true,
@@ -113,6 +127,40 @@ const Settings = () => {
       toast.error('Failed to save configuration');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Handler to save service credentials to Convex for scheduled offboarding
+  const handleSaveServiceCredentials = async () => {
+    setIsSavingService(true);
+    try {
+      // Validate inputs
+      if (!serviceCredentials.clientId || !serviceCredentials.tenantId || !serviceCredentials.clientSecret) {
+        toast.error('All fields are required for service credentials');
+        return;
+      }
+
+      // Call Convex action to configure credentials
+      const result = await configureCredentials({
+        clientId: serviceCredentials.clientId,
+        tenantId: serviceCredentials.tenantId,
+        clientSecret: serviceCredentials.clientSecret,
+      });
+
+      if (result.success) {
+        // Save sessionId to localStorage for reference
+        localStorage.setItem('serviceSessionId', result.sessionId);
+        localStorage.setItem('serviceTenantId', serviceCredentials.tenantId);
+        setServiceCredentialsStatus('configured');
+        toast.success('Service credentials saved and validated! Scheduled offboarding will now work.');
+      } else {
+        toast.error('Failed to save service credentials');
+      }
+    } catch (error) {
+      console.error('Error saving service credentials:', error);
+      toast.error(`Failed to save: ${error.message}`);
+    } finally {
+      setIsSavingService(false);
     }
   };
 
@@ -212,6 +260,7 @@ const Settings = () => {
       <div className="space-y-6">
         {/* Azure AD Configuration Tab */}
         {activeTab === 'azure' && (
+          <>
           <div className="card">
             <div className="card-header">
               <div className="flex items-center justify-between">
@@ -329,6 +378,113 @@ const Settings = () => {
               </div>
             </div>
           </div>
+
+          {/* Service Credentials for Scheduled Offboarding */}
+          <div className="card mt-6">
+            <div className="card-header">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                  <ShieldCheckIcon className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Service Credentials for Scheduled Tasks</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Required for scheduled offboarding to run automatically</p>
+                </div>
+              </div>
+            </div>
+            <div className="card-body space-y-6">
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <ShieldCheckIcon className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Why are these credentials needed?</p>
+                    <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                      Scheduled offboardings run on the server at the specified time. Since your browser session won't be active,
+                      the server needs its own credentials (App-Only/Client Credentials) to execute Graph API operations.
+                    </p>
+                    <p className="text-sm text-amber-700 dark:text-amber-400 mt-2">
+                      <strong>Required permissions:</strong> User.ReadWrite.All, Group.ReadWrite.All, Directory.ReadWrite.All
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="serviceClientId" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Client ID (Application ID)
+                </label>
+                <input
+                  type="text"
+                  id="serviceClientId"
+                  value={serviceCredentials.clientId}
+                  onChange={(e) => setServiceCredentials(prev => ({ ...prev, clientId: e.target.value }))}
+                  className="input"
+                  placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="serviceTenantId" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Tenant ID (Directory ID)
+                </label>
+                <input
+                  type="text"
+                  id="serviceTenantId"
+                  value={serviceCredentials.tenantId}
+                  onChange={(e) => setServiceCredentials(prev => ({ ...prev, tenantId: e.target.value }))}
+                  className="input"
+                  placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="serviceClientSecret" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Client Secret <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showSecrets ? 'text' : 'password'}
+                    id="serviceClientSecret"
+                    value={serviceCredentials.clientSecret}
+                    onChange={(e) => setServiceCredentials(prev => ({ ...prev, clientSecret: e.target.value }))}
+                    className="input pr-20"
+                    placeholder="Enter client secret (required)"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSecrets(!showSecrets)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-xs text-blue-600 hover:text-blue-700"
+                  >
+                    {showSecrets ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Create in Azure Portal → App Registrations → Certificates & secrets → New client secret
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={handleSaveServiceCredentials}
+                  disabled={isSavingService || !serviceCredentials.clientId || !serviceCredentials.tenantId || !serviceCredentials.clientSecret}
+                  className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSavingService ? (
+                    <>
+                      <ArrowPathIcon className="h-5 w-5 animate-spin" />
+                      Saving & Validating...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircleIcon className="h-5 w-5" />
+                      Save Service Credentials
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+          </>
         )}
 
         {/* Preferences Tab */}
