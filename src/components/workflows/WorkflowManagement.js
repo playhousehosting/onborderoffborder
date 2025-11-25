@@ -15,8 +15,9 @@ import {
   UserGroupIcon
 } from '@heroicons/react/24/outline';
 import lifecycleWorkflowsService, { WORKFLOW_CATEGORIES } from '../../services/lifecycleWorkflowsService';
-import msalGraphService from '../../services/msalGraphService';
-import { useMSALAuth as useAuth } from '../../contexts/MSALAuthContext';
+import { getActiveService, getAuthMode } from '../../services/serviceFactory';
+import { useMSALAuth } from '../../contexts/MSALAuthContext';
+import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
 import { 
   getDepartmentMappings, 
   saveDepartmentMappings,
@@ -32,14 +33,12 @@ import {
 
 const WorkflowManagement = () => {
   const { t } = useTranslation();
-  const { getAccessToken } = useAuth();
+  const msalAuth = useMSALAuth();
+  const convexAuth = useConvexAuth();
   
-  // Initialize MSAL graph service with token function
-  useEffect(() => {
-    if (getAccessToken) {
-      msalGraphService.setGetTokenFunction(getAccessToken);
-    }
-  }, [getAccessToken]);
+  // Use serviceFactory to get the correct service based on auth mode
+  const authMode = getAuthMode();
+  const service = getActiveService();
   
   // Tab state
   const [activeTab, setActiveTab] = useState('workflows'); // 'workflows' or 'mappings'
@@ -82,7 +81,7 @@ const WorkflowManagement = () => {
   const loadGroups = async () => {
     setIsLoadingGroups(true);
     try {
-      const groups = await msalGraphService.getGroups();
+      const groups = await service.getGroups();
       setAvailableGroups(Array.isArray(groups) ? groups : []);
     } catch (error) {
       console.error('Error loading groups:', error);

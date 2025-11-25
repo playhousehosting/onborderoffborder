@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMSALAuth } from '../../contexts/MSALAuthContext';
 import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
-import msalGraphService from '../../services/msalGraphService';
-import { graphService } from '../../services/graphService';
+import { getActiveService, getAuthMode } from '../../services/serviceFactory';
 import toast from 'react-hot-toast';
 import {
   ArrowLeftIcon,
@@ -19,16 +18,13 @@ const CreateGroup = () => {
   const msalAuth = useMSALAuth();
   const convexAuth = useConvexAuth();
   
-  const isConvexAuth = convexAuth.isAuthenticated;
-  const isMSALAuth = msalAuth.isAuthenticated;
-
-  useEffect(() => {
-    if (isMSALAuth && msalAuth.getAccessToken) {
-      service.setGetTokenFunction(msalAuth.getAccessToken);
-    }
-  }, [isMSALAuth, msalAuth.getAccessToken]);
+  // Use serviceFactory to get the correct service based on auth mode
+  const authMode = getAuthMode();
+  const service = getActiveService();
   
-  const service = isConvexAuth ? graphService : msalGraphService;
+  // Determine which auth is active based on serviceFactory mode
+  const isConvexAuth = authMode === 'convex';
+  const isMSALAuth = authMode === 'msal';
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingDomains, setLoadingDomains] = useState(true);

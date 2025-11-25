@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import msalGraphService from '../../services/msalGraphService';
-import { graphService } from '../../services/graphService';
+import { getActiveService, getAuthMode } from '../../services/serviceFactory';
 import { useMSALAuth } from '../../contexts/MSALAuthContext';
 import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
 import { getGroupsForDepartment, hasMappedGroups } from '../../utils/departmentMappings';
@@ -34,22 +33,16 @@ const OnboardingWizard = () => {
   const convexAuth = useConvexAuth();
   const convex = useConvex();
   
-  // Determine which auth is active
-  const isConvexAuth = convexAuth.isAuthenticated;
-  const isMSALAuth = msalAuth.isAuthenticated;
+  // Use serviceFactory to get the correct service based on auth mode
+  const authMode = getAuthMode();
+  const service = getActiveService();
+  
+  // Determine which auth is active based on serviceFactory mode
+  const isConvexAuth = authMode === 'convex';
+  const isMSALAuth = authMode === 'msal';
   const hasPermission = (permission) => {
     return isConvexAuth ? convexAuth.hasPermission(permission) : msalAuth.hasPermission(permission);
   };
-  
-  // Initialize MSAL graph service only when using MSAL auth
-  useEffect(() => {
-    if (isMSALAuth && msalAuth.getAccessToken) {
-      service.setGetTokenFunction(msalAuth.getAccessToken);
-    }
-  }, [isMSALAuth, msalAuth.getAccessToken]);
-  
-  // Select appropriate Graph service based on auth mode
-  const service = isConvexAuth ? graphService : msalGraphService;
   
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedUser, setSelectedUser] = useState(null);

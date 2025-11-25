@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useMSALAuth } from '../../contexts/MSALAuthContext';
 import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
-import msalGraphService from '../../services/msalGraphService';
-import { graphService } from '../../services/graphService';
+import { getActiveService, getAuthMode } from '../../services/serviceFactory';
 import toast from 'react-hot-toast';
 import {
   UserGroupIcon,
@@ -26,19 +25,16 @@ const GroupManagement = () => {
   const msalAuth = useMSALAuth();
   const convexAuth = useConvexAuth();
   
-  const isConvexAuth = convexAuth.isAuthenticated;
-  const isMSALAuth = msalAuth.isAuthenticated;
+  // Use serviceFactory to get the correct service based on auth mode
+  const authMode = getAuthMode();
+  const service = getActiveService();
+  
+  // Determine which auth is active based on serviceFactory mode
+  const isConvexAuth = authMode === 'convex';
+  const isMSALAuth = authMode === 'msal';
   const hasPermission = (permission) => {
     return isConvexAuth ? convexAuth.hasPermission(permission) : msalAuth.hasPermission(permission);
   };
-  
-  useEffect(() => {
-    if (isMSALAuth && msalAuth.getAccessToken) {
-      service.setGetTokenFunction(msalAuth.getAccessToken);
-    }
-  }, [isMSALAuth, msalAuth.getAccessToken]);
-  
-  const service = isConvexAuth ? graphService : msalGraphService;
 
   const [groups, setGroups] = useState([]);
   const [filteredGroups, setFilteredGroups] = useState([]);

@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMSALAuth } from '../../contexts/MSALAuthContext';
 import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
-import msalGraphService from '../../services/msalGraphService';
-import { graphService } from '../../services/graphService';
+import { getActiveService, getAuthMode } from '../../services/serviceFactory';
 import { isDemoMode } from '../../config/authConfig';
 import toast from 'react-hot-toast';
 import {
@@ -23,18 +22,15 @@ const Settings = () => {
   const msalAuth = useMSALAuth();
   const convexAuth = useConvexAuth();
   
-  const isConvexAuth = convexAuth.isAuthenticated;
-  const isMSALAuth = msalAuth.isAuthenticated;
+  // Use serviceFactory to get the correct service based on auth mode
+  const authMode = getAuthMode();
+  const service = getActiveService();
+  
+  // Determine which auth is active based on serviceFactory mode
+  const isConvexAuth = authMode === 'convex';
+  const isMSALAuth = authMode === 'msal';
   const user = isConvexAuth ? convexAuth.user : msalAuth.user;
   const logout = isConvexAuth ? convexAuth.logout : msalAuth.logout;
-  
-  useEffect(() => {
-    if (isMSALAuth && msalAuth.getAccessToken) {
-      service.setGetTokenFunction(msalAuth.getAccessToken);
-    }
-  }, [isMSALAuth, msalAuth.getAccessToken]);
-  
-  const service = isConvexAuth ? graphService : msalGraphService;
   
   const [activeTab, setActiveTab] = useState('azure');
   const [config, setConfig] = useState({

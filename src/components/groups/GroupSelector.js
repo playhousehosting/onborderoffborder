@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import msalGraphService from '../../services/msalGraphService';
-import { graphService } from '../../services/graphService';
+import { getActiveService, getAuthMode } from '../../services/serviceFactory';
 import { useMSALAuth } from '../../contexts/MSALAuthContext';
 import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
 import {
@@ -37,16 +36,13 @@ const GroupSelector = ({
   const msalAuth = useMSALAuth();
   const convexAuth = useConvexAuth();
   
-  const isConvexAuth = convexAuth.isAuthenticated;
-  const isMSALAuth = msalAuth.isAuthenticated;
+  // Use serviceFactory to get the correct service based on auth mode
+  const authMode = getAuthMode();
+  const service = getActiveService();
   
-  useEffect(() => {
-    if (isMSALAuth && msalAuth.getAccessToken) {
-      service.setGetTokenFunction(msalAuth.getAccessToken);
-    }
-  }, [isMSALAuth, msalAuth.getAccessToken]);
-  
-  const service = isConvexAuth ? graphService : msalGraphService;
+  // Determine which auth is active based on serviceFactory mode
+  const isConvexAuth = authMode === 'convex';
+  const isMSALAuth = authMode === 'msal';
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
