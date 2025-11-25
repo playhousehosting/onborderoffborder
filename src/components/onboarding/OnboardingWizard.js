@@ -449,9 +449,35 @@ const OnboardingWizard = () => {
     setIsExecuting(true);
     const results = [];
     
+    // Determine if we need to create a user or use an existing one
+    const isCreatingNewUser = onboardingMode === 'create' && !selectedUser;
+    const isOnboardingExistingUser = onboardingMode === 'existing' && selectedUser;
+    
+    // Validate we have what we need
+    if (isCreatingNewUser && !newUserInfo.firstName) {
+      toast.error('Please fill in the new user information');
+      setIsExecuting(false);
+      return;
+    }
+    
+    if (isOnboardingExistingUser && !selectedUser?.id) {
+      toast.error('Please select an existing user to onboard');
+      setIsExecuting(false);
+      return;
+    }
+
+    // If neither mode is valid, show appropriate error
+    if (!isCreatingNewUser && !isOnboardingExistingUser && !selectedUser) {
+      toast.error('Please either create a new user or select an existing user to onboard');
+      setIsExecuting(false);
+      return;
+    }
+    
     // Calculate total steps
-    let totalSteps = 1; // Update Information is always done
-    if (onboardingOptions.enableAccount) totalSteps++;
+    let totalSteps = 0;
+    if (isCreatingNewUser) totalSteps++; // User creation
+    if (isOnboardingExistingUser && onboardingOptions.enableAccount) totalSteps++; // Enable account (only for existing)
+    totalSteps++; // Update Information is always done
     if (onboardingOptions.assignLicenses && onboardingOptions.selectedLicenses.length > 0) totalSteps++;
     if (onboardingOptions.addToGroups && onboardingOptions.selectedGroups.length > 0) totalSteps++;
     if (onboardingOptions.createMailbox) totalSteps++;
@@ -461,140 +487,132 @@ const OnboardingWizard = () => {
     setExecutionProgress({ currentTask: 'Starting onboarding...', currentStep: 0, totalSteps });
 
     try {
-      // Step 0: Create user (if creating new user in on-prem AD or Azure AD)
-      let createdUserId = selectedUser?.id;
+      // The user ID we'll use for all operations
+      let targetUserId = selectedUser?.id || null;
+      let targetUserDisplayName = selectedUser?.displayName || newUserInfo.displayName;
+      let didCreateUser = false;
       
-      if (!selectedUser && newUserInfo.createInOnPremAD) {
-        // Create user in on-premises Active Directory
-        try {
-          const response = await fetch(`${apiConfig.baseURL}/api/ad/create-user`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              firstName: newUserInfo.firstName,
-              lastName: newUserInfo.lastName,
-              displayName: newUserInfo.displayName,
-              email: newUserInfo.email,
-              userPrincipalName: newUserInfo.userPrincipalName,
-              samAccountName: newUserInfo.mailNickname,
-              password: onboardingOptions.temporaryPassword,
-              department: onboardingOptions.department,
-              jobTitle: onboardingOptions.jobTitle,
-              officeLocation: onboardingOptions.officeLocation,
-              phoneNumber: onboardingOptions.businessPhone,
-              changePasswordAtLogon: onboardingOptions.requirePasswordChange,
-              enabled: onboardingOptions.enableAccount,
-            }),
-          });
+      // ===== STEP: CREATE USER (if needed) =====
+      if (isCreatingNewUser) {
+        if (newUserInfo.createInOnPremAD) {
+          // Create user in on-premises Active Directory
+          setExecutionProgress(prev => ({ ...prev, currentTask: 'Creating user in On-Premises AD...', currentStep: prev.currentStep + 1 }));
+          try {
+            const response = await fetch(`${apiConfig.baseURL}/api/ad/create-user`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({
+                firstName: newUserInfo.firstName,
+                lastName: newUserInfo.lastName,
+                displayName: newUserInfo.displayName,
+                email: newUserInfo.email,
+                userPrincipalName: newUserInfo.userPrincipalName,
+                samAccountName: newUserInfo.mailNickname,
+                password: onboardingOptions.temporaryPassword,
+                department: onboardingOptions.department,
+                jobTitle: onboardingOptions.jobTitle,
+                officeLocation: onboardingOptions.officeLocation,
+                phoneNumber: onboardingOptions.businessPhone,
+                changePasswordAtLogon: onboardingOptions.requirePasswordChange,
+                enabled: onboardingOptions.enableAccount,
+              }),
+            });
 
-          const data = await response.json();
-          
-          if (!response.ok || !data.success) {
-            throw new Error(data.message || 'Failed to create user in on-premises AD');
+            const data = await response.json();
+            
+            if (!response.ok || !data.success) {
+              throw new Error(data.message || 'Failed to create user in on-premises AD');
+            }
+
+            results.push({
+              action: 'Create On-Prem AD User',
+              status: 'success',
+              message: `User ${newUserInfo.displayName} created in on-premises AD. Will sync to Azure AD within 30 minutes.`,
+              details: data.user,
+            });
+
+            // Note: We cannot continue with Azure AD operations until sync completes
+            toast.success('User created in on-premises AD! Azure AD sync will take ~30 minutes.');
+            setExecutionResults(results);
+            setCurrentStep(4); // Move to results step
+            setIsExecuting(false);
+            return; // Exit early - user must wait for sync
+
+          } catch (error) {
+            results.push({
+              action: 'Create On-Prem AD User',
+              status: 'error',
+              message: error.message,
+            });
+            setExecutionResults(results);
+            setCurrentStep(4);
+            setIsExecuting(false);
+            toast.error('Failed to create user in on-premises AD');
+            return;
           }
+        } else {
+          // Create user in Azure AD (cloud-only)
+          setExecutionProgress(prev => ({ ...prev, currentTask: 'Creating user in Azure AD...', currentStep: prev.currentStep + 1 }));
+          try {
+            const newUser = await service.createUser({
+              accountEnabled: onboardingOptions.enableAccount !== false,
+              displayName: newUserInfo.displayName,
+              givenName: newUserInfo.firstName,
+              surname: newUserInfo.lastName,
+              mailNickname: newUserInfo.mailNickname || newUserInfo.firstName.toLowerCase(),
+              userPrincipalName: newUserInfo.userPrincipalName,
+              passwordProfile: {
+                forceChangePasswordNextSignIn: onboardingOptions.requirePasswordChange !== false,
+                password: onboardingOptions.temporaryPassword || generateTempPassword(),
+              },
+              department: onboardingOptions.department || undefined,
+              jobTitle: onboardingOptions.jobTitle || undefined,
+              officeLocation: onboardingOptions.officeLocation || undefined,
+              businessPhones: onboardingOptions.businessPhone ? [onboardingOptions.businessPhone] : undefined,
+            });
 
-          results.push({
-            action: 'Create On-Prem AD User',
-            status: 'success',
-            message: `User created in on-premises AD. Will sync to Azure AD within 30 minutes.`,
-            details: data.user,
-          });
+            targetUserId = newUser.id;
+            targetUserDisplayName = newUser.displayName;
+            didCreateUser = true;
+            
+            results.push({
+              action: 'Create Azure AD User',
+              status: 'success',
+              message: `User ${newUser.displayName} created successfully in Azure AD`,
+              details: newUser,
+            });
 
-          // Note: We cannot continue with Azure AD operations until sync completes
-          toast.success('User created in on-premises AD! Azure AD sync will take ~30 minutes.');
-          setExecutionResults(results);
-          setCurrentStep(4); // Move to results step
-          setIsExecuting(false);
-          return; // Exit early - user must wait for sync
+            logger.info('Created new Azure AD user', { userId: newUser.id, displayName: newUser.displayName });
 
-        } catch (error) {
-          results.push({
-            action: 'Create On-Prem AD User',
-            status: 'error',
-            message: error.message,
-          });
-          setExecutionResults(results);
-          setCurrentStep(4);
-          setIsExecuting(false);
-          toast.error('Failed to create user in on-premises AD');
-          return;
+          } catch (error) {
+            results.push({
+              action: 'Create Azure AD User',
+              status: 'error',
+              message: error.message || 'Failed to create user in Azure AD',
+            });
+            setExecutionResults(results);
+            setCurrentStep(4);
+            setIsExecuting(false);
+            toast.error('Failed to create user in Azure AD');
+            return;
+          }
         }
       }
 
-      // Create user in Azure AD (cloud-only) if in create mode and not on-prem
-      if (!selectedUser && onboardingMode === 'create' && !newUserInfo.createInOnPremAD) {
-        setExecutionProgress(prev => ({ ...prev, currentTask: 'Creating user in Azure AD...', currentStep: prev.currentStep + 1 }));
-        try {
-          const newUser = await service.createUser({
-            accountEnabled: onboardingOptions.enableAccount !== false,
-            displayName: newUserInfo.displayName,
-            givenName: newUserInfo.firstName,
-            surname: newUserInfo.lastName,
-            mailNickname: newUserInfo.mailNickname || newUserInfo.firstName.toLowerCase(),
-            userPrincipalName: newUserInfo.userPrincipalName,
-            passwordProfile: {
-              forceChangePasswordNextSignIn: onboardingOptions.requirePasswordChange !== false,
-              password: onboardingOptions.temporaryPassword || generateTempPassword(),
-            },
-            department: onboardingOptions.department || undefined,
-            jobTitle: onboardingOptions.jobTitle || undefined,
-            officeLocation: onboardingOptions.officeLocation || undefined,
-            businessPhones: onboardingOptions.businessPhone ? [onboardingOptions.businessPhone] : undefined,
-          });
-
-          createdUserId = newUser.id;
-          
-          results.push({
-            action: 'Create Azure AD User',
-            status: 'success',
-            message: `User ${newUser.displayName} created successfully in Azure AD`,
-            details: newUser,
-          });
-
-          // Use the newly created user for subsequent operations
-          // Create a user object similar to selectedUser
-          const createdUserObj = {
-            id: newUser.id,
-            displayName: newUser.displayName,
-            userPrincipalName: newUser.userPrincipalName,
-            mail: newUser.mail,
-          };
-          
-          // Continue with the rest of onboarding using this user
-          // Update selectedUser reference for subsequent operations
-          setSelectedUser(createdUserObj);
-
-        } catch (error) {
-          results.push({
-            action: 'Create Azure AD User',
-            status: 'error',
-            message: error.message || 'Failed to create user in Azure AD',
-          });
-          setExecutionResults(results);
-          setCurrentStep(4);
-          setIsExecuting(false);
-          toast.error('Failed to create user in Azure AD');
-          return;
-        }
-      }
-
-      // If still no user ID at this point, we can't proceed
-      if (!createdUserId && !selectedUser?.id) {
-        toast.error('Please select a user to onboard or fill in new user details');
+      // At this point, we must have a valid targetUserId
+      if (!targetUserId) {
+        toast.error('No user available for onboarding');
         setIsExecuting(false);
         return;
       }
 
-      // Use createdUserId if we just created a user, otherwise use selectedUser.id
-      const targetUserId = createdUserId || selectedUser?.id;
-
-      // 1. Enable account and set password (skip if we just created the user with these settings)
-      if (onboardingOptions.enableAccount && selectedUser?.id && !createdUserId) {
+      // ===== STEP: ENABLE ACCOUNT (only for existing users, new users are already enabled) =====
+      if (isOnboardingExistingUser && onboardingOptions.enableAccount) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Enabling account and setting password...', currentStep: prev.currentStep + 1 }));
         try {
           await service.enableUser(targetUserId);
-          if (onboardingOptions.setPassword) {
+          if (onboardingOptions.setPassword && onboardingOptions.temporaryPassword) {
             await service.setUserPassword(
               targetUserId,
               onboardingOptions.temporaryPassword,
@@ -604,7 +622,7 @@ const OnboardingWizard = () => {
           results.push({
             action: 'Account Setup',
             status: 'success',
-            message: 'Account enabled and password set',
+            message: 'Account enabled' + (onboardingOptions.setPassword ? ' and password set' : ''),
           });
         } catch (error) {
           results.push({
@@ -615,28 +633,40 @@ const OnboardingWizard = () => {
         }
       }
 
-      // 2. Update user information (skip if we just created the user with this info)
-      if (selectedUser?.id || !createdUserId) {
+      // ===== STEP: UPDATE USER INFORMATION =====
+      // For new users, we already set this during creation, so only update if there are changes
+      // For existing users, always update to apply new job details
+      const shouldUpdateInfo = isOnboardingExistingUser || 
+        (didCreateUser && (onboardingOptions.managerEmail)); // Update if we need to set manager
+      
+      if (shouldUpdateInfo) {
         setExecutionProgress(prev => ({ ...prev, currentTask: 'Updating user information...', currentStep: prev.currentStep + 1 }));
         try {
           await service.updateUser(targetUserId, {
-          department: onboardingOptions.department,
-          jobTitle: onboardingOptions.jobTitle,
-          officeLocation: onboardingOptions.officeLocation,
-          businessPhones: onboardingOptions.businessPhone ? [onboardingOptions.businessPhone] : [],
-        });
+            department: onboardingOptions.department || undefined,
+            jobTitle: onboardingOptions.jobTitle || undefined,
+            officeLocation: onboardingOptions.officeLocation || undefined,
+            businessPhones: onboardingOptions.businessPhone ? [onboardingOptions.businessPhone] : undefined,
+          });
+          results.push({
+            action: 'Update Information',
+            status: 'success',
+            message: 'User information updated',
+          });
+        } catch (error) {
+          results.push({
+            action: 'Update Information',
+            status: 'error',
+            message: error.message,
+          });
+        }
+      } else {
+        // Mark as success for new users where info was set during creation
         results.push({
           action: 'Update Information',
           status: 'success',
-          message: 'User information updated',
+          message: 'User information set during creation',
         });
-      } catch (error) {
-        results.push({
-          action: 'Update Information',
-          status: 'error',
-          message: error.message,
-        });
-        }
       }
 
       // 3. Assign licenses
@@ -765,17 +795,19 @@ const OnboardingWizard = () => {
           const overallStatus = hasErrors ? 'partial' : allSkipped ? 'failed' : 'completed';
 
           // Get user info for logging
-          const userName = selectedUser?.displayName || 
+          const userName = targetUserDisplayName || 
+                          selectedUser?.displayName || 
                           newUserInfo.displayName || 
                           `${newUserInfo.firstName} ${newUserInfo.lastName}`;
           const userEmail = selectedUser?.mail || 
                            selectedUser?.userPrincipalName || 
-                           newUserInfo.email;
+                           newUserInfo.email ||
+                           newUserInfo.userPrincipalName;
 
           // Log to Convex database
           await convex.mutation(api.onboarding.logExecution, {
             sessionId,
-            targetUserId: createdUserId,
+            targetUserId: targetUserId,
             targetUserName: userName,
             targetUserEmail: userEmail,
             startTime,
@@ -1620,19 +1652,46 @@ const OnboardingWizard = () => {
         );
 
       case 'confirmation':
+        const isNewUserOnboarding = onboardingMode === 'create' && !selectedUser;
+        const isExistingUserOnboarding = onboardingMode === 'existing' && selectedUser;
+        const displayUserName = selectedUser?.displayName || newUserInfo.displayName;
+        const displayUserEmail = selectedUser?.userPrincipalName || newUserInfo.userPrincipalName;
+        
         return (
           <div>
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Confirm Onboarding Details</h3>
             
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md p-4 mb-6">
+            <div className={`border rounded-md p-4 mb-6 ${
+              isNewUserOnboarding 
+                ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+            }`}>
               <div className="flex">
-                <CheckCircleIcon className="h-5 w-5 text-green-400" />
+                {isNewUserOnboarding ? (
+                  <UserPlusIcon className="h-5 w-5 text-blue-400" />
+                ) : (
+                  <CheckCircleIcon className="h-5 w-5 text-green-400" />
+                )}
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-green-800 dark:text-green-300">
-                    Ready to onboard {newUserInfo.displayName}
+                  <h3 className={`text-sm font-medium ${
+                    isNewUserOnboarding 
+                      ? 'text-blue-800 dark:text-blue-300'
+                      : 'text-green-800 dark:text-green-300'
+                  }`}>
+                    {isNewUserOnboarding 
+                      ? `Ready to create new user: ${displayUserName}`
+                      : `Ready to onboard existing user: ${displayUserName}`
+                    }
                   </h3>
-                  <div className="mt-2 text-sm text-green-700 dark:text-green-400">
-                    Review the information below before creating the new user account.
+                  <div className={`mt-2 text-sm ${
+                    isNewUserOnboarding 
+                      ? 'text-blue-700 dark:text-blue-400'
+                      : 'text-green-700 dark:text-green-400'
+                  }`}>
+                    {isNewUserOnboarding 
+                      ? `A new ${newUserInfo.createInOnPremAD ? 'On-Premises AD' : 'Azure AD'} user account will be created.`
+                      : 'The existing user will be configured with the selected options.'
+                    }
                   </div>
                 </div>
               </div>
@@ -1640,26 +1699,41 @@ const OnboardingWizard = () => {
             
             <div className="card mb-6">
               <div className="card-header">
-                <h4 className="text-md font-medium text-gray-900 dark:text-gray-100">New User Information</h4>
+                <h4 className="text-md font-medium text-gray-900 dark:text-gray-100">
+                  {isNewUserOnboarding ? 'New User Information' : 'User Information'}
+                </h4>
+                {isExistingUserOnboarding && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
+                    Existing User
+                  </span>
+                )}
               </div>
               <div className="card-body">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Name</p>
-                    <p className="text-sm text-gray-900 dark:text-gray-100">{newUserInfo.displayName}</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">{displayUserName}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Email / Username</p>
-                    <p className="text-sm text-gray-900 dark:text-gray-100">{newUserInfo.userPrincipalName}</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">{displayUserEmail}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Department</p>
-                    <p className="text-sm text-gray-900 dark:text-gray-100">{onboardingOptions.department}</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">{onboardingOptions.department || 'Not specified'}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Job Title</p>
-                    <p className="text-sm text-gray-900 dark:text-gray-100">{onboardingOptions.jobTitle}</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">{onboardingOptions.jobTitle || 'Not specified'}</p>
                   </div>
+                  {selectedUser?.onPremisesSyncEnabled && (
+                    <div className="sm:col-span-2">
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Sync Status</p>
+                      <p className="text-sm text-purple-600 dark:text-purple-400">
+                        ✓ Synced from On-Premises Active Directory
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1670,34 +1744,34 @@ const OnboardingWizard = () => {
               </div>
               <div className="card-body">
                 <div className="space-y-2">
-                  {onboardingOptions.enableAccount && (
+                  {isNewUserOnboarding && (
                     <div className="flex items-center text-sm">
-                      <CheckCircleIcon className="h-4 w-4 text-success-500 mr-2" />
-                      Create and enable user account
+                      <UserPlusIcon className="h-4 w-4 text-blue-500 mr-2" />
+                      Create new user in {newUserInfo.createInOnPremAD ? 'On-Premises AD' : 'Azure AD'}
                     </div>
                   )}
-                  {onboardingOptions.setPassword && (
+                  {isExistingUserOnboarding && onboardingOptions.enableAccount && (
                     <div className="flex items-center text-sm">
                       <CheckCircleIcon className="h-4 w-4 text-success-500 mr-2" />
-                      Set temporary password
+                      Enable account and set password
                     </div>
                   )}
                   {onboardingOptions.assignLicenses && onboardingOptions.selectedLicenses.length > 0 && (
                     <div className="flex items-center text-sm">
                       <CheckCircleIcon className="h-4 w-4 text-success-500 mr-2" />
-                      Assign {onboardingOptions.selectedLicenses.length} licenses
+                      Assign {onboardingOptions.selectedLicenses.length} license(s)
                     </div>
                   )}
                   {onboardingOptions.addToGroups && onboardingOptions.selectedGroups.length > 0 && (
                     <div className="flex items-center text-sm">
                       <CheckCircleIcon className="h-4 w-4 text-success-500 mr-2" />
-                      Add to {onboardingOptions.selectedGroups.length} groups
+                      Add to {onboardingOptions.selectedGroups.length} group(s)
                     </div>
                   )}
                   {onboardingOptions.createMailbox && (
                     <div className="flex items-center text-sm">
                       <CheckCircleIcon className="h-4 w-4 text-success-500 mr-2" />
-                      Create mailbox
+                      Configure mailbox
                     </div>
                   )}
                   {onboardingOptions.shareWelcomeKit && (
@@ -1706,7 +1780,7 @@ const OnboardingWizard = () => {
                       Send welcome email
                     </div>
                   )}
-                  {onboardingOptions.scheduleTraining && (
+                  {onboardingOptions.scheduleTraining && onboardingOptions.trainingDate && (
                     <div className="flex items-center text-sm">
                       <CheckCircleIcon className="h-4 w-4 text-success-500 mr-2" />
                       Schedule training for {onboardingOptions.trainingDate}
