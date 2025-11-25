@@ -6,6 +6,7 @@ import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
 import { getGroupsForDepartment, hasMappedGroups } from '../../utils/departmentMappings';
 import { logger } from '../../utils/logger';
 import { apiConfig } from '../../config/apiConfig';
+import { exportOnboardingResultsToPDF } from '../../utils/pdfExport';
 import toast from 'react-hot-toast';
 import { useConvex } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -26,6 +27,7 @@ import {
   KeyIcon,
   MagnifyingGlassIcon,
   CloudArrowUpIcon,
+  DocumentArrowDownIcon,
 } from '@heroicons/react/24/outline';
 
 const OnboardingWizard = () => {
@@ -1671,9 +1673,61 @@ const OnboardingWizard = () => {
         );
 
       case 'results':
+        const successCount = executionResults.filter(r => r.status === 'success').length;
+        const errorCount = executionResults.filter(r => r.status === 'error').length;
+        
+        const handleExportPDF = () => {
+          try {
+            const filename = exportOnboardingResultsToPDF({
+              user: selectedUser || newUserInfo,
+              results: executionResults,
+              options: onboardingOptions,
+              executedBy: msalAuth?.user?.name || convexAuth?.user?.name || 'System',
+              executionDate: new Date(),
+            });
+            toast.success(`Report exported: ${filename}`);
+            logger.info('PDF report exported successfully', { filename });
+          } catch (error) {
+            logger.error('Failed to export PDF report', { error });
+            toast.error('Failed to export PDF report');
+          }
+        };
+        
         return (
           <div>
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Onboarding Results</h3>
+            
+            {/* Summary Banner */}
+            <div className={`mb-6 p-4 rounded-lg ${
+              errorCount === 0 
+                ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' 
+                : 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {errorCount === 0 ? (
+                    <CheckCircleIcon className="h-8 w-8 text-green-500" />
+                  ) : (
+                    <ExclamationTriangleIcon className="h-8 w-8 text-yellow-500" />
+                  )}
+                  <div>
+                    <h4 className={`font-semibold ${errorCount === 0 ? 'text-green-800 dark:text-green-200' : 'text-yellow-800 dark:text-yellow-200'}`}>
+                      {errorCount === 0 ? 'Onboarding Completed Successfully!' : 'Onboarding Completed with Issues'}
+                    </h4>
+                    <p className={`text-sm ${errorCount === 0 ? 'text-green-700 dark:text-green-300' : 'text-yellow-700 dark:text-yellow-300'}`}>
+                      {successCount} of {executionResults.length} tasks completed successfully
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleExportPDF}
+                  className="btn btn-secondary flex items-center gap-2"
+                >
+                  <DocumentArrowDownIcon className="h-5 w-5" />
+                  Export PDF Report
+                </button>
+              </div>
+            </div>
             
             <div className="card">
               <div className="card-body">
@@ -1696,9 +1750,9 @@ const OnboardingWizard = () => {
                           )}
                         </div>
                         <div className="ml-3">
-                          <h4 className="text-sm font-medium text-gray-900">{result.action}</h4>
+                          <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">{result.action}</h4>
                           <p className={`mt-1 text-sm ${
-                            result.status === 'success' ? 'text-success-700' : 'text-danger-700'
+                            result.status === 'success' ? 'text-success-700 dark:text-success-300' : 'text-danger-700 dark:text-danger-300'
                           }`}>
                             {result.message}
                           </p>
@@ -1708,19 +1762,28 @@ const OnboardingWizard = () => {
                   ))}
                 </div>
                 
-                <div className="mt-6 flex justify-end space-x-3">
+                <div className="mt-6 flex justify-between items-center">
                   <button
-                    onClick={() => navigate('/users')}
-                    className="btn btn-secondary"
+                    onClick={handleExportPDF}
+                    className="btn btn-outline-primary flex items-center gap-2"
                   >
-                    Back to Users
+                    <DocumentArrowDownIcon className="h-4 w-4" />
+                    Download Report
                   </button>
-                  <button
-                    onClick={() => navigate('/dashboard')}
-                    className="btn btn-primary"
-                  >
-                    Go to Dashboard
-                  </button>
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={() => navigate('/users')}
+                      className="btn btn-secondary"
+                    >
+                      Back to Users
+                    </button>
+                    <button
+                      onClick={() => navigate('/dashboard')}
+                      className="btn btn-primary"
+                    >
+                      Go to Dashboard
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
