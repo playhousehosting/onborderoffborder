@@ -225,19 +225,17 @@ class MSALGraphService {
 
   /**
    * Get all users with automatic pagination (fetches all pages)
+   * Signature matches graphService.getAllUsers for compatibility
+   * @param {string} filter - OData filter string (optional)
+   * @param {number} pageSize - Number of users per page (default 100)
    */
-  async getAllUsers(options = {}) {
-    const { top = 999, filter, select, fetchAll = true } = options;
+  async getAllUsers(filter = '', pageSize = 100) {
+    const defaultSelect = 'id,displayName,userPrincipalName,mail,jobTitle,department,accountEnabled,createdDateTime,lastPasswordChangeDateTime';
     
-    let queryParams = [`$top=${top}`, '$count=true'];
+    let queryParams = [`$top=${pageSize}`, '$count=true', `$select=${defaultSelect}`];
     if (filter) queryParams.push(`$filter=${encodeURIComponent(filter)}`);
-    if (select) queryParams.push(`$select=${select}`);
     
     const endpoint = `/users?${queryParams.join('&')}`;
-    
-    if (!fetchAll) {
-      return await this.makeRequest(endpoint);
-    }
     
     // Fetch all pages automatically
     return await this.getAllWithPagination(endpoint);
