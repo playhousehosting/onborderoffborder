@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useConvex } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { getSessionId } from '../../services/convexService';
@@ -294,14 +294,37 @@ const ScheduledOffboarding = () => {
   };
 
   const executeScheduledOffboarding = async (scheduleId) => {
-    if (!window.confirm('Are you sure you want to execute this scheduled offboarding now? This will immediately disable the user account and perform all selected offboarding actions.')) {
-      return;
-    }
-
     // Find the schedule record to get user details and actions
     const schedule = scheduledOffboardings.find(s => s.id === scheduleId);
     if (!schedule) {
       toast.error('Schedule not found');
+      return;
+    }
+
+    // Check if the scheduled time has passed
+    const timeRemaining = getTimeRemaining(schedule.scheduledDate, schedule.scheduledTime, schedule.timezone);
+    
+    if (!timeRemaining.expired && timeRemaining.diff > 0) {
+      // Scheduled time has NOT yet arrived
+      const confirmEarly = window.confirm(
+        `⚠️ EARLY EXECUTION WARNING\n\n` +
+        `This offboarding is scheduled for:\n` +
+        `${formatDateTime(schedule.scheduledDate, schedule.scheduledTime, schedule.timezone)} (${schedule.timezone})\n\n` +
+        `Time remaining: ${timeRemaining.text}\n\n` +
+        `Are you sure you want to execute this offboarding EARLY?\n\n` +
+        `Click OK to proceed immediately, or Cancel to wait for the scheduled time.`
+      );
+      
+      if (!confirmEarly) {
+        toast('Execution cancelled. Offboarding will run at the scheduled time.', {
+          icon: '⏰',
+          duration: 4000,
+        });
+        return;
+      }
+    }
+
+    if (!window.confirm('Are you sure you want to execute this offboarding now? This will immediately disable the user account and perform all selected offboarding actions.')) {
       return;
     }
 
@@ -734,6 +757,105 @@ const ScheduledOffboarding = () => {
     } catch (e) {
       return `${dateString} ${timeString}`;
     }
+  };
+
+  // Calculate time remaining until scheduled execution
+  const getTimeRemaining = useCallback((dateString, timeString, timezone) => {
+    try {
+      // Create a date string that can be parsed with the timezone
+      const dateTimeStr = `${dateString}T${timeString}:00`;
+      
+      // Get the current time in the target timezone
+      const now = new Date();
+      const nowInTimezone = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+      
+      // Parse the scheduled date/time (it's already in the target timezone)
+      const [year, month, day] = dateString.split('-').map(Number);
+      const [hours, minutes] = timeString.split(':').map(Number);
+      const scheduledInTimezone = new Date(year, month - 1, day, hours, minutes);
+      
+      // Calculate the offset between local time and target timezone
+      const localNow = new Date();
+      const targetNow = new Date(localNow.toLocaleString('en-US', { timeZone: timezone }));
+      const offsetMs = localNow.getTime() - targetNow.getTime();
+      
+      // Adjust scheduled time to local for comparison
+      const scheduledLocal = new Date(scheduledInTimezone.getTime() + offsetMs);
+      
+      const diff = scheduledLocal.getTime() - localNow.getTime();
+      
+      if (diff <= 0) {
+        return { expired: true, text: 'Ready to execute', diff: 0 };
+      }
+      
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours_remaining = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes_remaining = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds_remaining = Math.floor((diff % (1000 * 60)) / 1000);
+      
+      let text = '';
+      if (days > 0) {
+        text = `${days}d ${hours_remaining}h ${minutes_remaining}m`;
+      } else if (hours_remaining > 0) {
+        text = `${hours_remaining}h ${minutes_remaining}m ${seconds_remaining}s`;
+      } else if (minutes_remaining > 0) {
+        text = `${minutes_remaining}m ${seconds_remaining}s`;
+      } else {
+        text = `${seconds_remaining}s`;
+      }
+      
+      return { expired: false, text, diff, days, hours: hours_remaining, minutes: minutes_remaining, seconds: seconds_remaining };
+    } catch (e) {
+      console.error('Error calculating time remaining:', e);
+      return { expired: false, text: 'Unknown', diff: 0 };
+    }
+  }, []);
+
+  // Countdown Timer Component
+  const CountdownTimer = ({ dateString, timeString, timezone, status }) => {
+    const [timeRemaining, setTimeRemaining] = useState(() => 
+      getTimeRemaining(dateString, timeString, timezone)
+    );
+
+    useEffect(() => {
+      if (status !== 'scheduled') return;
+      
+      const interval = setInterval(() => {
+        setTimeRemaining(getTimeRemaining(dateString, timeString, timezone));
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }, [dateString, timeString, timezone, status]);
+
+    if (status !== 'scheduled') {
+      return null;
+    }
+
+    if (timeRemaining.expired) {
+      return (
+        <div className="mt-1 flex items-center text-xs text-amber-600 font-medium">
+          <ExclamationTriangleIcon className="h-3 w-3 mr-1" />
+          Ready to execute
+        </div>
+      );
+    }
+
+    // Color based on urgency
+    let colorClass = 'text-gray-500';
+    if (timeRemaining.diff < 1000 * 60 * 60) { // Less than 1 hour
+      colorClass = 'text-red-600 font-semibold';
+    } else if (timeRemaining.diff < 1000 * 60 * 60 * 24) { // Less than 24 hours
+      colorClass = 'text-amber-600 font-medium';
+    } else if (timeRemaining.diff < 1000 * 60 * 60 * 24 * 7) { // Less than 7 days
+      colorClass = 'text-blue-600';
+    }
+
+    return (
+      <div className={`mt-1 flex items-center text-xs ${colorClass}`}>
+        <ClockIcon className="h-3 w-3 mr-1 animate-pulse" />
+        <span>Executes in: {timeRemaining.text}</span>
+      </div>
+    );
   };
 
   const getStatusBadge = (status) => {
@@ -1193,6 +1315,12 @@ const ScheduledOffboarding = () => {
                           <div className="text-xs text-gray-500">
                             {schedule.timezone}
                           </div>
+                          <CountdownTimer 
+                            dateString={schedule.scheduledDate}
+                            timeString={schedule.scheduledTime}
+                            timezone={schedule.timezone}
+                            status={schedule.status}
+                          />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {templates.find(t => t.id === schedule.template)?.name || schedule.template}
