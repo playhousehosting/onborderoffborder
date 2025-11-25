@@ -3,8 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useMSALAuth } from '../../contexts/MSALAuthContext';
 import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
 import { useTranslation } from 'react-i18next';
-import msalGraphService from '../../services/msalGraphService';
-import { graphService } from '../../services/graphService';
+import { getActiveService, getAuthMode } from '../../services/serviceFactory';
 import { logger } from '../../utils/logger';
 import { SkeletonDashboard } from '../common/Skeleton';
 import toast from 'react-hot-toast';
@@ -41,27 +40,21 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [recentActivity, setRecentActivity] = useState([]);
 
-  // Determine which auth is active
-  const isConvexAuth = convexAuth.isAuthenticated;
-  const isMSALAuth = msalAuth.isAuthenticated;
+  // Determine which auth is active - use serviceFactory's auth mode
+  const authMode = getAuthMode();
+  const isConvexAuth = authMode === 'convex';
+  const isMSALAuth = authMode === 'msal';
   const user = msalAuth.user || convexAuth.user;
   const hasPermission = msalAuth.hasPermission || convexAuth.hasPermission;
-
-  // Set up MSAL graph service with token function (only if using MSAL)
-  useEffect(() => {
-    if (isMSALAuth && msalAuth.getAccessToken) {
-      msalGraphService.setGetTokenFunction(msalAuth.getAccessToken);
-    }
-  }, [isMSALAuth, msalAuth.getAccessToken]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
 
-        // Use appropriate service based on auth mode
-        const service = isConvexAuth ? graphService : msalGraphService;
-        console.log(`📊 Dashboard using ${isConvexAuth ? 'Convex' : 'MSAL'} Graph service`);
+        // Use the service factory to get the correct service
+        const service = getActiveService();
+        console.log(`📊 Dashboard using ${authMode || 'default'} Graph service`);
         
         // Only fetch data if user has permissions
         if (hasPermission('userManagement')) {
