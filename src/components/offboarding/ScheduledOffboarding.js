@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useConvex } from "convex/react";
+import { useConvex, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { getSessionId } from '../../services/convexService';
 import { getActiveService, getAuthMode } from '../../services/serviceFactory';
@@ -22,6 +22,11 @@ import {
   MinusCircleIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  KeyIcon,
+  ShieldCheckIcon,
+  Cog6ToothIcon,
+  EyeIcon,
+  EyeSlashIcon,
 } from '@heroicons/react/24/outline';
 
 const ScheduledOffboarding = () => {
@@ -55,6 +60,20 @@ const ScheduledOffboarding = () => {
   const [viewingReportId, setViewingReportId] = useState(null);
   const [executionLogs, setExecutionLogs] = useState(null);
   const [loadingReport, setLoadingReport] = useState(false);
+
+  // Service credentials state for scheduled offboarding
+  const [showCredentialsSetup, setShowCredentialsSetup] = useState(false);
+  const [credentialsConfigured, setCredentialsConfigured] = useState(false);
+  const [serviceCredentials, setServiceCredentials] = useState({
+    clientId: '',
+    tenantId: '',
+    clientSecret: '',
+  });
+  const [isSavingCredentials, setIsSavingCredentials] = useState(false);
+  const [showSecrets, setShowSecrets] = useState(false);
+  
+  // Convex action to configure credentials
+  const configureCredentials = useAction(api.authActions.configure);
 
   const [scheduleForm, setScheduleForm] = useState({
     userId: '',
@@ -101,9 +120,50 @@ const ScheduledOffboarding = () => {
     { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
   ];
 
+  // Check if service credentials are already configured
+  useEffect(() => {
+    const serviceSessionId = localStorage.getItem('serviceSessionId');
+    const serviceTenantId = localStorage.getItem('serviceTenantId');
+    if (serviceSessionId && serviceTenantId) {
+      setCredentialsConfigured(true);
+    }
+  }, []);
+
   useEffect(() => {
     fetchScheduledOffboardings();
   }, []);
+
+  // Handler to save service credentials
+  const handleSaveServiceCredentials = async () => {
+    setIsSavingCredentials(true);
+    try {
+      if (!serviceCredentials.clientId || !serviceCredentials.tenantId || !serviceCredentials.clientSecret) {
+        toast.error('All fields are required for service credentials');
+        return;
+      }
+
+      const result = await configureCredentials({
+        clientId: serviceCredentials.clientId,
+        tenantId: serviceCredentials.tenantId,
+        clientSecret: serviceCredentials.clientSecret,
+      });
+
+      if (result.success) {
+        localStorage.setItem('serviceSessionId', result.sessionId);
+        localStorage.setItem('serviceTenantId', serviceCredentials.tenantId);
+        setCredentialsConfigured(true);
+        setShowCredentialsSetup(false);
+        toast.success('Service credentials saved! Scheduled offboarding will now work.');
+      } else {
+        toast.error('Failed to save service credentials');
+      }
+    } catch (error) {
+      console.error('Error saving service credentials:', error);
+      toast.error(`Failed to save: ${error.message}`);
+    } finally {
+      setIsSavingCredentials(false);
+    }
+  };
 
   const fetchScheduledOffboardings = async () => {
     try {
@@ -904,15 +964,165 @@ const ScheduledOffboarding = () => {
               Schedule and manage future employee offboarding processes
             </p>
           </div>
-          <button
-            onClick={() => setShowScheduleForm(true)}
-            className="btn btn-primary"
-          >
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowCredentialsSetup(!showCredentialsSetup)}
+              className={`btn ${credentialsConfigured ? 'btn-secondary' : 'btn-warning'}`}
+            >
+              <Cog6ToothIcon className="h-4 w-4 mr-2" />
+              {credentialsConfigured ? 'Update Credentials' : 'Setup Required'}
+            </button>
+            <button
+              onClick={() => setShowScheduleForm(true)}
+              className="btn btn-primary"
+            >
             <CalendarIcon className="h-4 w-4 mr-2" />
             Schedule Offboarding
           </button>
+          </div>
         </div>
       </div>
+
+      {/* Service Credentials Setup Banner */}
+      {!credentialsConfigured && !showCredentialsSetup && (
+        <div className="mb-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <ExclamationTriangleIcon className="h-6 w-6 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-amber-800 dark:text-amber-300">Setup Required for Scheduled Offboarding</h3>
+              <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
+                To run scheduled offboardings automatically, you need to configure service credentials. 
+                Click "Setup Required" above to add your Azure AD app credentials.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Service Credentials Setup Form */}
+      {showCredentialsSetup && (
+        <div className="mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                  <KeyIcon className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Service Credentials</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Required for scheduled offboarding to run automatically</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCredentialsSetup(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <XCircleIcon className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+          
+          <div className="p-4 space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                <strong>Why needed?</strong> Scheduled offboardings run on the server when your browser isn't open. 
+                The server needs its own credentials (App-Only) to make Graph API calls.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Client ID (Application ID)
+                </label>
+                <input
+                  type="text"
+                  value={serviceCredentials.clientId}
+                  onChange={(e) => setServiceCredentials(prev => ({ ...prev, clientId: e.target.value }))}
+                  className="input w-full"
+                  placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Tenant ID (Directory ID)
+                </label>
+                <input
+                  type="text"
+                  value={serviceCredentials.tenantId}
+                  onChange={(e) => setServiceCredentials(prev => ({ ...prev, tenantId: e.target.value }))}
+                  className="input w-full"
+                  placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Client Secret <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type={showSecrets ? 'text' : 'password'}
+                  value={serviceCredentials.clientSecret}
+                  onChange={(e) => setServiceCredentials(prev => ({ ...prev, clientSecret: e.target.value }))}
+                  className="input w-full pr-20"
+                  placeholder="Enter client secret (required)"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSecrets(!showSecrets)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+                >
+                  {showSecrets ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Azure Portal → App Registrations → Certificates & secrets → New client secret
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                <ShieldCheckIcon className="inline h-4 w-4 mr-1" />
+                Credentials are encrypted and stored securely
+              </p>
+              <button
+                onClick={handleSaveServiceCredentials}
+                disabled={isSavingCredentials || !serviceCredentials.clientId || !serviceCredentials.tenantId || !serviceCredentials.clientSecret}
+                className="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSavingCredentials ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircleIcon className="h-4 w-4 mr-2" />
+                    Save Credentials
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Credentials Configured Success Banner */}
+      {credentialsConfigured && !showCredentialsSetup && (
+        <div className="mb-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+          <div className="flex items-center gap-2">
+            <CheckCircleIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
+            <span className="text-sm text-green-700 dark:text-green-300">
+              Service credentials configured - scheduled offboarding will run automatically
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Schedule Form Modal */}
       {showScheduleForm && (
