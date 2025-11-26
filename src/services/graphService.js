@@ -267,6 +267,26 @@ export class GraphService {
         return { success: true };
       }
       
+      // Check if response has content before parsing JSON
+      const contentLength = response.headers.get('content-length');
+      const contentType = response.headers.get('content-type');
+      
+      // If no content or not JSON, return empty result
+      if (contentLength === '0' || !contentType?.includes('application/json')) {
+        // Try to get text to see if there's any content
+        const text = await response.text();
+        if (!text || text.trim() === '') {
+          return { value: [] }; // Return empty array for list endpoints
+        }
+        // If there is text, try to parse it as JSON
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          logger.warn('Response is not JSON:', text.substring(0, 100));
+          return { value: [] };
+        }
+      }
+      
       return await response.json();
     } catch (error) {
       const structuredError = this.handleGraphError(error, 'complete the request');
@@ -358,6 +378,24 @@ export class GraphService {
       // Handle empty responses (204 No Content)
       if (response.status === 204) {
         return { success: true };
+      }
+      
+      // Check if response has content before parsing JSON
+      const contentLength = response.headers.get('content-length');
+      const contentType = response.headers.get('content-type');
+      
+      // If no content or not JSON, return empty result
+      if (contentLength === '0' || !contentType?.includes('application/json')) {
+        const text = await response.text();
+        if (!text || text.trim() === '') {
+          return { value: [] };
+        }
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          logger.warn('Beta response is not JSON:', text.substring(0, 100));
+          return { value: [] };
+        }
       }
       
       return await response.json();
