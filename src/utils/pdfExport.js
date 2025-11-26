@@ -415,11 +415,14 @@ export const exportOnboardingResultsToPDF = ({
 
   // Calculate statistics
   const successCount = results.filter(r => r.status === 'success').length;
+  const warningCount = results.filter(r => r.status === 'warning').length;
+  const infoCount = results.filter(r => r.status === 'info').length;
   const errorCount = results.filter(r => r.status === 'error').length;
   const skippedCount = results.filter(r => r.status === 'skipped').length;
   const totalTasks = results.length;
-  const completedTasks = totalTasks - skippedCount;
-  const successRate = completedTasks > 0 ? ((successCount / completedTasks) * 100).toFixed(1) : 0;
+  const completedTasks = totalTasks - skippedCount - infoCount; // Don't count info as tasks
+  const successfulTasks = successCount + warningCount; // Warnings are partial success
+  const successRate = completedTasks > 0 ? ((successfulTasks / completedTasks) * 100).toFixed(1) : 0;
 
   // ===== HEADER =====
   doc.setFillColor(240, 253, 244); // Light green background
@@ -494,7 +497,7 @@ export const exportOnboardingResultsToPDF = ({
   
   doc.setFontSize(10);
   doc.setFont(undefined, 'normal');
-  doc.text(`${successCount} of ${completedTasks} tasks completed successfully (${successRate}%)`, 
+  doc.text(`${successfulTasks} of ${completedTasks} tasks completed successfully (${successRate}%)`, 
     pageWidth / 2, yPosition + 18, { align: 'center' });
   
   doc.setTextColor(0, 0, 0);
@@ -505,7 +508,9 @@ export const exportOnboardingResultsToPDF = ({
   const summaryData = [
     ['Total Tasks', totalTasks.toString()],
     ['Successful', successCount.toString()],
+    ['With Warnings', warningCount.toString()],
     ['Failed', errorCount.toString()],
+    ['Information', infoCount.toString()],
     ['Skipped', skippedCount.toString()],
     ['Success Rate', `${successRate}%`],
   ];
@@ -558,8 +563,129 @@ export const exportOnboardingResultsToPDF = ({
 
   // Group results by status
   const successResults = results.filter(r => r.status === 'success');
+  const warningResults = results.filter(r => r.status === 'warning');
+  const infoResults = results.filter(r => r.status === 'info');
   const errorResults = results.filter(r => r.status === 'error');
   const skippedResults = results.filter(r => r.status === 'skipped');
+
+  // Helper to render group details in a table
+  const renderGroupDetails = (result) => {
+    if (!result.details) return;
+    
+    const details = result.details;
+    
+    // Added groups
+    if (details.added && details.added.length > 0) {
+      checkAddPage(15);
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(34, 197, 94);
+      doc.text(`    Added to ${details.added.length} group(s):`, 18, yPosition);
+      doc.setTextColor(0, 0, 0);
+      yPosition += 4;
+      
+      const addedData = details.added.map(g => [g.displayName || g.name || 'Unknown']);
+      callAutoTable({
+        startY: yPosition,
+        body: addedData,
+        theme: 'plain',
+        bodyStyles: { fontSize: 8, textColor: [34, 197, 94] },
+        margin: { left: 24, right: 14 },
+        tableWidth: 'auto',
+      });
+      yPosition = doc.lastAutoTable.finalY + 3;
+    }
+    
+    // Failed groups
+    if (details.failed && details.failed.length > 0) {
+      checkAddPage(15);
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(239, 68, 68);
+      doc.text(`    Failed to add to ${details.failed.length} group(s):`, 18, yPosition);
+      doc.setTextColor(0, 0, 0);
+      yPosition += 4;
+      
+      const failedData = details.failed.map(g => [
+        g.displayName || g.name || 'Unknown',
+        g.error || 'Unknown error'
+      ]);
+      callAutoTable({
+        startY: yPosition,
+        head: [['Group', 'Error']],
+        body: failedData,
+        theme: 'plain',
+        headStyles: { fontSize: 8, fontStyle: 'bold', textColor: [239, 68, 68] },
+        bodyStyles: { fontSize: 8 },
+        margin: { left: 24, right: 14 },
+        columnStyles: {
+          0: { cellWidth: 60 },
+          1: { cellWidth: 'auto' },
+        },
+      });
+      yPosition = doc.lastAutoTable.finalY + 3;
+    }
+    
+    // Skipped dynamic groups
+    if (details.skippedDynamic && details.skippedDynamic.length > 0) {
+      checkAddPage(15);
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(234, 179, 8);
+      doc.text(`    Skipped ${details.skippedDynamic.length} dynamic group(s):`, 18, yPosition);
+      doc.setTextColor(0, 0, 0);
+      yPosition += 4;
+      
+      const dynamicData = details.skippedDynamic.map(g => [
+        g.displayName || g.name || 'Unknown',
+        g.reason || 'Dynamic membership - members determined by rules'
+      ]);
+      callAutoTable({
+        startY: yPosition,
+        head: [['Group', 'Reason']],
+        body: dynamicData,
+        theme: 'plain',
+        headStyles: { fontSize: 8, fontStyle: 'bold', textColor: [234, 179, 8] },
+        bodyStyles: { fontSize: 8 },
+        margin: { left: 24, right: 14 },
+        columnStyles: {
+          0: { cellWidth: 60 },
+          1: { cellWidth: 'auto' },
+        },
+      });
+      yPosition = doc.lastAutoTable.finalY + 3;
+    }
+    
+    // Skipped on-prem groups
+    if (details.skippedOnPrem && details.skippedOnPrem.length > 0) {
+      checkAddPage(15);
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(234, 179, 8);
+      doc.text(`    Skipped ${details.skippedOnPrem.length} on-premises group(s):`, 18, yPosition);
+      doc.setTextColor(0, 0, 0);
+      yPosition += 4;
+      
+      const onPremData = details.skippedOnPrem.map(g => [
+        g.displayName || g.name || 'Unknown',
+        g.reason || 'Must be managed in on-premises Active Directory'
+      ]);
+      callAutoTable({
+        startY: yPosition,
+        head: [['Group', 'Reason']],
+        body: onPremData,
+        theme: 'plain',
+        headStyles: { fontSize: 8, fontStyle: 'bold', textColor: [234, 179, 8] },
+        bodyStyles: { fontSize: 8 },
+        margin: { left: 24, right: 14 },
+        columnStyles: {
+          0: { cellWidth: 60 },
+          1: { cellWidth: 'auto' },
+        },
+      });
+      yPosition = doc.lastAutoTable.finalY + 3;
+    }
+  };
 
   // Successful tasks
   if (successResults.length > 0) {
@@ -567,7 +693,7 @@ export const exportOnboardingResultsToPDF = ({
     doc.setFontSize(11);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(34, 197, 94); // Green
-    doc.text('✓ Successful Tasks', 14, yPosition);
+    doc.text('Successful Tasks', 14, yPosition);
     doc.setTextColor(0, 0, 0);
     yPosition += 5;
 
@@ -591,7 +717,100 @@ export const exportOnboardingResultsToPDF = ({
       },
     });
 
-    yPosition = doc.lastAutoTable.finalY + 10;
+    yPosition = doc.lastAutoTable.finalY + 5;
+    
+    // Render group details for successful Group Membership tasks
+    successResults.forEach(r => {
+      if ((r.action === 'Group Membership' || r.action === 'Groups Skipped') && r.details) {
+        renderGroupDetails(r);
+      }
+    });
+    
+    yPosition += 5;
+  }
+
+  // Warning tasks (partial success)
+  if (warningResults.length > 0) {
+    checkAddPage(20);
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(234, 179, 8); // Amber
+    doc.text('Tasks with Warnings', 14, yPosition);
+    doc.setTextColor(0, 0, 0);
+    yPosition += 5;
+
+    const warningData = warningResults.map(r => [
+      r.action,
+      r.message || 'Completed with warnings',
+    ]);
+
+    callAutoTable({
+      startY: yPosition,
+      head: [['Task', 'Result']],
+      body: warningData,
+      theme: 'striped',
+      headStyles: { fillColor: [234, 179, 8], fontSize: 9, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 8 },
+      alternateRowStyles: { fillColor: [254, 252, 232] },
+      margin: { left: 14, right: 14 },
+      columnStyles: {
+        0: { cellWidth: 60 },
+        1: { cellWidth: 'auto' },
+      },
+    });
+
+    yPosition = doc.lastAutoTable.finalY + 5;
+    
+    // Render group details for warning tasks
+    warningResults.forEach(r => {
+      if ((r.action === 'Group Membership' || r.action === 'Groups Skipped') && r.details) {
+        renderGroupDetails(r);
+      }
+    });
+    
+    yPosition += 5;
+  }
+
+  // Info tasks (skipped groups info)
+  if (infoResults.length > 0) {
+    checkAddPage(20);
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(59, 130, 246); // Blue
+    doc.text('Information', 14, yPosition);
+    doc.setTextColor(0, 0, 0);
+    yPosition += 5;
+
+    const infoData = infoResults.map(r => [
+      r.action,
+      r.message || 'Information',
+    ]);
+
+    callAutoTable({
+      startY: yPosition,
+      head: [['Task', 'Details']],
+      body: infoData,
+      theme: 'striped',
+      headStyles: { fillColor: [59, 130, 246], fontSize: 9, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 8 },
+      alternateRowStyles: { fillColor: [239, 246, 255] },
+      margin: { left: 14, right: 14 },
+      columnStyles: {
+        0: { cellWidth: 60 },
+        1: { cellWidth: 'auto' },
+      },
+    });
+
+    yPosition = doc.lastAutoTable.finalY + 5;
+    
+    // Render group details for info tasks
+    infoResults.forEach(r => {
+      if ((r.action === 'Group Membership' || r.action === 'Groups Skipped') && r.details) {
+        renderGroupDetails(r);
+      }
+    });
+    
+    yPosition += 5;
   }
 
   // Failed tasks
@@ -600,7 +819,7 @@ export const exportOnboardingResultsToPDF = ({
     doc.setFontSize(11);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(239, 68, 68); // Red
-    doc.text('✗ Failed Tasks', 14, yPosition);
+    doc.text('Failed Tasks', 14, yPosition);
     doc.setTextColor(0, 0, 0);
     yPosition += 5;
 
@@ -624,7 +843,16 @@ export const exportOnboardingResultsToPDF = ({
       },
     });
 
-    yPosition = doc.lastAutoTable.finalY + 10;
+    yPosition = doc.lastAutoTable.finalY + 5;
+    
+    // Render group details for failed Group Membership tasks
+    errorResults.forEach(r => {
+      if ((r.action === 'Group Membership' || r.action === 'Groups Skipped') && r.details) {
+        renderGroupDetails(r);
+      }
+    });
+    
+    yPosition += 5;
   }
 
   // Skipped tasks
@@ -633,7 +861,7 @@ export const exportOnboardingResultsToPDF = ({
     doc.setFontSize(11);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(107, 114, 128); // Gray
-    doc.text('— Skipped Tasks', 14, yPosition);
+    doc.text('Skipped Tasks', 14, yPosition);
     doc.setTextColor(0, 0, 0);
     yPosition += 5;
 
