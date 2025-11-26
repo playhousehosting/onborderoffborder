@@ -1,10 +1,10 @@
 /**
  * Intune Clone Service
  * Bulk clone policies with pattern-based name transformations
- * Uses MSAL authentication via Convex proxy
+ * Uses service factory to support both MSAL and Convex authentication modes
  */
 
-import msalGraphService from '../msalGraphService';
+import { getActiveService } from '../serviceFactory';
 
 class IntuneCloneService {
   constructor() {
@@ -180,7 +180,7 @@ class IntuneCloneService {
     }
 
     // Create the cloned policy
-    const response = await msalGraphService.makeRequest(endpoint, {
+    const response = await getActiveService().makeRequest(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -275,7 +275,7 @@ class IntuneCloneService {
   async policyNameExists(endpoint, name, odataType) {
     try {
       const filter = `displayName eq '${name.replace(/'/g, "''")}'`;
-      const response = await msalGraphService.makeRequest(
+      const response = await getActiveService().makeRequest(
         `${endpoint}?$filter=${encodeURIComponent(filter)}`,
         { method: 'GET' }
       );
@@ -330,7 +330,7 @@ class IntuneCloneService {
 
     // POST assignments
     const assignEndpoint = `${baseEndpoint}/${policyId}/assign`;
-    await msalGraphService.makeRequest(assignEndpoint, {
+    await getActiveService().makeRequest(assignEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

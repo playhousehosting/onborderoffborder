@@ -1,9 +1,10 @@
 /**
  * Intune Assignment Analytics Service
  * Analyze policy and app assignments, detect conflicts, generate reports
+ * Uses service factory to support both MSAL and Convex authentication modes
  */
 
-import msalGraphService from '../msalGraphService';
+import { getActiveService } from '../serviceFactory';
 
 class IntuneAssignmentService {
   /**
@@ -68,7 +69,7 @@ class IntuneAssignmentService {
     for (const policyType of policyTypes) {
       try {
         // Fetch policies
-        const policiesResponse = await msalGraphService.makeRequest(policyType.endpoint, 'GET');
+        const policiesResponse = await getActiveService().makeRequest(policyType.endpoint, 'GET');
         const policies = policiesResponse.value || [];
         
         results.summary.totalPolicies += policies.length;
@@ -88,28 +89,28 @@ class IntuneAssignmentService {
             }
           } else if (policyType.type === 'mobileApps') {
             // Apps have assignments endpoint
-            const assignmentsResponse = await msalGraphService.makeRequest(
+            const assignmentsResponse = await getActiveService().makeRequest(
               `${policyType.endpoint}/${policy.id}/assignments`,
               'GET'
             );
             assignments = assignmentsResponse.value || [];
           } else if (policyType.type === 'configurationPolicies') {
             // Settings Catalog uses assignments endpoint
-            const assignmentsResponse = await msalGraphService.makeRequest(
+            const assignmentsResponse = await getActiveService().makeRequest(
               `${policyType.endpoint}/${policy.id}/assignments`,
               'GET'
             );
             assignments = assignmentsResponse.value || [];
           } else if (policyType.type === 'intentPolicies') {
             // Security Baselines use assignments endpoint
-            const assignmentsResponse = await msalGraphService.makeRequest(
+            const assignmentsResponse = await getActiveService().makeRequest(
               `${policyType.endpoint}/${policy.id}/assignments`,
               'GET'
             );
             assignments = assignmentsResponse.value || [];
           } else {
             // Standard device management policies
-            const assignmentsResponse = await msalGraphService.makeRequest(
+            const assignmentsResponse = await getActiveService().makeRequest(
               `${policyType.endpoint}/${policy.id}/assignments`,
               'GET'
             );
@@ -257,7 +258,7 @@ class IntuneAssignmentService {
     // Fetch groups if not provided
     if (!groups) {
       try {
-        const groupsResponse = await msalGraphService.makeRequest('/groups', 'GET');
+        const groupsResponse = await getActiveService().makeRequest('/groups', 'GET');
         groups = groupsResponse.value || [];
       } catch (error) {
         console.error('Error fetching groups:', error);

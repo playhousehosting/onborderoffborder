@@ -1,10 +1,10 @@
 /**
  * ADMX Import Service
  * Parse ADMX/ADML files and convert to Intune configuration policies
- * Uses MSAL authentication via Convex proxy
+ * Uses service factory to support both MSAL and Convex authentication modes
  */
 
-import msalGraphService from '../msalGraphService';
+import { getActiveService } from '../serviceFactory';
 
 class ADMXImportService {
   constructor() {
@@ -363,7 +363,7 @@ class ADMXImportService {
       }
 
       // Create policy via Graph API
-      const response = await msalGraphService.makeRequest(
+      const response = await getActiveService().makeRequest(
         '/deviceManagement/configurationPolicies',
         {
           method: 'POST',

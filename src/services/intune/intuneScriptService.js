@@ -1,9 +1,10 @@
 /**
  * Intune Script Management Service
  * Manage PowerShell and Shell scripts for Windows, macOS, and Linux devices
+ * Uses service factory to support both MSAL and Convex authentication modes
  */
 
-import msalGraphService from '../msalGraphService';
+import { getActiveService } from '../serviceFactory';
 
 class IntuneScriptService {
   /**
@@ -37,7 +38,7 @@ class IntuneScriptService {
 
     for (const { type, endpoint } of endpoints) {
       try {
-        const response = await msalGraphService.makeRequest(endpoint, 'GET');
+        const response = await getActiveService().makeRequest(endpoint, 'GET');
         const scripts = (response.value || []).map(script => ({
           ...script,
           scriptType: type
@@ -56,7 +57,7 @@ class IntuneScriptService {
    * @returns {Promise<Array>} Array of PowerShell scripts
    */
   async fetchPowerShellScripts() {
-    const response = await msalGraphService.makeRequest(
+    const response = await getActiveService().makeRequest(
       '/deviceManagement/deviceManagementScripts',
       'GET'
     );
@@ -69,7 +70,7 @@ class IntuneScriptService {
    * @returns {Promise<Array>} Array of Shell scripts
    */
   async fetchShellScripts() {
-    const response = await msalGraphService.makeRequest(
+    const response = await getActiveService().makeRequest(
       '/deviceManagement/deviceShellScripts',
       'GET'
     );
@@ -88,7 +89,7 @@ class IntuneScriptService {
       ? `/deviceManagement/deviceManagementScripts/${scriptId}`
       : `/deviceManagement/deviceShellScripts/${scriptId}`;
 
-    const response = await msalGraphService.makeRequest(endpoint, 'GET');
+    const response = await getActiveService().makeRequest(endpoint, 'GET');
     
     // Decode base64 content
     if (response.scriptContent) {
@@ -127,7 +128,7 @@ class IntuneScriptService {
       fileName: fileName || `${displayName}.ps1`
     };
 
-    const response = await msalGraphService.makeRequest(
+    const response = await getActiveService().makeRequest(
       '/deviceManagement/deviceManagementScripts',
       'POST',
       script
@@ -161,7 +162,7 @@ class IntuneScriptService {
       fileName: fileName || `${displayName}.sh`
     };
 
-    const response = await msalGraphService.makeRequest(
+    const response = await getActiveService().makeRequest(
       '/deviceManagement/deviceShellScripts',
       'POST',
       script
@@ -187,7 +188,7 @@ class IntuneScriptService {
       updates.scriptContent = btoa(updates.scriptContent);
     }
 
-    const response = await msalGraphService.makeRequest(
+    const response = await getActiveService().makeRequest(
       endpoint,
       'PATCH',
       updates
@@ -207,7 +208,7 @@ class IntuneScriptService {
       ? `/deviceManagement/deviceManagementScripts/${scriptId}`
       : `/deviceManagement/deviceShellScripts/${scriptId}`;
 
-    await msalGraphService.makeRequest(endpoint, 'DELETE');
+    await getActiveService().makeRequest(endpoint, 'DELETE');
   }
 
   /**
@@ -221,7 +222,7 @@ class IntuneScriptService {
       ? `/deviceManagement/deviceManagementScripts/${scriptId}/assignments`
       : `/deviceManagement/deviceShellScripts/${scriptId}/assignments`;
 
-    const response = await msalGraphService.makeRequest(endpoint, 'GET');
+    const response = await getActiveService().makeRequest(endpoint, 'GET');
     return response.value || [];
   }
 
@@ -244,7 +245,7 @@ class IntuneScriptService {
       }
     }));
 
-    await msalGraphService.makeRequest(endpoint, 'POST', {
+    await getActiveService().makeRequest(endpoint, 'POST', {
       deviceManagementScriptAssignments: assignments
     });
   }
@@ -261,7 +262,7 @@ class IntuneScriptService {
       : `/deviceManagement/deviceShellScripts/${scriptId}/deviceRunStates`;
 
     try {
-      const response = await msalGraphService.makeRequest(endpoint, 'GET');
+      const response = await getActiveService().makeRequest(endpoint, 'GET');
       const runStates = response.value || [];
 
       // Summarize results
@@ -405,7 +406,7 @@ class IntuneScriptService {
       ? `/deviceManagement/deviceManagementScripts/${scriptId}`
       : `/deviceManagement/deviceShellScripts/${scriptId}`;
 
-    const original = await msalGraphService.makeRequest(endpoint, 'GET');
+    const original = await getActiveService().makeRequest(endpoint, 'GET');
     
     // Decode content
     const content = original.scriptContent ? atob(original.scriptContent) : '';

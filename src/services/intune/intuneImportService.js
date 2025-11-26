@@ -2,10 +2,10 @@
  * Intune Import Service
  * Imports Intune policies from JSON backup files
  * Handles assignment mapping and conflict resolution
- * Uses MSAL authentication via Convex proxy
+ * Uses service factory to support both MSAL and Convex authentication modes
  */
 
-import msalGraphService from '../msalGraphService';
+import { getActiveService } from '../serviceFactory';
 
 // Import modes
 export const IMPORT_MODES = {
@@ -251,7 +251,7 @@ class IntuneImportService {
       }
 
       const endpoint = `${baseEndpoint}?$filter=${encodeURIComponent(filter)}`;
-      const response = await msalGraphService.makeRequest(endpoint);
+      const response = await getActiveService().makeRequest(endpoint);
       
       if (response.value && response.value.length > 0) {
         return response.value[0];
@@ -268,7 +268,7 @@ class IntuneImportService {
    */
   async createPolicy(endpoint, policy) {
     try {
-      const response = await msalGraphService.makeRequest(endpoint, {
+      const response = await getActiveService().makeRequest(endpoint, {
         method: 'POST',
         body: JSON.stringify(policy)
       });
@@ -286,7 +286,7 @@ class IntuneImportService {
       const updateEndpoint = `${endpoint}/${policyId}`;
       const cleanedPolicy = this.cleanPolicyForImport(policy);
       
-      await msalGraphService.makeRequest(updateEndpoint, {
+      await getActiveService().makeRequest(updateEndpoint, {
         method: 'PATCH',
         body: JSON.stringify(cleanedPolicy)
       });
@@ -303,7 +303,7 @@ class IntuneImportService {
   async deletePolicy(endpoint, policyId) {
     try {
       const deleteEndpoint = `${endpoint}/${policyId}`;
-      await msalGraphService.makeRequest(deleteEndpoint, {
+      await getActiveService().makeRequest(deleteEndpoint, {
         method: 'DELETE'
       });
     } catch (error) {
@@ -326,7 +326,7 @@ class IntuneImportService {
       
       for (const assignment of mappedAssignments) {
         try {
-          await msalGraphService.makeRequest(endpoint, {
+          await getActiveService().makeRequest(endpoint, {
             method: 'POST',
             body: JSON.stringify(assignment)
           });
@@ -348,12 +348,12 @@ class IntuneImportService {
     try {
       // Delete existing assignments
       const existingEndpoint = `${baseEndpoint}/${policyId}/assignments`;
-      const existing = await msalGraphService.makeRequest(existingEndpoint);
+      const existing = await getActiveService().makeRequest(existingEndpoint);
       
       if (existing.value && existing.value.length > 0) {
         for (const assignment of existing.value) {
           try {
-            await msalGraphService.makeRequest(`${existingEndpoint}/${assignment.id}`, {
+            await getActiveService().makeRequest(`${existingEndpoint}/${assignment.id}`, {
               method: 'DELETE'
             });
           } catch (error) {

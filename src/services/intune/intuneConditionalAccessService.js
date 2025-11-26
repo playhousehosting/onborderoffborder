@@ -1,13 +1,17 @@
 /**
  * Intune Conditional Access Service
  * Manages Conditional Access policies for Zero Trust security
+ * Uses service factory to support both MSAL and Convex authentication modes
  */
 
-import msalGraphService from '../msalGraphService.js';
+import { getActiveService } from '../serviceFactory';
 
 class IntuneConditionalAccessService {
-  constructor() {
-    this.graphService = msalGraphService;
+  /**
+   * Get the active graph service
+   */
+  get graphService() {
+    return getActiveService();
   }
 
   /**

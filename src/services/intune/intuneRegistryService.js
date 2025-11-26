@@ -1,9 +1,10 @@
 /**
  * Intune Registry Settings Service
  * Create and manage Windows Registry-based configuration policies
+ * Uses service factory to support both MSAL and Convex authentication modes
  */
 
-import msalGraphService from '../msalGraphService';
+import { getActiveService } from '../serviceFactory';
 
 class IntuneRegistryService {
   /**
@@ -57,7 +58,7 @@ class IntuneRegistryService {
       omaSettings: omaSettings
     };
 
-    const response = await msalGraphService.makeRequest(
+    const response = await getActiveService().makeRequest(
       '/deviceManagement/deviceConfigurations',
       'POST',
       policy
@@ -257,7 +258,7 @@ class IntuneRegistryService {
    * @returns {Promise<Array>} Array of custom policies
    */
   async fetchCustomPolicies() {
-    const response = await msalGraphService.makeRequest(
+    const response = await getActiveService().makeRequest(
       '/deviceManagement/deviceConfigurations?$filter=isof(%27microsoft.graph.windows10CustomConfiguration%27)',
       'GET'
     );
@@ -271,7 +272,7 @@ class IntuneRegistryService {
    * @returns {Promise<Array>} Array of OMA settings
    */
   async fetchPolicySettings(policyId) {
-    const response = await msalGraphService.makeRequest(
+    const response = await getActiveService().makeRequest(
       `/deviceManagement/deviceConfigurations/${policyId}`,
       'GET'
     );
@@ -286,7 +287,7 @@ class IntuneRegistryService {
    * @returns {Promise<Object>} Updated policy
    */
   async updateRegistryPolicy(policyId, updates) {
-    const response = await msalGraphService.makeRequest(
+    const response = await getActiveService().makeRequest(
       `/deviceManagement/deviceConfigurations/${policyId}`,
       'PATCH',
       updates
@@ -303,7 +304,7 @@ class IntuneRegistryService {
    */
   async addSettingToPolicy(policyId, registrySetting) {
     // Fetch current settings
-    const policy = await msalGraphService.makeRequest(
+    const policy = await getActiveService().makeRequest(
       `/deviceManagement/deviceConfigurations/${policyId}`,
       'GET'
     );
@@ -335,7 +336,7 @@ class IntuneRegistryService {
    */
   async removeSettingFromPolicy(policyId, settingIndex) {
     // Fetch current settings
-    const policy = await msalGraphService.makeRequest(
+    const policy = await getActiveService().makeRequest(
       `/deviceManagement/deviceConfigurations/${policyId}`,
       'GET'
     );

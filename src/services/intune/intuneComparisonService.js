@@ -2,10 +2,10 @@
  * Intune Comparison Service
  * Compare Intune policies between tenant and backup files, or between two backups
  * Provides detailed diff analysis with property-level comparison
- * Uses MSAL authentication via Convex proxy
+ * Uses service factory to support both MSAL and Convex authentication modes
  */
 
-import msalGraphService from '../msalGraphService';
+import { getActiveService } from '../serviceFactory';
 
 // Comparison result types
 export const DIFF_TYPES = {
@@ -290,7 +290,7 @@ class IntuneComparisonService {
   async fetchCurrentPolicies(policyType) {
     try {
       const endpoint = this.getEndpointForType(policyType);
-      const response = await msalGraphService.makeRequest(endpoint);
+      const response = await getActiveService().makeRequest(endpoint);
       return response.value || [];
     } catch (error) {
       console.warn(`Failed to fetch ${policyType}:`, error);

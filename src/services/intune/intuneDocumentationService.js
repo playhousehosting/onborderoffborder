@@ -2,10 +2,10 @@
  * Intune Documentation Service
  * Generate professional documentation from Intune policies
  * Supports HTML, Markdown, and structured JSON formats
- * Uses MSAL authentication via Convex proxy
+ * Uses service factory to support both MSAL and Convex authentication modes
  */
 
-import msalGraphService from '../msalGraphService';
+import { getActiveService } from '../serviceFactory';
 
 class IntuneDocumentationService {
   constructor() {

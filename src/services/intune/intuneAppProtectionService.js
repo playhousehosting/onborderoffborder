@@ -1,13 +1,17 @@
 /**
  * Intune App Protection Service
  * Manages App Protection Policies (MAM) for iOS, Android, and Windows
+ * Uses service factory to support both MSAL and Convex authentication modes
  */
 
-import msalGraphService from '../msalGraphService';
+import { getActiveService } from '../serviceFactory';
 
 class IntuneAppProtectionService {
-  constructor() {
-    this.graphService = msalGraphService;
+  /**
+   * Get the active graph service
+   */
+  get graphService() {
+    return getActiveService();
   }
 
   /**

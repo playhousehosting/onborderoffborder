@@ -1,13 +1,17 @@
 /**
  * Intune Compliance Reporting Service
  * Generates comprehensive compliance reports and analytics
+ * Uses service factory to support both MSAL and Convex authentication modes
  */
 
-import msalGraphService from '../msalGraphService.js';
+import { getActiveService } from '../serviceFactory';
 
 class IntuneComplianceReportService {
-  constructor() {
-    this.graphService = msalGraphService;
+  /**
+   * Get the active graph service
+   */
+  get graphService() {
+    return getActiveService();
   }
 
   /**
