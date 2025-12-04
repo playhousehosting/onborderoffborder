@@ -91,23 +91,20 @@ export const list = query({
   handler: async (ctx, args) => {
     const session = await validateSession(ctx, args.sessionId);
 
-    // Query offboarding records for this tenant
+    // Query ALL offboarding records for this tenant (tenant-scoped visibility)
     let query = ctx.db
       .query("scheduled_offboarding")
       .withIndex("by_tenant", (q: any) => q.eq("tenantId", session.tenantId));
 
     const records = await query.collect();
 
-    // Filter by session or creator (multi-session support)
-    const filtered = records.filter(
-      (record: any) =>
-        record.sessionId === session.sessionId ||
-        record.createdBy === session.userId
-    );
+    // No longer filter by session/creator - all tenant members can see all tenant records
+    // This provides transparency within the organization
 
     // Optionally filter by status
+    let filtered = records;
     if (args.status) {
-      return filtered.filter((record: any) => record.status === args.status);
+      filtered = records.filter((record: any) => record.status === args.status);
     }
 
     // Sort by offboarding date
@@ -117,6 +114,7 @@ export const list = query({
 
 /**
  * Get a single scheduled offboarding record
+ * Accessible by anyone in the same tenant
  */
 export const get = query({
   args: {
@@ -132,17 +130,9 @@ export const get = query({
       throw new Error("Offboarding record not found");
     }
 
-    // Verify tenant ownership
+    // Verify tenant ownership - anyone in the same tenant can view
     if (record.tenantId !== session.tenantId) {
-      throw new Error("Unauthorized: Access denied");
-    }
-
-    // Verify session or creator ownership
-    if (
-      record.sessionId !== session.sessionId &&
-      record.createdBy !== session.userId
-    ) {
-      throw new Error("Unauthorized: Access denied");
+      throw new Error("Unauthorized: Access denied to records from another tenant");
     }
 
     return record;
@@ -268,17 +258,9 @@ export const update = mutation({
       throw new Error("Offboarding record not found");
     }
 
-    // Verify tenant ownership
+    // Verify tenant ownership - any tenant member can update
     if (record.tenantId !== session.tenantId) {
-      throw new Error("Unauthorized: Access denied");
-    }
-
-    // Verify session or creator ownership
-    if (
-      record.sessionId !== session.sessionId &&
-      record.createdBy !== session.userId
-    ) {
-      throw new Error("Unauthorized: Access denied");
+      throw new Error("Unauthorized: Access denied to records from another tenant");
     }
 
     // Build update object
@@ -357,17 +339,9 @@ export const remove = mutation({
       throw new Error("Offboarding record not found");
     }
 
-    // Verify tenant ownership
+    // Verify tenant ownership - any tenant member can delete
     if (record.tenantId !== session.tenantId) {
-      throw new Error("Unauthorized: Access denied");
-    }
-
-    // Verify session or creator ownership
-    if (
-      record.sessionId !== session.sessionId &&
-      record.createdBy !== session.userId
-    ) {
-      throw new Error("Unauthorized: Access denied");
+      throw new Error("Unauthorized: Access denied to records from another tenant");
     }
 
     await ctx.db.delete(args.offboardingId);
@@ -405,9 +379,9 @@ export const execute = mutation({
       throw new Error("Offboarding record not found");
     }
 
-    // Verify tenant ownership
+    // Verify tenant ownership - any tenant member can execute
     if (record.tenantId !== session.tenantId) {
-      throw new Error("Unauthorized: Access denied");
+      throw new Error("Unauthorized: Access denied to records from another tenant");
     }
 
     // Update status to in-progress
@@ -455,9 +429,9 @@ export const retry = mutation({
       throw new Error("Offboarding record not found");
     }
 
-    // Verify tenant ownership
+    // Verify tenant ownership - any tenant member can retry
     if (record.tenantId !== session.tenantId) {
-      throw new Error("Unauthorized: Access denied");
+      throw new Error("Unauthorized: Access denied to records from another tenant");
     }
 
     // Only allow retry for failed offboardings
