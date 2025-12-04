@@ -16,7 +16,9 @@ async function fetchWithGraphToken(accessToken: string, path: string, init: Requ
     Authorization: `Bearer ${accessToken}`,
   };
 
-  if (init.body && !headers["Content-Type"]) {
+  // Always add Content-Type for POST/PATCH/PUT methods
+  const method = (init.method || 'GET').toUpperCase();
+  if ((method === 'POST' || method === 'PATCH' || method === 'PUT') && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
 
@@ -81,7 +83,8 @@ function buildActionResult(action: string, status: "success" | "error" | "skippe
 }
 
 async function removeUserFromAllGroups(accessToken: string, userId: string) {
-  const memberOf = (await fetchWithGraphToken(accessToken, `/users/${userId}/memberOf?$select=id,displayName,@odata.type`)) as any;
+  // Don't use $select with @odata.type - it's automatically included
+  const memberOf = (await fetchWithGraphToken(accessToken, `/users/${userId}/memberOf`)) as any;
   const groups = (memberOf?.value || []).filter((entry: any) => entry["@odata.type"]?.toLowerCase().includes("group"));
 
   for (const group of groups) {
@@ -114,6 +117,7 @@ async function performGraphActions(accessToken: string, record: any) {
     try {
       await fetchWithGraphToken(accessToken, `/users/${record.userId}/revokeSignInSessions`, {
         method: "POST",
+        body: JSON.stringify({}),
       });
       actions.push(buildActionResult("revokeAccess", "success", "User sessions revoked"));
     } catch (error) {
