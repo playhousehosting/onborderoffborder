@@ -86,12 +86,31 @@ const ScheduledOffboarding = () => {
     template: 'standard',
     useCustomActions: false,
     actions: {
+      // Account Actions
       disableAccount: true,
+      resetPassword: true,
       revokeAccess: true,
+      // Licensing
+      revokeLicenses: true,
+      // Groups & Access
       removeFromGroups: true,
+      removeFromTeams: true,
+      removeFromApps: true,
+      removeAuthMethods: true,
+      // Mailbox
       convertToSharedMailbox: false,
+      setEmailForwarding: false,
+      forwardingAddress: '',
+      setAutoReply: false,
+      autoReplyMessage: '',
+      // Data
       backupData: true,
-      removeDevices: true,
+      transferFiles: false,
+      newFileOwner: '',
+      // Devices
+      wipeDevices: false,
+      retireDevices: true,
+      removeApps: false,
     },
     notifyManager: true,
     notifyUser: true,
@@ -1346,96 +1365,342 @@ const ScheduledOffboarding = () => {
                   </div>
 
                   {scheduleForm.useCustomActions && (
-                    <div className="ml-6 space-y-2 p-3 border border-gray-200 rounded-lg bg-gray-50">
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id="disableAccount"
-                          checked={scheduleForm.actions.disableAccount}
-                          onChange={(e) => setScheduleForm({
-                            ...scheduleForm,
-                            actions: {...scheduleForm.actions, disableAccount: e.target.checked}
-                          })}
-                          className="form-checkbox"
-                        />
-                        <label htmlFor="disableAccount" className="ml-2 text-sm text-gray-700">
-                          Disable account
-                        </label>
+                    <div className="ml-6 space-y-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                      {/* Account Actions */}
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                          <UserMinusIcon className="w-4 h-4 mr-1 text-blue-600" />
+                          Account Actions
+                        </h4>
+                        <div className="ml-5 space-y-2">
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="disableAccount"
+                              checked={scheduleForm.actions.disableAccount}
+                              onChange={(e) => setScheduleForm({
+                                ...scheduleForm,
+                                actions: {...scheduleForm.actions, disableAccount: e.target.checked}
+                              })}
+                              className="form-checkbox"
+                            />
+                            <label htmlFor="disableAccount" className="ml-2 text-sm text-gray-700">
+                              Disable account
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="resetPassword"
+                              checked={scheduleForm.actions.resetPassword}
+                              onChange={(e) => setScheduleForm({
+                                ...scheduleForm,
+                                actions: {...scheduleForm.actions, resetPassword: e.target.checked}
+                              })}
+                              className="form-checkbox"
+                            />
+                            <label htmlFor="resetPassword" className="ml-2 text-sm text-gray-700">
+                              Reset password
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="revokeAccess"
+                              checked={scheduleForm.actions.revokeAccess}
+                              onChange={(e) => setScheduleForm({
+                                ...scheduleForm,
+                                actions: {...scheduleForm.actions, revokeAccess: e.target.checked}
+                              })}
+                              className="form-checkbox"
+                            />
+                            <label htmlFor="revokeAccess" className="ml-2 text-sm text-gray-700">
+                              Revoke all sessions
+                            </label>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id="revokeAccess"
-                          checked={scheduleForm.actions.revokeAccess}
-                          onChange={(e) => setScheduleForm({
-                            ...scheduleForm,
-                            actions: {...scheduleForm.actions, revokeAccess: e.target.checked}
-                          })}
-                          className="form-checkbox"
-                        />
-                        <label htmlFor="revokeAccess" className="ml-2 text-sm text-gray-700">
-                          Revoke all access
-                        </label>
+
+                      {/* Licensing */}
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                          <KeyIcon className="w-4 h-4 mr-1 text-purple-600" />
+                          Licensing
+                        </h4>
+                        <div className="ml-5 space-y-2">
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="revokeLicenses"
+                              checked={scheduleForm.actions.revokeLicenses}
+                              onChange={(e) => setScheduleForm({
+                                ...scheduleForm,
+                                actions: {...scheduleForm.actions, revokeLicenses: e.target.checked}
+                              })}
+                              className="form-checkbox"
+                            />
+                            <label htmlFor="revokeLicenses" className="ml-2 text-sm text-gray-700">
+                              Revoke licenses
+                            </label>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id="removeFromGroups"
-                          checked={scheduleForm.actions.removeFromGroups}
-                          onChange={(e) => setScheduleForm({
-                            ...scheduleForm,
-                            actions: {...scheduleForm.actions, removeFromGroups: e.target.checked}
-                          })}
-                          className="form-checkbox"
-                        />
-                        <label htmlFor="removeFromGroups" className="ml-2 text-sm text-gray-700">
-                          Remove from all groups
-                        </label>
+
+                      {/* Groups & Access */}
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                          <ShieldCheckIcon className="w-4 h-4 mr-1 text-green-600" />
+                          Groups & Access
+                        </h4>
+                        <div className="ml-5 space-y-2">
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="removeFromGroups"
+                              checked={scheduleForm.actions.removeFromGroups}
+                              onChange={(e) => setScheduleForm({
+                                ...scheduleForm,
+                                actions: {...scheduleForm.actions, removeFromGroups: e.target.checked}
+                              })}
+                              className="form-checkbox"
+                            />
+                            <label htmlFor="removeFromGroups" className="ml-2 text-sm text-gray-700">
+                              Remove from all groups
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="removeFromTeams"
+                              checked={scheduleForm.actions.removeFromTeams}
+                              onChange={(e) => setScheduleForm({
+                                ...scheduleForm,
+                                actions: {...scheduleForm.actions, removeFromTeams: e.target.checked}
+                              })}
+                              className="form-checkbox"
+                            />
+                            <label htmlFor="removeFromTeams" className="ml-2 text-sm text-gray-700">
+                              Remove from Teams
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="removeFromApps"
+                              checked={scheduleForm.actions.removeFromApps}
+                              onChange={(e) => setScheduleForm({
+                                ...scheduleForm,
+                                actions: {...scheduleForm.actions, removeFromApps: e.target.checked}
+                              })}
+                              className="form-checkbox"
+                            />
+                            <label htmlFor="removeFromApps" className="ml-2 text-sm text-gray-700">
+                              Remove app access
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="removeAuthMethods"
+                              checked={scheduleForm.actions.removeAuthMethods}
+                              onChange={(e) => setScheduleForm({
+                                ...scheduleForm,
+                                actions: {...scheduleForm.actions, removeAuthMethods: e.target.checked}
+                              })}
+                              className="form-checkbox"
+                            />
+                            <label htmlFor="removeAuthMethods" className="ml-2 text-sm text-gray-700">
+                              Remove authentication methods
+                            </label>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id="convertToSharedMailbox"
-                          checked={scheduleForm.actions.convertToSharedMailbox}
-                          onChange={(e) => setScheduleForm({
-                            ...scheduleForm,
-                            actions: {...scheduleForm.actions, convertToSharedMailbox: e.target.checked}
-                          })}
-                          className="form-checkbox"
-                        />
-                        <label htmlFor="convertToSharedMailbox" className="ml-2 text-sm text-gray-700">
-                          Convert to shared mailbox
-                        </label>
+
+                      {/* Mailbox Options */}
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                          <DocumentTextIcon className="w-4 h-4 mr-1 text-orange-600" />
+                          Mailbox Options
+                        </h4>
+                        <div className="ml-5 space-y-2">
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="convertToSharedMailbox"
+                              checked={scheduleForm.actions.convertToSharedMailbox}
+                              onChange={(e) => setScheduleForm({
+                                ...scheduleForm,
+                                actions: {...scheduleForm.actions, convertToSharedMailbox: e.target.checked}
+                              })}
+                              className="form-checkbox"
+                            />
+                            <label htmlFor="convertToSharedMailbox" className="ml-2 text-sm text-gray-700">
+                              Convert to shared mailbox
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="setEmailForwarding"
+                              checked={scheduleForm.actions.setEmailForwarding}
+                              onChange={(e) => setScheduleForm({
+                                ...scheduleForm,
+                                actions: {...scheduleForm.actions, setEmailForwarding: e.target.checked}
+                              })}
+                              className="form-checkbox"
+                            />
+                            <label htmlFor="setEmailForwarding" className="ml-2 text-sm text-gray-700">
+                              Set email forwarding
+                            </label>
+                          </div>
+                          {scheduleForm.actions.setEmailForwarding && (
+                            <input
+                              type="email"
+                              placeholder="Forwarding address"
+                              value={scheduleForm.actions.forwardingAddress}
+                              onChange={(e) => setScheduleForm({
+                                ...scheduleForm,
+                                actions: {...scheduleForm.actions, forwardingAddress: e.target.value}
+                              })}
+                              className="form-input ml-6 text-sm"
+                            />
+                          )}
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="setAutoReply"
+                              checked={scheduleForm.actions.setAutoReply}
+                              onChange={(e) => setScheduleForm({
+                                ...scheduleForm,
+                                actions: {...scheduleForm.actions, setAutoReply: e.target.checked}
+                              })}
+                              className="form-checkbox"
+                            />
+                            <label htmlFor="setAutoReply" className="ml-2 text-sm text-gray-700">
+                              Set auto-reply message
+                            </label>
+                          </div>
+                          {scheduleForm.actions.setAutoReply && (
+                            <textarea
+                              placeholder="Auto-reply message..."
+                              value={scheduleForm.actions.autoReplyMessage}
+                              onChange={(e) => setScheduleForm({
+                                ...scheduleForm,
+                                actions: {...scheduleForm.actions, autoReplyMessage: e.target.value}
+                              })}
+                              className="form-input ml-6 text-sm"
+                              rows={3}
+                            />
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id="backupData"
-                          checked={scheduleForm.actions.backupData}
-                          onChange={(e) => setScheduleForm({
-                            ...scheduleForm,
-                            actions: {...scheduleForm.actions, backupData: e.target.checked}
-                          })}
-                          className="form-checkbox"
-                        />
-                        <label htmlFor="backupData" className="ml-2 text-sm text-gray-700">
-                          Backup user data
-                        </label>
+
+                      {/* Data Management */}
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                          <DocumentArrowDownIcon className="w-4 h-4 mr-1 text-cyan-600" />
+                          Data Management
+                        </h4>
+                        <div className="ml-5 space-y-2">
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="backupData"
+                              checked={scheduleForm.actions.backupData}
+                              onChange={(e) => setScheduleForm({
+                                ...scheduleForm,
+                                actions: {...scheduleForm.actions, backupData: e.target.checked}
+                              })}
+                              className="form-checkbox"
+                            />
+                            <label htmlFor="backupData" className="ml-2 text-sm text-gray-700">
+                              Backup user data
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="transferFiles"
+                              checked={scheduleForm.actions.transferFiles}
+                              onChange={(e) => setScheduleForm({
+                                ...scheduleForm,
+                                actions: {...scheduleForm.actions, transferFiles: e.target.checked}
+                              })}
+                              className="form-checkbox"
+                            />
+                            <label htmlFor="transferFiles" className="ml-2 text-sm text-gray-700">
+                              Transfer files to new owner
+                            </label>
+                          </div>
+                          {scheduleForm.actions.transferFiles && (
+                            <input
+                              type="email"
+                              placeholder="New file owner email"
+                              value={scheduleForm.actions.newFileOwner}
+                              onChange={(e) => setScheduleForm({
+                                ...scheduleForm,
+                                actions: {...scheduleForm.actions, newFileOwner: e.target.value}
+                              })}
+                              className="form-input ml-6 text-sm"
+                            />
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id="removeDevices"
-                          checked={scheduleForm.actions.removeDevices}
-                          onChange={(e) => setScheduleForm({
-                            ...scheduleForm,
-                            actions: {...scheduleForm.actions, removeDevices: e.target.checked}
-                          })}
-                          className="form-checkbox"
-                        />
-                        <label htmlFor="removeDevices" className="ml-2 text-sm text-gray-700">
-                          Remove registered devices
-                        </label>
+
+                      {/* Device Management */}
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                          <Cog6ToothIcon className="w-4 h-4 mr-1 text-red-600" />
+                          Device Management
+                        </h4>
+                        <div className="ml-5 space-y-2">
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="retireDevices"
+                              checked={scheduleForm.actions.retireDevices}
+                              onChange={(e) => setScheduleForm({
+                                ...scheduleForm,
+                                actions: {...scheduleForm.actions, retireDevices: e.target.checked}
+                              })}
+                              className="form-checkbox"
+                            />
+                            <label htmlFor="retireDevices" className="ml-2 text-sm text-gray-700">
+                              Retire devices
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="wipeDevices"
+                              checked={scheduleForm.actions.wipeDevices}
+                              onChange={(e) => setScheduleForm({
+                                ...scheduleForm,
+                                actions: {...scheduleForm.actions, wipeDevices: e.target.checked}
+                              })}
+                              className="form-checkbox"
+                            />
+                            <label htmlFor="wipeDevices" className="ml-2 text-sm text-gray-700">
+                              <span className="text-red-600 font-medium">Wipe devices</span>
+                              <span className="text-xs text-gray-500 ml-1">(Destructive)</span>
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="removeApps"
+                              checked={scheduleForm.actions.removeApps}
+                              onChange={(e) => setScheduleForm({
+                                ...scheduleForm,
+                                actions: {...scheduleForm.actions, removeApps: e.target.checked}
+                              })}
+                              className="form-checkbox"
+                            />
+                            <label htmlFor="removeApps" className="ml-2 text-sm text-gray-700">
+                              Remove managed apps
+                            </label>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}

@@ -254,22 +254,172 @@ async function performGraphActions(accessToken: string, record: any) {
     }
   }
 
-  if (record.actions.convertToSharedMailbox) {
-    actions.push(buildActionResult("convertToSharedMailbox", "warning", "Server-side mailbox conversion not implemented"));
+  // Reset password
+  if (record.actions.resetPassword) {
+    try {
+      // Generate a random secure password
+      const newPassword = generateSecurePassword();
+      await fetchWithGraphToken(accessToken, `/users/${userIdentifier}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          passwordProfile: {
+            password: newPassword,
+            forceChangePasswordNextSignIn: false,
+          },
+        }),
+      });
+      actions.push(buildActionResult("resetPassword", "success", "Password reset successfully"));
+    } catch (error) {
+      hasFailures = true;
+      actions.push(buildActionResult("resetPassword", "error", (error as Error).message));
+    }
   }
 
+  // Revoke licenses
+  if (record.actions.revokeLicenses) {
+    try {
+      // Get user's current licenses
+      const licenseResponse = await fetchWithGraphToken(accessToken, `/users/${userIdentifier}/licenseDetails`);
+      const licenses = licenseResponse.value || [];
+      
+      if (licenses.length > 0) {
+        const licenseSkuIds = licenses.map((lic: { skuId: string }) => lic.skuId);
+        await fetchWithGraphToken(accessToken, `/users/${userIdentifier}/assignLicense`, {
+          method: "POST",
+          body: JSON.stringify({
+            addLicenses: [],
+            removeLicenses: licenseSkuIds,
+          }),
+        });
+        actions.push(buildActionResult("revokeLicenses", "success", `Revoked ${licenses.length} license(s)`));
+      } else {
+        actions.push(buildActionResult("revokeLicenses", "skipped", "No licenses to revoke"));
+      }
+    } catch (error) {
+      hasFailures = true;
+      actions.push(buildActionResult("revokeLicenses", "error", (error as Error).message));
+    }
+  }
+
+  // Remove from Teams (handled via groups for now)
+  if (record.actions.removeFromTeams) {
+    actions.push(buildActionResult("removeFromTeams", "skipped", "Teams removal handled via group removal"));
+  }
+
+  // Remove from Apps
+  if (record.actions.removeFromApps) {
+    try {
+      // Get user's app role assignments
+      const appResponse = await fetchWithGraphToken(accessToken, `/users/${userIdentifier}/appRoleAssignments`);
+      const assignments = appResponse.value || [];
+      
+      if (assignments.length > 0) {
+        let removedCount = 0;
+        for (const assignment of assignments) {
+          try {
+            await fetchWithGraphToken(accessToken, `/users/${userIdentifier}/appRoleAssignments/${assignment.id}`, {
+              method: "DELETE",
+            });
+            removedCount++;
+          } catch {
+            // Continue on individual failures
+          }
+        }
+        actions.push(buildActionResult("removeFromApps", "success", `Removed ${removedCount} app assignment(s)`));
+      } else {
+        actions.push(buildActionResult("removeFromApps", "skipped", "No app assignments to remove"));
+      }
+    } catch (error) {
+      hasFailures = true;
+      actions.push(buildActionResult("removeFromApps", "error", (error as Error).message));
+    }
+  }
+
+  // Remove authentication methods
+  if (record.actions.removeAuthMethods) {
+    try {
+      // List authentication methods
+      const authMethods = await fetchWithGraphToken(accessToken, `/users/${userIdentifier}/authentication/methods`);
+      const methods = authMethods.value || [];
+      
+      let removedCount = 0;
+      for (const method of methods) {
+        // Skip password method - can't delete that
+        if (method["@odata.type"] === "#microsoft.graph.passwordAuthenticationMethod") continue;
+        
+        try {
+          const methodType = method["@odata.type"]?.replace("#microsoft.graph.", "").replace("AuthenticationMethod", "");
+          const endpoint = `/users/${userIdentifier}/authentication/${methodType}Methods/${method.id}`;
+          await fetchWithGraphToken(accessToken, endpoint, { method: "DELETE" });
+          removedCount++;
+        } catch {
+          // Continue on individual failures
+        }
+      }
+      
+      if (removedCount > 0) {
+        actions.push(buildActionResult("removeAuthMethods", "success", `Removed ${removedCount} authentication method(s)`));
+      } else {
+        actions.push(buildActionResult("removeAuthMethods", "skipped", "No removable authentication methods"));
+      }
+    } catch (error) {
+      hasFailures = true;
+      actions.push(buildActionResult("removeAuthMethods", "error", (error as Error).message));
+    }
+  }
+
+  // Mailbox options
+  if (record.actions.convertToSharedMailbox) {
+    actions.push(buildActionResult("convertToSharedMailbox", "warning", "Shared mailbox conversion requires Exchange PowerShell"));
+  }
+
+  if (record.actions.setEmailForwarding && record.actions.forwardingAddress) {
+    actions.push(buildActionResult("setEmailForwarding", "warning", `Email forwarding to ${record.actions.forwardingAddress} requires Exchange PowerShell`));
+  }
+
+  if (record.actions.setAutoReply && record.actions.autoReplyMessage) {
+    actions.push(buildActionResult("setAutoReply", "warning", "Auto-reply setup requires Exchange PowerShell"));
+  }
+
+  // Data management
   if (record.actions.backupData) {
     actions.push(buildActionResult("backupData", "skipped", "Data export requires manual review"));
   }
 
-  if (record.actions.removeDevices) {
-    actions.push(buildActionResult("removeDevices", "skipped", "Device retirement handled by Intune automation"));
+  if (record.actions.transferFiles && record.actions.newFileOwner) {
+    actions.push(buildActionResult("transferFiles", "warning", `File transfer to ${record.actions.newFileOwner} requires manual OneDrive admin action`));
+  }
+
+  // Device management
+  if (record.actions.retireDevices) {
+    actions.push(buildActionResult("retireDevices", "skipped", "Device retirement handled by Intune automation"));
+  }
+
+  if (record.actions.wipeDevices) {
+    actions.push(buildActionResult("wipeDevices", "skipped", "Device wipe requires explicit Intune admin action"));
+  }
+
+  if (record.actions.removeApps) {
+    actions.push(buildActionResult("removeApps", "skipped", "App removal handled by Intune automation"));
   }
 
   return {
     actions,
     hasFailures,
   };
+}
+
+// Generate a secure random password
+function generateSecurePassword(): string {
+  const length = 16;
+  const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+  let password = "";
+  for (let i = 0; i < length; i++) {
+    password += charset.charAt(Math.floor(Math.random() * charset.length));
+  }
+  // Ensure at least one of each required type
+  password = password.substring(0, 12) + "A" + "a" + "1" + "!";
+  return password;
 }
 
 export const executeScheduledOffboarding = internalAction({
