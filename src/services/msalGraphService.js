@@ -443,6 +443,77 @@ class MSALGraphService {
   }
 
   /**
+   * Get user email activity (last 30 days)
+   * Requires Reports.Read.All permission
+   */
+  async getUserEmailActivity(userId) {
+    try {
+      // Get email activity for the user over the last 30 days
+      // Using the reports endpoint for email activity
+      const response = await this.makeRequest(
+        `/reports/getEmailActivityUserDetail(period='D30')?$format=application/json`
+      );
+      
+      // Find the specific user's activity
+      const userActivity = (response.value || []).find(
+        activity => activity.userPrincipalName?.toLowerCase() === userId?.toLowerCase() ||
+                   activity.userId === userId
+      );
+      
+      if (userActivity) {
+        return {
+          lastActivityDate: userActivity.lastActivityDate,
+          sendCount: userActivity.sendCount || 0,
+          receiveCount: userActivity.receiveCount || 0,
+          readCount: userActivity.readCount || 0,
+          meetingCreatedCount: userActivity.meetingCreatedCount || 0,
+          meetingInteractedCount: userActivity.meetingInteractedCount || 0,
+        };
+      }
+      
+      // If no activity found in reports, try to get from mailbox
+      return null;
+    } catch (error) {
+      // Reports API might not be available, try alternative approach
+      console.warn('Reports API not available, trying alternative method:', error.message);
+      
+      try {
+        // Alternative: Get last message received in mailbox
+        const messages = await this.makeRequest(
+          `/users/${userId}/messages?$top=1&$orderby=receivedDateTime desc&$select=receivedDateTime,from`
+        );
+        
+        const lastReceived = messages.value?.[0]?.receivedDateTime;
+        
+        // Get sent items
+        const sentMessages = await this.makeRequest(
+          `/users/${userId}/mailFolders/sentItems/messages?$top=1&$orderby=sentDateTime desc&$select=sentDateTime`
+        );
+        
+        const lastSent = sentMessages.value?.[0]?.sentDateTime;
+        
+        // Determine last activity date
+        let lastActivityDate = null;
+        if (lastReceived && lastSent) {
+          lastActivityDate = new Date(lastReceived) > new Date(lastSent) ? lastReceived : lastSent;
+        } else {
+          lastActivityDate = lastReceived || lastSent;
+        }
+        
+        return {
+          lastActivityDate,
+          sendCount: sentMessages.value?.length || 0,
+          receiveCount: messages.value?.length || 0,
+          readCount: 0,
+        };
+      } catch (altError) {
+        console.warn('Alternative method also failed:', altError.message);
+        return null;
+      }
+    }
+  }
+
+  /**
    * Add user to group
    */
   async addUserToGroup(groupId, userId) {

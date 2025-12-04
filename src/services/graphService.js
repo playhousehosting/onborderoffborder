@@ -986,6 +986,122 @@ export class GraphService {
     });
   }
 
+  /**
+   * Get group members
+   * @param {string} groupId - The group ID
+   * @returns {Promise<Array>} Array of group members
+   */
+  async getGroupMembers(groupId) {
+    const response = await this.makeRequest(`/groups/${groupId}/members?$select=id,displayName,mail,userPrincipalName`);
+    return response.value || [];
+  }
+
+  /**
+   * Get group owners
+   * @param {string} groupId - The group ID
+   * @returns {Promise<Array>} Array of group owners
+   */
+  async getGroupOwners(groupId) {
+    const response = await this.makeRequest(`/groups/${groupId}/owners?$select=id,displayName,mail,userPrincipalName`);
+    return response.value || [];
+  }
+
+  /**
+   * Add a user as group owner
+   * @param {string} groupId - The group ID
+   * @param {string} userId - The user ID to add as owner
+   */
+  async addGroupOwner(groupId, userId) {
+    return this.makeRequest(`/groups/${groupId}/owners/$ref`, {
+      method: 'POST',
+      body: JSON.stringify({
+        "@odata.id": `https://graph.microsoft.com/v1.0/users/${userId}`
+      }),
+    });
+  }
+
+  /**
+   * Remove a user as group owner
+   * @param {string} groupId - The group ID
+   * @param {string} userId - The user ID to remove as owner
+   */
+  async removeGroupOwner(groupId, userId) {
+    return this.makeRequest(`/groups/${groupId}/owners/${userId}/$ref`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Get user email activity (last 30 days)
+   * Requires Reports.Read.All permission
+   * @param {string} userId - User ID or UPN
+   * @returns {Promise<Object>} Email activity data
+   */
+  async getUserEmailActivity(userId) {
+    try {
+      // Get email activity for all users over the last 30 days
+      const response = await this.makeRequest(
+        `/reports/getEmailActivityUserDetail(period='D30')?$format=application/json`
+      );
+      
+      // Find the specific user's activity
+      const userActivity = (response.value || []).find(
+        activity => activity.userPrincipalName?.toLowerCase() === userId?.toLowerCase() ||
+                   activity.userId === userId
+      );
+      
+      if (userActivity) {
+        return {
+          lastActivityDate: userActivity.lastActivityDate,
+          sendCount: userActivity.sendCount || 0,
+          receiveCount: userActivity.receiveCount || 0,
+          readCount: userActivity.readCount || 0,
+          meetingCreatedCount: userActivity.meetingCreatedCount || 0,
+          meetingInteractedCount: userActivity.meetingInteractedCount || 0,
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      // Reports API might not be available, try alternative approach
+      console.warn('Reports API not available, trying alternative method:', error.message);
+      
+      try {
+        // Alternative: Get last message received in mailbox
+        const messages = await this.makeRequest(
+          `/users/${userId}/messages?$top=1&$orderby=receivedDateTime desc&$select=receivedDateTime,from`
+        );
+        
+        const lastReceived = messages.value?.[0]?.receivedDateTime;
+        
+        // Get sent items
+        const sentMessages = await this.makeRequest(
+          `/users/${userId}/mailFolders/sentItems/messages?$top=1&$orderby=sentDateTime desc&$select=sentDateTime`
+        );
+        
+        const lastSent = sentMessages.value?.[0]?.sentDateTime;
+        
+        // Determine last activity date
+        let lastActivityDate = null;
+        if (lastReceived && lastSent) {
+          lastActivityDate = new Date(lastReceived) > new Date(lastSent) ? lastReceived : lastSent;
+        } else {
+          lastActivityDate = lastReceived || lastSent;
+        }
+        
+        return {
+          lastActivityDate,
+          sendCount: sentMessages.value?.length || 0,
+          receiveCount: messages.value?.length || 0,
+          readCount: 0,
+        };
+      } catch (altError) {
+        console.warn('Alternative method also failed:', altError.message);
+        return null;
+      }
+    }
+  }
+
   // Mail Management Methods
   async getUserMailboxSettings(userId) {
     return this.makeRequest(`/users/${userId}/mailboxSettings`);
