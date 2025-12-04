@@ -104,11 +104,19 @@ async function performGraphActions(accessToken: string, record: any) {
   const actions = [] as Array<ReturnType<typeof buildActionResult>>;
   let hasFailures = false;
 
-  console.log(`[Offboarding] Processing user: ${record.userId} (${record.displayName || record.userPrincipalName})`);
+  // Graph API accepts both object ID (GUID) and userPrincipalName (email)
+  // Fall back to userPrincipalName if userId is empty
+  const userIdentifier = record.userId || record.userPrincipalName || record.email;
+  
+  if (!userIdentifier) {
+    throw new Error("No user identifier available (userId, userPrincipalName, or email)");
+  }
+
+  console.log(`[Offboarding] Processing user: ${userIdentifier} (${record.displayName || record.userPrincipalName})`);
 
   if (record.actions.disableAccount) {
     try {
-      await fetchWithGraphToken(accessToken, `/users/${record.userId}`, {
+      await fetchWithGraphToken(accessToken, `/users/${userIdentifier}`, {
         method: "PATCH",
         body: JSON.stringify({ accountEnabled: false }),
       });
@@ -122,7 +130,7 @@ async function performGraphActions(accessToken: string, record: any) {
   if (record.actions.revokeAccess) {
     try {
       // revokeSignInSessions is a POST action that doesn't require a body
-      await fetchWithGraphToken(accessToken, `/users/${record.userId}/revokeSignInSessions`, {
+      await fetchWithGraphToken(accessToken, `/users/${userIdentifier}/revokeSignInSessions`, {
         method: "POST",
       });
       actions.push(buildActionResult("revokeAccess", "success", "User sessions revoked"));
@@ -134,7 +142,7 @@ async function performGraphActions(accessToken: string, record: any) {
 
   if (record.actions.removeFromGroups) {
     try {
-      const removed = await removeUserFromAllGroups(accessToken, record.userId);
+      const removed = await removeUserFromAllGroups(accessToken, userIdentifier);
       actions.push(buildActionResult("removeFromGroups", "success", `Removed from ${removed} groups`));
     } catch (error) {
       hasFailures = true;
