@@ -1171,6 +1171,105 @@ export const exportScheduledOffboardingResultsToPDF = ({
     });
 
     yPosition = doc.lastAutoTable.finalY + 15;
+
+    // ===== ACTION DETAILS (Groups Removed/Skipped) =====
+    // Find the removeFromGroups action that has details
+    const removeGroupsAction = actions.find(a => a.action === 'removeFromGroups' && a.details);
+    if (removeGroupsAction && removeGroupsAction.details) {
+      addSectionHeader('Group Removal Details');
+      
+      // Parse the details format: "Removed: Group1, Group2 | Skipped: GroupA (reason), GroupB (reason)"
+      const details = removeGroupsAction.details;
+      const parts = details.split(' | ');
+      
+      let removedGroups = [];
+      let skippedGroups = [];
+      
+      parts.forEach(part => {
+        if (part.startsWith('Removed:')) {
+          const groupsStr = part.replace('Removed:', '').trim();
+          removedGroups = groupsStr.split(', ').filter(g => g.trim());
+        } else if (part.startsWith('Skipped:')) {
+          const groupsStr = part.replace('Skipped:', '').trim();
+          // Parse format: "GroupName (reason), GroupName2 (reason2)"
+          const groupMatches = groupsStr.match(/([^(,]+)\s*\(([^)]+)\)/g) || [];
+          skippedGroups = groupMatches.map(match => {
+            const parsed = match.match(/([^(]+)\s*\(([^)]+)\)/);
+            return parsed ? { name: parsed[1].trim(), reason: parsed[2].trim() } : null;
+          }).filter(Boolean);
+        }
+      });
+      
+      // Show removed groups section
+      if (removedGroups.length > 0) {
+        checkAddPage(20);
+        doc.setFillColor(220, 252, 231); // Light green
+        doc.rect(14, yPosition, pageWidth - 28, 8, 'F');
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(22, 101, 52); // Dark green
+        doc.text('Groups Successfully Removed', 16, yPosition + 5.5);
+        doc.setTextColor(0, 0, 0);
+        yPosition += 12;
+        
+        const removedData = removedGroups.map((group, idx) => [idx + 1, group, '✓ Removed']);
+        
+        callAutoTable({
+          startY: yPosition,
+          head: [['#', 'Group Name', 'Status']],
+          body: removedData,
+          theme: 'striped',
+          headStyles: { fillColor: [34, 197, 94], fontSize: 9, fontStyle: 'bold' },
+          bodyStyles: { fontSize: 8 },
+          alternateRowStyles: { fillColor: [240, 253, 244] },
+          margin: { left: 14, right: 14 },
+          columnStyles: {
+            0: { cellWidth: 10 },
+            1: { cellWidth: 'auto' },
+            2: { cellWidth: 30 },
+          },
+        });
+        yPosition = doc.lastAutoTable.finalY + 10;
+      }
+      
+      // Show skipped groups section
+      if (skippedGroups.length > 0) {
+        checkAddPage(20);
+        doc.setFillColor(254, 249, 195); // Light yellow
+        doc.rect(14, yPosition, pageWidth - 28, 8, 'F');
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(161, 98, 7); // Dark yellow
+        doc.text('Groups Skipped (Not Cloud-Only Assigned Membership)', 16, yPosition + 5.5);
+        doc.setTextColor(0, 0, 0);
+        yPosition += 12;
+        
+        const skippedData = skippedGroups.map((group, idx) => [
+          idx + 1, 
+          group.name, 
+          group.reason
+        ]);
+        
+        callAutoTable({
+          startY: yPosition,
+          head: [['#', 'Group Name', 'Reason Skipped']],
+          body: skippedData,
+          theme: 'striped',
+          headStyles: { fillColor: [234, 179, 8], fontSize: 9, fontStyle: 'bold' },
+          bodyStyles: { fontSize: 8 },
+          alternateRowStyles: { fillColor: [254, 252, 232] },
+          margin: { left: 14, right: 14 },
+          columnStyles: {
+            0: { cellWidth: 10 },
+            1: { cellWidth: 'auto' },
+            2: { cellWidth: 55 },
+          },
+        });
+        yPosition = doc.lastAutoTable.finalY + 10;
+      }
+      
+      yPosition += 5;
+    }
   } else {
     doc.setFontSize(10);
     doc.text('No detailed action logs available.', 16, yPosition);
