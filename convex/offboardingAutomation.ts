@@ -22,7 +22,10 @@ async function fetchWithGraphToken(accessToken: string, path: string, init: Requ
     headers["Content-Type"] = "application/json";
   }
 
-  const response = await fetch(`${GRAPH_BASE_URL}${path}`, {
+  const fullUrl = `${GRAPH_BASE_URL}${path}`;
+  console.log(`[Graph API] ${method} ${fullUrl}`);
+
+  const response = await fetch(fullUrl, {
     ...init,
     headers,
   });
@@ -32,6 +35,7 @@ async function fetchWithGraphToken(accessToken: string, path: string, init: Requ
     try {
       const error = await response.json();
       errorMessage = error.error?.message || errorMessage;
+      console.error(`[Graph API Error] ${method} ${fullUrl}: ${errorMessage}`);
     } catch (err) {
       // ignore parse errors
     }
@@ -100,6 +104,8 @@ async function performGraphActions(accessToken: string, record: any) {
   const actions = [] as Array<ReturnType<typeof buildActionResult>>;
   let hasFailures = false;
 
+  console.log(`[Offboarding] Processing user: ${record.userId} (${record.displayName || record.userPrincipalName})`);
+
   if (record.actions.disableAccount) {
     try {
       await fetchWithGraphToken(accessToken, `/users/${record.userId}`, {
@@ -115,9 +121,9 @@ async function performGraphActions(accessToken: string, record: any) {
 
   if (record.actions.revokeAccess) {
     try {
+      // revokeSignInSessions is a POST action that doesn't require a body
       await fetchWithGraphToken(accessToken, `/users/${record.userId}/revokeSignInSessions`, {
         method: "POST",
-        body: JSON.stringify({}),
       });
       actions.push(buildActionResult("revokeAccess", "success", "User sessions revoked"));
     } catch (error) {

@@ -295,7 +295,7 @@ const ScheduledOffboarding = () => {
         }
 
         const scheduleData = {
-          userId: scheduleForm.userId,
+          userId: selectedUser?.id || scheduleForm.userId,
           userName: selectedUser?.displayName || selectedUser?.name || '',
           userEmail: selectedUser?.mail || selectedUser?.userPrincipalName || '',
           scheduledDate: scheduleForm.scheduledDate,
