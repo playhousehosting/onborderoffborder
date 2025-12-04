@@ -102,21 +102,83 @@ async function resolveUserObjectId(accessToken: string, userIdentifier: string):
   return user.id;
 }
 
-async function removeUserFromAllGroups(accessToken: string, userIdentifier: string) {
+interface GroupRemovalResult {
+  removedCount: number;
+  skippedCount: number;
+  removedGroups: string[];
+  skippedGroups: Array<{ name: string; reason: string }>;
+}
+
+async function removeUserFromAllGroups(accessToken: string, userIdentifier: string): Promise<GroupRemovalResult> {
   // First resolve to object ID - required for DELETE operations on group members
   const userId = await resolveUserObjectId(accessToken, userIdentifier);
   
-  // Get all groups the user is a member of
-  const memberOf = (await fetchWithGraphToken(accessToken, `/users/${userId}/memberOf`)) as any;
-  const groups = (memberOf?.value || []).filter((entry: any) => entry["@odata.type"]?.toLowerCase().includes("group"));
+  // Get all groups the user is a member of with additional properties to filter
+  const memberOf = (await fetchWithGraphToken(
+    accessToken, 
+    `/users/${userId}/memberOf?$select=id,displayName,mailEnabled,securityEnabled,groupTypes,onPremisesSyncEnabled,membershipRule`
+  )) as any;
+  
+  const allGroups = (memberOf?.value || []).filter(
+    (entry: any) => entry["@odata.type"]?.toLowerCase().includes("group")
+  );
 
-  for (const group of groups) {
-    await fetchWithGraphToken(accessToken, `/groups/${group.id}/members/${userId}/$ref`, {
-      method: "DELETE",
-    });
+  const removedGroups: string[] = [];
+  const skippedGroups: Array<{ name: string; reason: string }> = [];
+
+  for (const group of allGroups) {
+    const groupName = group.displayName || group.id;
+    const groupTypes = group.groupTypes || [];
+    
+    // Skip on-premises synced groups (can only be managed in on-prem AD)
+    if (group.onPremisesSyncEnabled === true) {
+      skippedGroups.push({ name: groupName, reason: "On-premises synced group" });
+      console.log(`[Offboarding] Skipping on-prem synced group: ${groupName}`);
+      continue;
+    }
+    
+    // Skip dynamic membership groups (membership is automatic based on rules)
+    if (groupTypes.includes("DynamicMembership")) {
+      skippedGroups.push({ name: groupName, reason: "Dynamic membership group" });
+      console.log(`[Offboarding] Skipping dynamic group: ${groupName}`);
+      continue;
+    }
+    
+    // Skip mail-enabled security groups and distribution lists
+    // These require Exchange admin permissions and have special handling
+    if (group.mailEnabled === true && group.securityEnabled === true) {
+      skippedGroups.push({ name: groupName, reason: "Mail-enabled security group" });
+      console.log(`[Offboarding] Skipping mail-enabled security group: ${groupName}`);
+      continue;
+    }
+    
+    // Skip pure distribution lists (mail-enabled, not security-enabled)
+    if (group.mailEnabled === true && group.securityEnabled === false) {
+      skippedGroups.push({ name: groupName, reason: "Distribution list" });
+      console.log(`[Offboarding] Skipping distribution list: ${groupName}`);
+      continue;
+    }
+    
+    // This is a cloud-only, assigned membership security group - safe to remove
+    try {
+      await fetchWithGraphToken(accessToken, `/groups/${group.id}/members/${userId}/$ref`, {
+        method: "DELETE",
+      });
+      removedGroups.push(groupName);
+      console.log(`[Offboarding] Removed from group: ${groupName}`);
+    } catch (error) {
+      // If removal fails, log it as skipped
+      skippedGroups.push({ name: groupName, reason: `Failed: ${(error as Error).message}` });
+      console.error(`[Offboarding] Failed to remove from group ${groupName}:`, error);
+    }
   }
 
-  return groups.length;
+  return {
+    removedCount: removedGroups.length,
+    skippedCount: skippedGroups.length,
+    removedGroups,
+    skippedGroups,
+  };
 }
 
 async function performGraphActions(accessToken: string, record: any) {
@@ -161,8 +223,31 @@ async function performGraphActions(accessToken: string, record: any) {
 
   if (record.actions.removeFromGroups) {
     try {
-      const removed = await removeUserFromAllGroups(accessToken, userIdentifier);
-      actions.push(buildActionResult("removeFromGroups", "success", `Removed from ${removed} groups`));
+      const result = await removeUserFromAllGroups(accessToken, userIdentifier);
+      
+      // Build detailed message
+      let message = `Removed from ${result.removedCount} group(s)`;
+      if (result.skippedCount > 0) {
+        message += `, skipped ${result.skippedCount}`;
+      }
+      
+      // Build details string with group names
+      const detailParts: string[] = [];
+      if (result.removedGroups.length > 0) {
+        detailParts.push(`Removed: ${result.removedGroups.join(", ")}`);
+      }
+      if (result.skippedGroups.length > 0) {
+        const skippedDetails = result.skippedGroups
+          .map(g => `${g.name} (${g.reason})`)
+          .join(", ");
+        detailParts.push(`Skipped: ${skippedDetails}`);
+      }
+      
+      const details = detailParts.join(" | ");
+      
+      // Mark as warning if some groups were skipped, success if all removed
+      const status = result.skippedCount > 0 && result.removedCount > 0 ? "warning" : "success";
+      actions.push(buildActionResult("removeFromGroups", status, message, details || undefined));
     } catch (error) {
       hasFailures = true;
       actions.push(buildActionResult("removeFromGroups", "error", (error as Error).message));
