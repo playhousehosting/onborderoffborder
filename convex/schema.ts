@@ -207,4 +207,18 @@ export default defineSchema({
     .index("by_tenant", ["tenantId"])
     .index("by_consent_status", ["adminConsentGranted"])
     .index("by_consented_at", ["consentedAt"]),
+
+  // Persistent tenant credentials for scheduled automation (survives session expiry)
+  tenant_credentials: defineTable({
+    tenantId: v.string(), // Azure AD Tenant ID
+    clientId: v.string(), // App Registration Client ID
+    encryptedCredentials: v.string(), // Encrypted client secret and other sensitive data
+    configuredBy: v.optional(v.string()), // User who configured credentials
+    configuredAt: v.number(), // Unix timestamp
+    lastUsed: v.optional(v.number()), // Last time credentials were used
+    lastValidated: v.optional(v.number()), // Last successful token acquisition
+    isActive: v.boolean(), // Whether credentials are active
+  })
+    .index("by_tenant", ["tenantId"])
+    .index("by_tenant_active", ["tenantId", "isActive"]),
 });

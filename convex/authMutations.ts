@@ -45,6 +45,34 @@ export const configure = mutation({
       updatedAt: now,
     });
 
+    // Also save credentials to persistent tenant_credentials table (for scheduled automation)
+    if (args.clientSecret) {
+      // Check if tenant credentials already exist
+      const existingCreds = await ctx.db
+        .query("tenant_credentials")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+        .first();
+
+      if (existingCreds) {
+        // Update existing credentials
+        await ctx.db.patch(existingCreds._id, {
+          clientId: args.clientId,
+          encryptedCredentials: args.encryptedCredentials,
+          configuredAt: now,
+          isActive: true,
+        });
+      } else {
+        // Create new tenant credentials record
+        await ctx.db.insert("tenant_credentials", {
+          tenantId: args.tenantId,
+          clientId: args.clientId,
+          encryptedCredentials: args.encryptedCredentials,
+          configuredAt: now,
+          isActive: true,
+        });
+      }
+    }
+
     return {
       success: true,
       sessionId,

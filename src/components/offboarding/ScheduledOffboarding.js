@@ -27,6 +27,7 @@ import {
   Cog6ToothIcon,
   EyeIcon,
   EyeSlashIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 
 const ScheduledOffboarding = () => {
@@ -685,6 +686,30 @@ const ScheduledOffboarding = () => {
     } catch (error) {
       console.error('Error deleting scheduled offboarding:', error);
       toast.error('Failed to delete scheduled offboarding');
+    }
+  };
+
+  const retryFailedOffboarding = async (scheduleId) => {
+    if (!window.confirm('Are you sure you want to retry this failed offboarding?')) {
+      return;
+    }
+
+    try {
+      const sessionId = getSessionId();
+      if (!sessionId) {
+        toast.error('Session not found. Please log in again.');
+        return;
+      }
+
+      await convex.mutation(api.offboarding.retry, {
+        sessionId,
+        offboardingId: scheduleId,
+      });
+      toast.success('Offboarding scheduled for retry');
+      fetchScheduledOffboardings();
+    } catch (error) {
+      console.error('Error retrying offboarding:', error);
+      toast.error(`Failed to retry offboarding: ${error.message}`);
     }
   };
 
@@ -1562,6 +1587,17 @@ const ScheduledOffboarding = () => {
                                   <PencilIcon className="h-4 w-4" />
                                 </button>
                               </>
+                            )}
+                            {/* Retry button for failed offboardings */}
+                            {schedule.status === 'failed' && (
+                              <button
+                                onClick={() => retryFailedOffboarding(schedule.id)}
+                                disabled={executingId === schedule.id}
+                                className="text-orange-600 hover:text-orange-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Retry Offboarding"
+                              >
+                                <ArrowPathIcon className="h-4 w-4" />
+                              </button>
                             )}
                             <button
                               onClick={() => deleteScheduledOffboarding(schedule.id)}

@@ -439,6 +439,59 @@ export const execute = mutation({
 });
 
 /**
+ * Retry a failed offboarding - resets status to scheduled for re-execution
+ */
+export const retry = mutation({
+  args: {
+    sessionId: v.string(),
+    offboardingId: v.id("scheduled_offboarding"),
+  },
+  handler: async (ctx, args) => {
+    const session = await validateSession(ctx, args.sessionId);
+
+    const record = await ctx.db.get(args.offboardingId);
+
+    if (!record) {
+      throw new Error("Offboarding record not found");
+    }
+
+    // Verify tenant ownership
+    if (record.tenantId !== session.tenantId) {
+      throw new Error("Unauthorized: Access denied");
+    }
+
+    // Only allow retry for failed offboardings
+    if (record.status !== "failed") {
+      throw new Error("Only failed offboardings can be retried");
+    }
+
+    // Reset status to scheduled for retry
+    const now = Date.now();
+    await ctx.db.patch(args.offboardingId, {
+      status: "scheduled",
+      error: undefined,
+      executedAt: undefined,
+      executedBy: undefined,
+      updatedAt: now,
+    });
+
+    // Log audit trail
+    await ctx.db.insert("audit_log", {
+      tenantId: session.tenantId,
+      sessionId: session.sessionId,
+      userId: session.userId,
+      action: "retry_offboarding",
+      resourceType: "scheduled_offboarding",
+      resourceId: args.offboardingId,
+      details: `Scheduled retry for failed offboarding: ${record.displayName}`,
+      timestamp: now,
+    });
+
+    return { success: true, status: "scheduled" };
+  },
+});
+
+/**
  * Log offboarding execution results
  */
 export const logExecution = mutation({

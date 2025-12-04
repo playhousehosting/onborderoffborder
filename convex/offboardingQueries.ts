@@ -47,6 +47,17 @@ export const getTenantCredentials = internalQuery({
     tenantId: v.string(),
   },
   handler: async (ctx, args) => {
+    // First, check the persistent tenant_credentials table (survives session expiry)
+    const tenantCreds = await ctx.db
+      .query("tenant_credentials")
+      .withIndex("by_tenant_active", (q: any) => q.eq("tenantId", args.tenantId).eq("isActive", true))
+      .first();
+
+    if (tenantCreds?.encryptedCredentials) {
+      return tenantCreds.encryptedCredentials;
+    }
+
+    // Fall back to session-based credentials (for backward compatibility)
     const tenantSessions = await ctx.db
       .query("sessions")
       .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
