@@ -75,6 +75,13 @@ const ScheduledOffboarding = () => {
   const [isSavingCredentials, setIsSavingCredentials] = useState(false);
   const [showSecrets, setShowSecrets] = useState(false);
   
+  // Auto-refresh state
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [refreshInterval, setRefreshInterval] = useState(30); // seconds
+  const [countdown, setCountdown] = useState(30);
+  const [lastRefreshed, setLastRefreshed] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
   // Convex action to configure credentials
   const configureCredentials = useAction(api.authActions.configure);
 
@@ -154,6 +161,34 @@ const ScheduledOffboarding = () => {
   useEffect(() => {
     fetchScheduledOffboardings();
   }, []);
+
+  // Auto-refresh functionality
+  useEffect(() => {
+    if (!autoRefresh) {
+      setCountdown(refreshInterval);
+      return;
+    }
+
+    const countdownTimer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          // Trigger refresh
+          handleRefresh();
+          return refreshInterval;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(countdownTimer);
+  }, [autoRefresh, refreshInterval]);
+
+  // Manual refresh handler
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    setCountdown(refreshInterval);
+    await fetchScheduledOffboardings();
+  };
 
   // Handler to save service credentials
   const handleSaveServiceCredentials = async () => {
@@ -255,6 +290,7 @@ const ScheduledOffboarding = () => {
       });
       
       setScheduledOffboardings(transformed);
+      setLastRefreshed(new Date());
     } catch (error) {
       console.error('❌ Error fetching scheduled offboardings:', error);
       
@@ -270,6 +306,7 @@ const ScheduledOffboarding = () => {
       setScheduledOffboardings([]);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -996,6 +1033,13 @@ const ScheduledOffboarding = () => {
             Scheduled
           </span>
         );
+      case 'in-progress':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+            <ArrowPathIcon className="h-3 w-3 mr-1 animate-spin" />
+            In Progress
+          </span>
+        );
       case 'completed':
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -1048,6 +1092,50 @@ const ScheduledOffboarding = () => {
             <CalendarIcon className="h-4 w-4 mr-2" />
             Schedule Offboarding
           </button>
+          </div>
+        </div>
+
+        {/* Refresh Controls */}
+        <div className="mt-4 flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-lg px-4 py-3">
+          <div className="flex items-center gap-4">
+            {/* Manual Refresh Button */}
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ArrowPathIcon className={`h-4 w-4 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
+
+            {/* Auto-refresh Toggle */}
+            <label className="inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={autoRefresh}
+                onChange={(e) => setAutoRefresh(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-600"></div>
+              <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Auto-refresh</span>
+            </label>
+
+            {/* Countdown Display */}
+            {autoRefresh && (
+              <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                <ClockIcon className="h-4 w-4 mr-1" />
+                <span>Next refresh in {countdown}s</span>
+              </div>
+            )}
+          </div>
+
+          {/* Last Updated */}
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            {lastRefreshed ? (
+              <span>Last updated: {lastRefreshed.toLocaleTimeString()}</span>
+            ) : (
+              <span>Loading...</span>
+            )}
           </div>
         </div>
       </div>
