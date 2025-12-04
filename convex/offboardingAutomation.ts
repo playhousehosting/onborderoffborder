@@ -86,8 +86,27 @@ function buildActionResult(action: string, status: "success" | "error" | "skippe
   };
 }
 
-async function removeUserFromAllGroups(accessToken: string, userId: string) {
-  // Don't use $select with @odata.type - it's automatically included
+// Resolve user identifier to object ID (GUID) - required for some Graph API operations
+async function resolveUserObjectId(accessToken: string, userIdentifier: string): Promise<string> {
+  // If already a GUID, return as-is
+  const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (guidRegex.test(userIdentifier)) {
+    return userIdentifier;
+  }
+  
+  // Otherwise, fetch the user to get their object ID
+  const user = (await fetchWithGraphToken(accessToken, `/users/${userIdentifier}?$select=id`)) as any;
+  if (!user?.id) {
+    throw new Error(`Could not resolve user ID for: ${userIdentifier}`);
+  }
+  return user.id;
+}
+
+async function removeUserFromAllGroups(accessToken: string, userIdentifier: string) {
+  // First resolve to object ID - required for DELETE operations on group members
+  const userId = await resolveUserObjectId(accessToken, userIdentifier);
+  
+  // Get all groups the user is a member of
   const memberOf = (await fetchWithGraphToken(accessToken, `/users/${userId}/memberOf`)) as any;
   const groups = (memberOf?.value || []).filter((entry: any) => entry["@odata.type"]?.toLowerCase().includes("group"));
 
