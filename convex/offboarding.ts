@@ -465,10 +465,11 @@ export const retry = mutation({
       throw new Error("Only failed offboardings can be retried");
     }
 
-    // Reset status to scheduled for retry
+    // Reset status to scheduled for retry - set offboardingDate to now for immediate pickup
     const now = Date.now();
     await ctx.db.patch(args.offboardingId, {
       status: "scheduled",
+      offboardingDate: now, // Set to now so cron picks it up immediately
       error: undefined,
       executedAt: undefined,
       executedBy: undefined,
