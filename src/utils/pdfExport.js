@@ -964,3 +964,326 @@ export const exportOnboardingResultsToPDF = ({
 
   return filename;
 };
+
+/**
+ * Export scheduled offboarding execution results to PDF
+ * @param {Object} params - Report parameters
+ * @param {Object} params.executionLog - The execution log from Convex
+ * @param {Object} params.schedule - The scheduled offboarding record
+ */
+export const exportScheduledOffboardingResultsToPDF = ({
+  executionLog,
+  schedule,
+}) => {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  let yPosition = 20;
+
+  // Helper to call autoTable
+  const callAutoTable = (tableOptions) => {
+    if (typeof doc.autoTable === 'function') {
+      doc.autoTable(tableOptions);
+    } else {
+      autoTable(doc, tableOptions);
+    }
+  };
+
+  // Helper function to add new page if needed
+  const checkAddPage = (requiredSpace = 20) => {
+    if (yPosition + requiredSpace > pageHeight - 20) {
+      doc.addPage();
+      yPosition = 20;
+      return true;
+    }
+    return false;
+  };
+
+  // Helper function to add section header
+  const addSectionHeader = (title) => {
+    checkAddPage(15);
+    doc.setFillColor(37, 99, 235); // Primary blue
+    doc.rect(14, yPosition, pageWidth - 28, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text(title, 16, yPosition + 5.5);
+    doc.setTextColor(0, 0, 0);
+    yPosition += 12;
+  };
+
+  // Calculate statistics
+  const successCount = executionLog.successfulActions || 0;
+  const errorCount = executionLog.failedActions || 0;
+  const skippedCount = executionLog.skippedActions || 0;
+  const totalTasks = executionLog.totalActions || 0;
+  const completedTasks = totalTasks - skippedCount;
+  const successRate = completedTasks > 0 ? ((successCount / completedTasks) * 100).toFixed(1) : 0;
+
+  const executionDate = new Date(executionLog.startTime);
+  const endDate = executionLog.endTime ? new Date(executionLog.endTime) : null;
+
+  // ===== HEADER =====
+  doc.setFillColor(241, 245, 249); // Light gray background
+  doc.rect(0, 0, pageWidth, 45, 'F');
+  
+  doc.setFontSize(20);
+  doc.setFont(undefined, 'bold');
+  doc.setTextColor(15, 23, 42); // Dark gray
+  doc.text('Scheduled Offboarding Report', pageWidth / 2, 18, { align: 'center' });
+  
+  doc.setFontSize(10);
+  doc.setFont(undefined, 'normal');
+  doc.setTextColor(100, 116, 139); // Medium gray
+  doc.text(`Executed: ${executionDate.toLocaleString()}`, pageWidth / 2, 28, { align: 'center' });
+  doc.text(`Execution Type: ${executionLog.executionType === 'scheduled' ? 'Automated (Scheduled)' : 'Manual'}`, pageWidth / 2, 35, { align: 'center' });
+  doc.text(`Executed by: ${executionLog.executedBy || 'System'}`, pageWidth / 2, 42, { align: 'center' });
+
+  yPosition = 55;
+
+  // ===== EMPLOYEE INFORMATION =====
+  addSectionHeader('Offboarded Employee');
+  
+  const employeeInfo = [
+    ['Display Name', executionLog.targetUserName || 'N/A'],
+    ['Email', executionLog.targetUserEmail || 'N/A'],
+    ['User ID', executionLog.targetUserId || 'N/A'],
+    ['Scheduled Date', schedule?.scheduledDate ? `${schedule.scheduledDate} ${schedule.scheduledTime || ''}` : 'N/A'],
+    ['Template', schedule?.template || 'Standard'],
+  ];
+
+  callAutoTable({
+    startY: yPosition,
+    head: [['Field', 'Value']],
+    body: employeeInfo,
+    theme: 'striped',
+    headStyles: { fillColor: [37, 99, 235], fontSize: 10, fontStyle: 'bold' },
+    bodyStyles: { fontSize: 9 },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 14, right: 14 },
+  });
+
+  yPosition = doc.lastAutoTable.finalY + 15;
+
+  // ===== EXECUTION SUMMARY =====
+  addSectionHeader('Execution Summary');
+
+  // Overall status indicator
+  checkAddPage(40);
+  const overallStatus = executionLog.status === 'completed' 
+    ? 'OFFBOARDING COMPLETED SUCCESSFULLY' 
+    : executionLog.status === 'partial' 
+    ? 'OFFBOARDING COMPLETED WITH ISSUES' 
+    : 'OFFBOARDING FAILED';
+  
+  const statusColor = executionLog.status === 'completed' 
+    ? [34, 197, 94] // Green
+    : executionLog.status === 'partial' 
+    ? [234, 179, 8] // Yellow
+    : [239, 68, 68]; // Red
+
+  doc.setFillColor(...statusColor);
+  doc.roundedRect(14, yPosition, pageWidth - 28, 25, 3, 3, 'F');
+  
+  doc.setFontSize(14);
+  doc.setFont(undefined, 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.text(overallStatus, pageWidth / 2, yPosition + 10, { align: 'center' });
+  
+  doc.setFontSize(10);
+  doc.setFont(undefined, 'normal');
+  doc.text(`${successCount} of ${completedTasks} tasks completed successfully (${successRate}%)`, 
+    pageWidth / 2, yPosition + 18, { align: 'center' });
+  
+  doc.setTextColor(0, 0, 0);
+  yPosition += 30;
+
+  // Summary statistics
+  checkAddPage(30);
+  const duration = endDate && executionLog.startTime 
+    ? Math.round((endDate.getTime() - executionLog.startTime) / 1000) 
+    : 'N/A';
+  
+  const summaryData = [
+    ['Total Actions', totalTasks.toString()],
+    ['Successful', successCount.toString()],
+    ['Failed', errorCount.toString()],
+    ['Skipped', skippedCount.toString()],
+    ['Success Rate', `${successRate}%`],
+    ['Duration', typeof duration === 'number' ? `${duration} seconds` : duration],
+  ];
+
+  callAutoTable({
+    startY: yPosition,
+    body: summaryData,
+    theme: 'plain',
+    bodyStyles: { fontSize: 10 },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 50 },
+      1: { halign: 'right', cellWidth: 40 },
+    },
+    margin: { left: 14 },
+  });
+
+  yPosition = doc.lastAutoTable.finalY + 15;
+
+  // ===== ACTION DETAILS =====
+  addSectionHeader('Action Details');
+
+  const actions = executionLog.actions || [];
+  
+  if (actions.length > 0) {
+    const actionData = actions.map(action => {
+      const statusEmoji = action.status === 'success' ? '✓' 
+        : action.status === 'error' ? '✗' 
+        : action.status === 'warning' ? '⚠' 
+        : '○';
+      
+      const actionName = action.action
+        ? action.action.replace(/([A-Z])/g, ' $1').trim()
+        : 'Unknown Action';
+      
+      return [
+        statusEmoji,
+        actionName,
+        action.status?.charAt(0).toUpperCase() + action.status?.slice(1) || 'Unknown',
+        action.message || '',
+        action.timestamp ? new Date(action.timestamp).toLocaleTimeString() : '',
+      ];
+    });
+
+    callAutoTable({
+      startY: yPosition,
+      head: [['', 'Action', 'Status', 'Message', 'Time']],
+      body: actionData,
+      theme: 'striped',
+      headStyles: { fillColor: [37, 99, 235], fontSize: 10, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 8 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      margin: { left: 14, right: 14 },
+      columnStyles: {
+        0: { cellWidth: 8, halign: 'center' },
+        1: { cellWidth: 40 },
+        2: { cellWidth: 22 },
+        3: { cellWidth: 'auto' },
+        4: { cellWidth: 25 },
+      },
+    });
+
+    yPosition = doc.lastAutoTable.finalY + 15;
+  } else {
+    doc.setFontSize(10);
+    doc.text('No detailed action logs available.', 16, yPosition);
+    yPosition += 15;
+  }
+
+  // ===== ERROR DETAILS =====
+  const errorActions = actions.filter(a => a.status === 'error');
+  if (errorActions.length > 0) {
+    addSectionHeader('Error Details');
+
+    errorActions.forEach((action, index) => {
+      checkAddPage(25);
+      
+      doc.setFillColor(254, 242, 242); // Light red
+      doc.rect(14, yPosition, pageWidth - 28, 20, 'F');
+      
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(185, 28, 28); // Dark red
+      const actionName = action.action
+        ? action.action.replace(/([A-Z])/g, ' $1').trim()
+        : 'Unknown Action';
+      doc.text(`${index + 1}. ${actionName}`, 16, yPosition + 7);
+      
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+      
+      const message = action.message || 'No error message available';
+      const wrappedMessage = doc.splitTextToSize(message, pageWidth - 36);
+      doc.text(wrappedMessage, 16, yPosition + 14);
+      
+      yPosition += 25 + (wrappedMessage.length - 1) * 4;
+    });
+
+    yPosition += 10;
+  }
+
+  // ===== CONFIGURED ACTIONS =====
+  if (schedule?.actions) {
+    addSectionHeader('Configured Offboarding Actions');
+
+    const configData = [
+      ['Disable Account', schedule.actions.disableAccount ? 'Yes' : 'No'],
+      ['Revoke Access (Sign-in Sessions)', schedule.actions.revokeAccess ? 'Yes' : 'No'],
+      ['Remove from Groups', schedule.actions.removeFromGroups ? 'Yes' : 'No'],
+      ['Convert to Shared Mailbox', schedule.actions.convertToSharedMailbox ? 'Yes' : 'No'],
+      ['Backup Data', schedule.actions.backupData ? 'Yes' : 'No'],
+      ['Remove Devices', schedule.actions.removeDevices ? 'Yes' : 'No'],
+    ];
+
+    callAutoTable({
+      startY: yPosition,
+      head: [['Action', 'Configured']],
+      body: configData,
+      theme: 'striped',
+      headStyles: { fillColor: [37, 99, 235], fontSize: 10, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 9 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      margin: { left: 14, right: 14 },
+    });
+
+    yPosition = doc.lastAutoTable.finalY + 15;
+  }
+
+  // ===== RECOMMENDATIONS =====
+  if (errorCount > 0) {
+    addSectionHeader('Recommendations');
+    
+    checkAddPage(40);
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'normal');
+    
+    const recommendations = [
+      '• Review failed actions and determine if manual intervention is required',
+      '• Check Azure AD admin portal to verify user status and permissions',
+      '• Verify that all critical offboarding steps were completed successfully',
+      '• Consider retrying the failed offboarding after resolving any issues',
+      '• Document any issues encountered for future offboarding improvements',
+    ];
+
+    recommendations.forEach(rec => {
+      checkAddPage(8);
+      doc.text(rec, 16, yPosition);
+      yPosition += 6;
+    });
+    
+    yPosition += 5;
+  }
+
+  // ===== FOOTER ON ALL PAGES =====
+  const totalPages = doc.internal.pages.length - 1;
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(150, 150, 150);
+    doc.text(
+      `Page ${i} of ${totalPages} | Scheduled Offboarding Report | Confidential`,
+      pageWidth / 2,
+      pageHeight - 10,
+      { align: 'center' }
+    );
+  }
+
+  // Generate filename
+  const sanitizedUserName = executionLog.targetUserName?.replace(/[^a-z0-9]/gi, '_') || 'user';
+  const dateStr = executionDate.toISOString().split('T')[0];
+  const filename = `Scheduled_Offboarding_Report_${sanitizedUserName}_${dateStr}.pdf`;
+
+  // Save the PDF
+  doc.save(filename);
+
+  return filename;
+};
