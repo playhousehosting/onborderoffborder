@@ -30,6 +30,9 @@ import {
   EyeIcon,
   EyeSlashIcon,
   ArrowPathIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 
 const ScheduledOffboarding = () => {
@@ -81,6 +84,12 @@ const ScheduledOffboarding = () => {
   const [countdown, setCountdown] = useState(30);
   const [lastRefreshed, setLastRefreshed] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Search and filter state for offboarding list
+  const [listSearchTerm, setListSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [templateFilter, setTemplateFilter] = useState('all');
+  const [dateRangeFilter, setDateRangeFilter] = useState('all'); // all, today, week, month, past
   
   // Convex action to configure credentials
   const configureCredentials = useAction(api.authActions.configure);
@@ -189,6 +198,79 @@ const ScheduledOffboarding = () => {
     setCountdown(refreshInterval);
     await fetchScheduledOffboardings();
   };
+
+  // Filter offboardings based on search and filter criteria
+  const getFilteredOffboardings = () => {
+    let filtered = [...scheduledOffboardings];
+
+    // Search filter - search by name, email, or user ID
+    if (listSearchTerm.trim()) {
+      const searchLower = listSearchTerm.toLowerCase().trim();
+      filtered = filtered.filter(schedule => 
+        schedule.user?.displayName?.toLowerCase().includes(searchLower) ||
+        schedule.user?.mail?.toLowerCase().includes(searchLower) ||
+        schedule.user?.id?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(schedule => schedule.status === statusFilter);
+    }
+
+    // Template filter
+    if (templateFilter !== 'all') {
+      filtered = filtered.filter(schedule => schedule.template === templateFilter);
+    }
+
+    // Date range filter
+    if (dateRangeFilter !== 'all') {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      filtered = filtered.filter(schedule => {
+        const scheduleDate = new Date(schedule.scheduledDate);
+        const scheduleDateOnly = new Date(scheduleDate.getFullYear(), scheduleDate.getMonth(), scheduleDate.getDate());
+        
+        switch (dateRangeFilter) {
+          case 'today':
+            return scheduleDateOnly.getTime() === today.getTime();
+          case 'week': {
+            const weekFromNow = new Date(today);
+            weekFromNow.setDate(weekFromNow.getDate() + 7);
+            return scheduleDateOnly >= today && scheduleDateOnly <= weekFromNow;
+          }
+          case 'month': {
+            const monthFromNow = new Date(today);
+            monthFromNow.setMonth(monthFromNow.getMonth() + 1);
+            return scheduleDateOnly >= today && scheduleDateOnly <= monthFromNow;
+          }
+          case 'past':
+            return scheduleDateOnly < today;
+          case 'upcoming':
+            return scheduleDateOnly >= today;
+          default:
+            return true;
+        }
+      });
+    }
+
+    return filtered;
+  };
+
+  // Get filtered results
+  const filteredOffboardings = getFilteredOffboardings();
+
+  // Clear all filters
+  const clearFilters = () => {
+    setListSearchTerm('');
+    setStatusFilter('all');
+    setTemplateFilter('all');
+    setDateRangeFilter('all');
+  };
+
+  // Check if any filters are active
+  const hasActiveFilters = listSearchTerm || statusFilter !== 'all' || templateFilter !== 'all' || dateRangeFilter !== 'all';
 
   // Handler to save service credentials
   const handleSaveServiceCredentials = async () => {
@@ -1879,7 +1961,142 @@ const ScheduledOffboarding = () => {
       {/* Scheduled Offboardings List */}
       <div className="card">
         <div className="card-body">
-          {scheduledOffboardings.length > 0 ? (
+          {/* Search and Filter Bar */}
+          <div className="mb-6 space-y-4">
+            {/* Search and Quick Filters Row */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Search Input */}
+              <div className="relative flex-1">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by name, email, or user ID..."
+                  value={listSearchTerm}
+                  onChange={(e) => setListSearchTerm(e.target.value)}
+                  className="form-input pl-10 w-full"
+                />
+                {listSearchTerm && (
+                  <button
+                    onClick={() => setListSearchTerm('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <XMarkIcon className="h-5 w-5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Filter Dropdowns */}
+              <div className="flex flex-wrap gap-2">
+                {/* Status Filter */}
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="form-input text-sm min-w-[140px]"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="scheduled">Scheduled</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="failed">Failed</option>
+                </select>
+
+                {/* Template Filter */}
+                <select
+                  value={templateFilter}
+                  onChange={(e) => setTemplateFilter(e.target.value)}
+                  className="form-input text-sm min-w-[160px]"
+                >
+                  <option value="all">All Templates</option>
+                  <option value="standard">Standard</option>
+                  <option value="executive">Executive</option>
+                  <option value="contractor">Contractor</option>
+                  <option value="security">Security Critical</option>
+                </select>
+
+                {/* Date Range Filter */}
+                <select
+                  value={dateRangeFilter}
+                  onChange={(e) => setDateRangeFilter(e.target.value)}
+                  className="form-input text-sm min-w-[150px]"
+                >
+                  <option value="all">All Dates</option>
+                  <option value="today">Today</option>
+                  <option value="week">Next 7 Days</option>
+                  <option value="month">Next 30 Days</option>
+                  <option value="upcoming">All Upcoming</option>
+                  <option value="past">Past</option>
+                </select>
+
+                {/* Clear Filters Button */}
+                {hasActiveFilters && (
+                  <button
+                    onClick={clearFilters}
+                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                  >
+                    <XMarkIcon className="h-4 w-4 mr-1" />
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Filter Summary / Results Count */}
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-2 text-gray-600">
+                <FunnelIcon className="h-4 w-4" />
+                <span>
+                  Showing <span className="font-semibold text-gray-900">{filteredOffboardings.length}</span>
+                  {filteredOffboardings.length !== scheduledOffboardings.length && (
+                    <> of <span className="font-semibold text-gray-900">{scheduledOffboardings.length}</span></>
+                  )}
+                  {' '}offboarding{scheduledOffboardings.length !== 1 ? 's' : ''}
+                </span>
+                {hasActiveFilters && (
+                  <span className="text-primary-600">(filtered)</span>
+                )}
+              </div>
+              
+              {/* Active Filter Tags */}
+              {hasActiveFilters && (
+                <div className="flex flex-wrap gap-2">
+                  {listSearchTerm && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Search: "{listSearchTerm}"
+                      <button onClick={() => setListSearchTerm('')} className="ml-1 hover:text-blue-600">
+                        <XMarkIcon className="h-3 w-3" />
+                      </button>
+                    </span>
+                  )}
+                  {statusFilter !== 'all' && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Status: {statusFilter}
+                      <button onClick={() => setStatusFilter('all')} className="ml-1 hover:text-green-600">
+                        <XMarkIcon className="h-3 w-3" />
+                      </button>
+                    </span>
+                  )}
+                  {templateFilter !== 'all' && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                      Template: {templateFilter}
+                      <button onClick={() => setTemplateFilter('all')} className="ml-1 hover:text-purple-600">
+                        <XMarkIcon className="h-3 w-3" />
+                      </button>
+                    </span>
+                  )}
+                  {dateRangeFilter !== 'all' && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                      Date: {dateRangeFilter}
+                      <button onClick={() => setDateRangeFilter('all')} className="ml-1 hover:text-amber-600">
+                        <XMarkIcon className="h-3 w-3" />
+                      </button>
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {filteredOffboardings.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -1905,7 +2122,7 @@ const ScheduledOffboarding = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {scheduledOffboardings.map((schedule) => (
+                  {filteredOffboardings.map((schedule) => (
                     <React.Fragment key={schedule.id}>
                       <tr className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -2173,11 +2390,37 @@ const ScheduledOffboarding = () => {
             </div>
           ) : (
             <div className="text-center py-12">
-              <CalendarIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No scheduled offboardings</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Get started by scheduling a new offboarding process.
-              </p>
+              {scheduledOffboardings.length === 0 ? (
+                // No offboardings exist at all
+                <>
+                  <CalendarIcon className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No scheduled offboardings</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Get started by scheduling a new offboarding process.
+                  </p>
+                </>
+              ) : (
+                // Offboardings exist but filters returned no matches
+                <>
+                  <MagnifyingGlassIcon className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No matching offboardings</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    No offboardings match your current filters. Try adjusting your search or filter criteria.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setListSearchTerm('');
+                      setStatusFilter('all');
+                      setTemplateFilter('all');
+                      setDateRangeFilter('all');
+                    }}
+                    className="mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    <XMarkIcon className="h-4 w-4 mr-1" />
+                    Clear All Filters
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
