@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useMSALAuth } from '../../contexts/MSALAuthContext';
 import { useAuth as useConvexAuth } from '../../contexts/ConvexAuthContext';
 import { getActiveService, getAuthMode } from '../../services/serviceFactory';
@@ -15,6 +15,9 @@ import {
 
 const CreateGroup = () => {
   const navigate = useNavigate();
+  const { groupId } = useParams(); // Get groupId if editing
+  const isEditMode = !!groupId;
+  
   const msalAuth = useMSALAuth();
   const convexAuth = useConvexAuth();
   
@@ -28,6 +31,7 @@ const CreateGroup = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingDomains, setLoadingDomains] = useState(true);
+  const [loadingGroup, setLoadingGroup] = useState(isEditMode);
   const [availableDomains, setAvailableDomains] = useState([]);
   const [formData, setFormData] = useState({
     displayName: '',
@@ -39,16 +43,68 @@ const CreateGroup = () => {
     securityEnabled: false,
   });
 
+  // Load existing group data when editing
+  useEffect(() => {
+    const loadGroupData = async () => {
+      if (!isEditMode || !service) return;
+      
+      setLoadingGroup(true);
+      try {
+        const group = await service.getGroup(groupId);
+        
+        // Determine group type based on properties
+        let groupType = 'security';
+        if (group.groupTypes?.includes('Unified')) {
+          groupType = 'microsoft365';
+        } else if (group.mailEnabled && !group.securityEnabled) {
+          groupType = 'distribution';
+        }
+
+        // Extract domain from mail address if available
+        let selectedDomain = '';
+        if (group.mail) {
+          const parts = group.mail.split('@');
+          if (parts.length === 2) {
+            selectedDomain = parts[1];
+          }
+        }
+
+        setFormData({
+          displayName: group.displayName || '',
+          description: group.description || '',
+          mailNickname: group.mailNickname || '',
+          selectedDomain: selectedDomain,
+          groupType: groupType,
+          mailEnabled: group.mailEnabled || false,
+          securityEnabled: group.securityEnabled || false,
+        });
+      } catch (error) {
+        console.error('Error loading group:', error);
+        toast.error('Failed to load group details');
+        navigate('/groups');
+      } finally {
+        setLoadingGroup(false);
+      }
+    };
+
+    const isAuthReady = (isMSALAuth && msalAuth?.isAuthenticated) || (isConvexAuth && convexAuth?.isAuthenticated);
+    if (isAuthReady && isEditMode) {
+      loadGroupData();
+    }
+  }, [isEditMode, groupId, isMSALAuth, isConvexAuth, msalAuth?.isAuthenticated, convexAuth?.isAuthenticated, service, navigate]);
+
   // Load available domains on mount
   useEffect(() => {
     const loadDomains = async () => {
       try {
         const domains = await service.getOrganizationDomains();
         setAvailableDomains(domains);
-        // Set default domain
-        const defaultDomain = domains.find(d => d.isDefault) || domains[0];
-        if (defaultDomain) {
-          setFormData(prev => ({ ...prev, selectedDomain: defaultDomain.name }));
+        // Set default domain only if not in edit mode (edit mode sets it from group data)
+        if (!isEditMode) {
+          const defaultDomain = domains.find(d => d.isDefault) || domains[0];
+          if (defaultDomain) {
+            setFormData(prev => ({ ...prev, selectedDomain: defaultDomain.name }));
+          }
         }
       } catch (error) {
         console.error('Error loading domains:', error);
@@ -58,10 +114,12 @@ const CreateGroup = () => {
       }
     };
 
-    if (getAccessToken) {
+    // Check if auth is ready (either MSAL or Convex)
+    const isAuthReady = (isMSALAuth && msalAuth?.isAuthenticated) || (isConvexAuth && convexAuth?.isAuthenticated);
+    if (isAuthReady && service) {
       loadDomains();
     }
-  }, [getAccessToken]);
+  }, [isMSALAuth, isConvexAuth, msalAuth?.isAuthenticated, convexAuth?.isAuthenticated, service, isEditMode]);
 
   const groupTypes = [
     {
@@ -142,41 +200,77 @@ const CreateGroup = () => {
     try {
       const selectedType = groupTypes.find(t => t.value === formData.groupType);
       
-      const groupData = {
-        displayName: formData.displayName,
-        description: formData.description,
-        mailNickname: formData.mailNickname,
-        mailEnabled: selectedType.mailEnabled,
-        securityEnabled: selectedType.securityEnabled,
-      };
+      if (isEditMode) {
+        // Update existing group - only update allowed fields
+        const updateData = {
+          displayName: formData.displayName,
+          description: formData.description,
+        };
 
-      // Add groupTypes for Microsoft 365 groups
-      if (selectedType.groupTypes.length > 0) {
-        groupData.groupTypes = selectedType.groupTypes;
+        await service.updateGroup(groupId, updateData);
+        toast.success('Group updated successfully');
+        navigate(`/groups/${groupId}`);
+      } else {
+        // Create new group
+        const groupData = {
+          displayName: formData.displayName,
+          description: formData.description,
+          mailNickname: formData.mailNickname,
+          mailEnabled: selectedType.mailEnabled,
+          securityEnabled: selectedType.securityEnabled,
+        };
+
+        // Add groupTypes for Microsoft 365 groups
+        if (selectedType.groupTypes.length > 0) {
+          groupData.groupTypes = selectedType.groupTypes;
+        }
+
+        const newGroup = await service.createGroup(groupData);
+        const fullEmail = `${formData.mailNickname}@${formData.selectedDomain}`;
+        toast.success(`Group created successfully: ${fullEmail}`);
+        navigate(`/groups/${newGroup.id}`);
       }
-
-      const newGroup = await service.createGroup(groupData);
-      const fullEmail = `${formData.mailNickname}@${formData.selectedDomain}`;
-      toast.success(`Group created successfully: ${fullEmail}`);
-      navigate(`/groups/${newGroup.id}`);
     } catch (error) {
-      console.error('Error creating group:', error);
-      toast.error('Failed to create group: ' + (error.message || 'Unknown error'));
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} group:`, error);
+      toast.error(`Failed to ${isEditMode ? 'update' : 'create'} group: ` + (error.message || 'Unknown error'));
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Show loading state when loading group data in edit mode
+  if (loadingGroup) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => navigate('/groups')}
+            className="btn-secondary inline-flex items-center"
+          >
+            <ArrowLeftIcon className="h-5 w-5 mr-2" />
+            Back to Groups
+          </button>
+        </div>
+        <div className="card">
+          <div className="card-body flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            <span className="ml-3 text-gray-600">Loading group details...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <button
-          onClick={() => navigate('/groups')}
+          onClick={() => navigate(isEditMode ? `/groups/${groupId}` : '/groups')}
           className="btn-secondary inline-flex items-center"
         >
           <ArrowLeftIcon className="h-5 w-5 mr-2" />
-          Back to Groups
+          {isEditMode ? 'Back to Group' : 'Back to Groups'}
         </button>
       </div>
 
@@ -184,16 +278,24 @@ const CreateGroup = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="card">
           <div className="card-header">
-            <h1 className="text-2xl font-bold text-gray-900">Create New Group</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {isEditMode ? 'Edit Group' : 'Create New Group'}
+            </h1>
             <p className="mt-1 text-sm text-gray-600">
-              Create a distribution list, security group, or Microsoft 365 group
+              {isEditMode 
+                ? 'Update the group display name and description'
+                : 'Create a distribution list, security group, or Microsoft 365 group'
+              }
             </p>
           </div>
 
           <div className="card-body space-y-6">
-            {/* Group Type Selection */}
+            {/* Group Type Selection - disabled in edit mode */}
             <div>
-              <label className="form-label">Group Type *</label>
+              <label className="form-label">Group Type {!isEditMode && '*'}</label>
+              {isEditMode && (
+                <p className="text-xs text-amber-600 mb-2">Group type cannot be changed after creation</p>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
                 {groupTypes.map((type) => {
                   const Icon = type.icon;
@@ -201,9 +303,11 @@ const CreateGroup = () => {
                     <button
                       key={type.value}
                       type="button"
-                      onClick={() => handleGroupTypeChange(type.value)}
+                      onClick={() => !isEditMode && handleGroupTypeChange(type.value)}
+                      disabled={isEditMode}
                       className={`
                         p-4 border-2 rounded-lg text-left transition-all
+                        ${isEditMode ? 'cursor-not-allowed opacity-60' : ''}
                         ${formData.groupType === type.value
                           ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-200'
                           : 'border-gray-200 hover:border-gray-300'
@@ -247,17 +351,21 @@ const CreateGroup = () => {
               </p>
             </div>
 
-            {/* Mail Nickname / Alias */}
+            {/* Mail Nickname / Alias - disabled in edit mode */}
             <div>
               <label className="form-label">
-                Email Address *
+                Email Address {!isEditMode && '*'}
               </label>
+              {isEditMode && (
+                <p className="text-xs text-amber-600 mb-2">Email address cannot be changed after creation</p>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <input
                     type="text"
-                    required
-                    className="form-input"
+                    required={!isEditMode}
+                    disabled={isEditMode}
+                    className={`form-input ${isEditMode ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                     placeholder="e.g., marketing-team"
                     value={formData.mailNickname}
                     onChange={(e) => handleInputChange('mailNickname', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
@@ -268,11 +376,11 @@ const CreateGroup = () => {
                 </div>
                 <div>
                   <select
-                    required
-                    className="form-input"
+                    required={!isEditMode}
+                    disabled={isEditMode || loadingDomains}
+                    className={`form-input ${isEditMode ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                     value={formData.selectedDomain}
                     onChange={(e) => handleInputChange('selectedDomain', e.target.value)}
-                    disabled={loadingDomains}
                   >
                     {loadingDomains ? (
                       <option>Loading domains...</option>
@@ -337,7 +445,7 @@ const CreateGroup = () => {
           <div className="card-footer flex justify-end space-x-3">
             <button
               type="button"
-              onClick={() => navigate('/groups')}
+              onClick={() => navigate(isEditMode ? `/groups/${groupId}` : '/groups')}
               className="btn-secondary"
               disabled={isSubmitting}
             >
@@ -351,12 +459,12 @@ const CreateGroup = () => {
               {isSubmitting ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Creating...
+                  {isEditMode ? 'Saving...' : 'Creating...'}
                 </>
               ) : (
                 <>
                   <UserGroupIcon className="h-5 w-5 mr-2" />
-                  Create Group
+                  {isEditMode ? 'Save Changes' : 'Create Group'}
                 </>
               )}
             </button>
@@ -368,4 +476,3 @@ const CreateGroup = () => {
 };
 
 export default CreateGroup;
-

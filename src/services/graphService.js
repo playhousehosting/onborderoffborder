@@ -867,6 +867,51 @@ export class GraphService {
   // Group Management Methods
   
   /**
+   * Get a specific group by ID
+   * @param {string} groupId - The group ID
+   * @returns {Promise} The group object
+   */
+  async getGroup(groupId) {
+    return this.makeRequest(`/groups/${groupId}?$select=id,displayName,description,groupTypes,mail,mailNickname,mailEnabled,securityEnabled,visibility,createdDateTime`);
+  }
+
+  /**
+   * Create a new group
+   * @param {Object} groupData - The group data
+   * @returns {Promise} The created group
+   */
+  async createGroup(groupData) {
+    return this.makeRequest('/groups', {
+      method: 'POST',
+      body: JSON.stringify(groupData),
+    });
+  }
+
+  /**
+   * Update a group
+   * @param {string} groupId - The group ID
+   * @param {Object} updates - The fields to update
+   * @returns {Promise} The update response
+   */
+  async updateGroup(groupId, updates) {
+    return this.makeRequest(`/groups/${groupId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  /**
+   * Delete a group
+   * @param {string} groupId - The group ID
+   * @returns {Promise} The delete response
+   */
+  async deleteGroup(groupId) {
+    return this.makeRequest(`/groups/${groupId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
    * Get all groups in the organization
    * @param {number} top - Number of groups to return (default: 999)
    * @returns {Promise} Response with groups
