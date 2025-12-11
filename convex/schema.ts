@@ -62,29 +62,29 @@ export default defineSchema({
     // Actions configuration
     actions: v.object({
       // Account Actions
-      disableAccount: v.boolean(),
+      disableAccount: v.optional(v.boolean()),
       resetPassword: v.optional(v.boolean()),
-      revokeAccess: v.boolean(),
+      revokeAccess: v.optional(v.boolean()),
       // Licensing
       revokeLicenses: v.optional(v.boolean()),
       // Groups & Access
-      removeFromGroups: v.boolean(),
+      removeFromGroups: v.optional(v.boolean()),
       removeFromTeams: v.optional(v.boolean()),
       removeFromApps: v.optional(v.boolean()),
       removeAuthMethods: v.optional(v.boolean()),
       // Mailbox
       forwardEmail: v.optional(v.string()),
-      convertToSharedMailbox: v.boolean(),
+      convertToSharedMailbox: v.optional(v.boolean()),
       setEmailForwarding: v.optional(v.boolean()),
       forwardingAddress: v.optional(v.string()),
       setAutoReply: v.optional(v.boolean()),
       autoReplyMessage: v.optional(v.string()),
       // Data
-      backupData: v.boolean(),
+      backupData: v.optional(v.boolean()),
       transferFiles: v.optional(v.boolean()),
       newFileOwner: v.optional(v.string()),
       // Devices
-      removeDevices: v.boolean(),
+      removeDevices: v.optional(v.boolean()),
       removeApps: v.optional(v.boolean()),
       wipeDevices: v.optional(v.boolean()),
       retireDevices: v.optional(v.boolean()),
