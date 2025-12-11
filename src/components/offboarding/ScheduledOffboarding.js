@@ -55,6 +55,9 @@ const ScheduledOffboarding = () => {
   const [loading, setLoading] = useState(true);
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedUsers, setSelectedUsers] = useState([]); // Bulk selection
+  const [bulkMode, setBulkMode] = useState(false); // Toggle for bulk mode
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, processing: false });
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -427,13 +430,72 @@ const ScheduledOffboarding = () => {
       return;
     }
 
-      try {
-        const sessionId = getSessionId();
-        if (!sessionId) {
-          toast.error('Session not found. Please log in again.');
-          return;
+    // Validate user selection
+    if (bulkMode && selectedUsers.length === 0) {
+      toast.error('Please select at least one user');
+      return;
+    }
+    if (!bulkMode && !selectedUser && !editingSchedule) {
+      toast.error('Please select a user');
+      return;
+    }
+
+    try {
+      const sessionId = getSessionId();
+      if (!sessionId) {
+        toast.error('Session not found. Please log in again.');
+        return;
+      }
+
+      // Handle bulk mode - create multiple offboarding records
+      if (bulkMode && selectedUsers.length > 0) {
+        setBulkProgress({ current: 0, total: selectedUsers.length, processing: true });
+        let successCount = 0;
+        let failCount = 0;
+
+        for (let i = 0; i < selectedUsers.length; i++) {
+          const user = selectedUsers[i];
+          setBulkProgress({ current: i + 1, total: selectedUsers.length, processing: true });
+          
+          try {
+            const scheduleData = {
+              userId: user.id,
+              userName: user.displayName || user.name || '',
+              userEmail: user.mail || user.userPrincipalName || '',
+              scheduledDate: scheduleForm.scheduledDate,
+              scheduledTime: scheduleForm.scheduledTime,
+              timezone: scheduleForm.timezone,
+              template: scheduleForm.template,
+              useCustomActions: scheduleForm.useCustomActions,
+              actions: scheduleForm.useCustomActions ? scheduleForm.actions : undefined,
+              notifyManager: scheduleForm.notifyManager,
+              notifyUser: scheduleForm.notifyUser,
+              managerEmail: scheduleForm.managerEmail || '',
+              customMessage: scheduleForm.customMessage || '',
+            };
+
+            await convex.mutation(api.offboarding.create, {
+              sessionId,
+              ...scheduleData,
+            });
+            successCount++;
+          } catch (err) {
+            console.error(`Failed to schedule offboarding for ${user.displayName}:`, err);
+            failCount++;
+          }
         }
 
+        setBulkProgress({ current: 0, total: 0, processing: false });
+
+        if (successCount > 0 && failCount === 0) {
+          toast.success(`Successfully scheduled ${successCount} offboarding${successCount > 1 ? 's' : ''}`);
+        } else if (successCount > 0 && failCount > 0) {
+          toast.warning(`Scheduled ${successCount} offboarding${successCount > 1 ? 's' : ''}, ${failCount} failed`);
+        } else {
+          toast.error('Failed to schedule offboardings');
+        }
+      } else {
+        // Single user mode (original behavior)
         const scheduleData = {
           userId: selectedUser?.id || scheduleForm.userId,
           userName: selectedUser?.displayName || selectedUser?.name || '',
@@ -450,22 +512,28 @@ const ScheduledOffboarding = () => {
           customMessage: scheduleForm.customMessage || '',
         };
 
-      if (editingSchedule) {
-        await convex.mutation(api.offboarding.update, {
-          sessionId,
-          offboardingId: editingSchedule._id,
-          ...scheduleData,
-        });
-        toast.success('Offboarding schedule updated successfully');
-      } else {
-        await convex.mutation(api.offboarding.create, {
-          sessionId,
-          ...scheduleData,
-        });
-        toast.success('Offboarding scheduled successfully');
-      }      setShowScheduleForm(false);
+        if (editingSchedule) {
+          await convex.mutation(api.offboarding.update, {
+            sessionId,
+            offboardingId: editingSchedule._id,
+            ...scheduleData,
+          });
+          toast.success('Offboarding schedule updated successfully');
+        } else {
+          await convex.mutation(api.offboarding.create, {
+            sessionId,
+            ...scheduleData,
+          });
+          toast.success('Offboarding scheduled successfully');
+        }
+      }
+
+      // Reset form state
+      setShowScheduleForm(false);
       setEditingSchedule(null);
       setSelectedUser(null);
+      setSelectedUsers([]);
+      setBulkMode(false);
       setScheduleForm({
         userId: '',
         scheduledDate: '',
@@ -491,6 +559,7 @@ const ScheduledOffboarding = () => {
     } catch (error) {
       console.error('Error scheduling offboarding:', error);
       toast.error('Failed to schedule offboarding');
+      setBulkProgress({ current: 0, total: 0, processing: false });
     }
   };
 
@@ -1376,6 +1445,8 @@ const ScheduledOffboarding = () => {
                   setShowScheduleForm(false);
                   setEditingSchedule(null);
                   setSelectedUser(null);
+                  setSelectedUsers([]);
+                  setBulkMode(false);
                 }}
                 className="text-gray-400 hover:text-gray-500"
               >
@@ -1386,10 +1457,74 @@ const ScheduledOffboarding = () => {
             </div>
 
             <form onSubmit={handleScheduleSubmit} className="space-y-6">
+              {/* Bulk Mode Toggle */}
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="bulkMode"
+                    checked={bulkMode}
+                    onChange={(e) => {
+                      setBulkMode(e.target.checked);
+                      if (!e.target.checked) {
+                        setSelectedUsers([]);
+                      } else {
+                        setSelectedUser(null);
+                      }
+                    }}
+                    className="form-checkbox h-4 w-4 text-primary-600 rounded"
+                    disabled={editingSchedule}
+                  />
+                  <label htmlFor="bulkMode" className="text-sm font-medium text-gray-700">
+                    Bulk Mode - Schedule multiple users at once
+                  </label>
+                </div>
+                {bulkMode && selectedUsers.length > 0 && (
+                  <span className="text-sm text-primary-600 font-medium">
+                    {selectedUsers.length} user{selectedUsers.length > 1 ? 's' : ''} selected
+                  </span>
+                )}
+              </div>
+
               {/* User Selection */}
               <div>
-                <label className="form-label">Select User</label>
-                {selectedUser ? (
+                <label className="form-label">{bulkMode ? 'Select Users' : 'Select User'}</label>
+                
+                {/* Show selected users in bulk mode */}
+                {bulkMode && selectedUsers.length > 0 && (
+                  <div className="mb-3 space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2">
+                    {selectedUsers.map((user) => (
+                      <div key={user.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <div className="flex items-center">
+                          <div className="h-6 w-6 rounded-full bg-primary-100 flex items-center justify-center">
+                            <UserIcon className="h-4 w-4 text-primary-600" />
+                          </div>
+                          <div className="ml-2">
+                            <p className="text-sm font-medium text-gray-900">{user.displayName}</p>
+                            <p className="text-xs text-gray-500">{user.mail}</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedUsers(selectedUsers.filter(u => u.id !== user.id))}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedUsers([])}
+                      className="w-full text-sm text-red-600 hover:text-red-800 py-1"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                )}
+
+                {/* Single user display (non-bulk mode) */}
+                {!bulkMode && selectedUser ? (
                   <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                     <div className="flex items-center">
                       <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
@@ -1408,13 +1543,13 @@ const ScheduledOffboarding = () => {
                       <TrashIcon className="h-4 w-4" />
                     </button>
                   </div>
-                ) : (
+                ) : (!bulkMode || selectedUsers.length === 0 || bulkMode) && (
                   <div>
                     <div className="relative">
                       <input
                         type="text"
                         className="form-input"
-                        placeholder="Search for user"
+                        placeholder={bulkMode ? "Search and add users" : "Search for user"}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                       />
@@ -1427,17 +1562,40 @@ const ScheduledOffboarding = () => {
                     
                     {searchResults.length > 0 && (
                       <div className="mt-2 border border-gray-200 rounded-lg max-h-40 overflow-y-auto">
-                        {searchResults.map((user) => (
-                          <div
-                            key={user.id}
-                            type="button"
-                            onClick={() => setSelectedUser(user)}
-                            className="w-full text-left p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                          >
-                            <p className="text-sm font-medium text-gray-900">{user.displayName}</p>
-                            <p className="text-sm text-gray-500">{user.mail}</p>
-                          </div>
-                        ))}
+                        {searchResults.map((user) => {
+                          const isSelected = bulkMode && selectedUsers.some(u => u.id === user.id);
+                          return (
+                            <div
+                              key={user.id}
+                              onClick={() => {
+                                if (bulkMode) {
+                                  if (isSelected) {
+                                    setSelectedUsers(selectedUsers.filter(u => u.id !== user.id));
+                                  } else {
+                                    setSelectedUsers([...selectedUsers, user]);
+                                  }
+                                } else {
+                                  setSelectedUser(user);
+                                }
+                              }}
+                              className={`w-full text-left p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 cursor-pointer flex items-center justify-between ${isSelected ? 'bg-primary-50' : ''}`}
+                            >
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{user.displayName}</p>
+                                <p className="text-sm text-gray-500">{user.mail}</p>
+                              </div>
+                              {bulkMode && (
+                                <div className={`h-5 w-5 rounded border flex items-center justify-center ${isSelected ? 'bg-primary-600 border-primary-600' : 'border-gray-300'}`}>
+                                  {isSelected && (
+                                    <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -1933,6 +2091,26 @@ const ScheduledOffboarding = () => {
                 />
               </div>
 
+              {/* Bulk Progress Indicator */}
+              {bulkProgress.processing && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-blue-700">
+                      Scheduling users... ({bulkProgress.current} / {bulkProgress.total})
+                    </span>
+                    <span className="text-sm text-blue-600">
+                      {Math.round((bulkProgress.current / bulkProgress.total) * 100)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-blue-200 rounded-full h-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${(bulkProgress.current / bulkProgress.total) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Form Actions */}
               <div className="flex justify-end space-x-3">
                 <button
@@ -1941,16 +2119,26 @@ const ScheduledOffboarding = () => {
                     setShowScheduleForm(false);
                     setEditingSchedule(null);
                     setSelectedUser(null);
+                    setSelectedUsers([]);
+                    setBulkMode(false);
                   }}
                   className="btn btn-secondary"
+                  disabled={bulkProgress.processing}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   className="btn btn-primary"
+                  disabled={bulkProgress.processing || (bulkMode && selectedUsers.length === 0) || (!bulkMode && !selectedUser && !editingSchedule)}
                 >
-                  {editingSchedule ? 'Update Schedule' : 'Schedule Offboarding'}
+                  {bulkProgress.processing 
+                    ? 'Processing...' 
+                    : editingSchedule 
+                      ? 'Update Schedule' 
+                      : bulkMode 
+                        ? `Schedule ${selectedUsers.length} User${selectedUsers.length !== 1 ? 's' : ''}`
+                        : 'Schedule Offboarding'}
                 </button>
               </div>
             </form>
