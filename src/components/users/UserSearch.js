@@ -66,10 +66,9 @@ const UserSearch = () => {
     try {
       setLoading(true);
       logger.debug('📊 Fetching all users for search...');
-      // Explicitly request accountEnabled and other fields needed for display and filtering
-      const response = await service.getAllUsers({
-        select: 'id,displayName,userPrincipalName,mail,jobTitle,department,accountEnabled'
-      });
+      // getAllUsers already includes all needed fields in its default select
+      // First param is filter string (empty for all users), second is pageSize
+      const response = await service.getAllUsers('', 100);
       const fetchedUsers = response.value || [];
       setAllUsers(fetchedUsers);
       logger.success(`✅ Loaded ${fetchedUsers.length} users`);
