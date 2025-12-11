@@ -154,14 +154,33 @@ export const create = mutation({
     template: v.string(),
     useCustomActions: v.optional(v.boolean()),
     actions: v.optional(v.object({
+      // Account Actions
       disableAccount: v.boolean(),
+      resetPassword: v.optional(v.boolean()),
       revokeAccess: v.boolean(),
+      // Licensing
+      revokeLicenses: v.optional(v.boolean()),
+      // Groups & Access
       removeFromGroups: v.boolean(),
+      removeFromTeams: v.optional(v.boolean()),
+      removeFromApps: v.optional(v.boolean()),
+      removeAuthMethods: v.optional(v.boolean()),
+      // Mailbox
       forwardEmail: v.optional(v.string()),
       convertToSharedMailbox: v.boolean(),
+      setEmailForwarding: v.optional(v.boolean()),
+      forwardingAddress: v.optional(v.string()),
+      setAutoReply: v.optional(v.boolean()),
+      autoReplyMessage: v.optional(v.string()),
+      // Data
       backupData: v.boolean(),
+      transferFiles: v.optional(v.boolean()),
+      newFileOwner: v.optional(v.string()),
+      // Devices
       removeDevices: v.boolean(),
       removeApps: v.optional(v.boolean()),
+      wipeDevices: v.optional(v.boolean()),
+      retireDevices: v.optional(v.boolean()),
     })),
     notifyManager: v.boolean(),
     notifyUser: v.boolean(),
@@ -240,14 +259,33 @@ export const update = mutation({
     template: v.optional(v.string()),
     useCustomActions: v.optional(v.boolean()),
     actions: v.optional(v.object({
+      // Account Actions
       disableAccount: v.boolean(),
+      resetPassword: v.optional(v.boolean()),
       revokeAccess: v.boolean(),
+      // Licensing
+      revokeLicenses: v.optional(v.boolean()),
+      // Groups & Access
       removeFromGroups: v.boolean(),
+      removeFromTeams: v.optional(v.boolean()),
+      removeFromApps: v.optional(v.boolean()),
+      removeAuthMethods: v.optional(v.boolean()),
+      // Mailbox
       forwardEmail: v.optional(v.string()),
       convertToSharedMailbox: v.boolean(),
+      setEmailForwarding: v.optional(v.boolean()),
+      forwardingAddress: v.optional(v.string()),
+      setAutoReply: v.optional(v.boolean()),
+      autoReplyMessage: v.optional(v.string()),
+      // Data
       backupData: v.boolean(),
+      transferFiles: v.optional(v.boolean()),
+      newFileOwner: v.optional(v.string()),
+      // Devices
       removeDevices: v.boolean(),
       removeApps: v.optional(v.boolean()),
+      wipeDevices: v.optional(v.boolean()),
+      retireDevices: v.optional(v.boolean()),
     })),
     notifyManager: v.optional(v.boolean()),
     notifyUser: v.optional(v.boolean()),
