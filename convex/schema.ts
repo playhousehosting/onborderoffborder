@@ -68,6 +68,7 @@ export default defineSchema({
       convertToSharedMailbox: v.boolean(),
       backupData: v.boolean(),
       removeDevices: v.boolean(),
+      removeApps: v.optional(v.boolean()),
     }),
     
     // Execution tracking
